@@ -1,0 +1,32 @@
+# --- Build & IDE ---
+*.iml
+.gradle/
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# --- Rahasia & konfigurasi lokal: JANGAN PERNAH di-commit ---
+local.properties
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+keystore.properties
+google-services.json
+.env
+.env.*
+secrets.*
+
+# --- Catatan & berkas server pribadi: tidak ikut repo publik ---
+_private/
+
+# --- Lain-lain ---
+.kotlin/
+*.hprof
+*.log

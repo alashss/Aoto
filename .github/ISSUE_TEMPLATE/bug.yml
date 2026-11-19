@@ -1,0 +1,28 @@
+name: Laporan bug
+description: Ada yang rusak atau tidak sesuai harapan
+labels: [bug]
+body:
+  - type: textarea
+    id: apa
+    attributes:
+      label: Apa yang terjadi?
+      description: Langkah untuk memunculkannya dan hasil yang kamu harapkan.
+    validations:
+      required: true
+  - type: input
+    id: versi
+    attributes:
+      label: Versi Aoto
+      description: Setelan -> Tentang
+    validations:
+      required: true
+  - type: input
+    id: hp
+    attributes:
+      label: HP dan versi Android
+  - type: textarea
+    id: log
+    attributes:
+      label: Log atau laporan error
+      description: Salin dari layar "Aplikasi sempat berhenti" atau Setelan -> Uji pemutaran. Hapus data pribadi.
+      render: text

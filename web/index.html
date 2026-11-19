@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Aoto</title>
+<meta property="og:title" content="Playlist di Aoto">
+<style>
+  :root{color-scheme:dark;--bg:#0b1030;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.1);--ac:#6c93ff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,#1b1f5e,var(--bg) 60%);color:#fff;min-height:100vh}
+  main{max-width:520px;margin:0 auto;padding:28px 18px 60px}
+  .brand{font-weight:800;letter-spacing:.5px;opacity:.85;margin-bottom:18px}
+  .hero{display:flex;gap:16px;align-items:center}
+  .cover{width:96px;height:96px;border-radius:20px;object-fit:cover;background:var(--card);flex:none}
+  h1{font-size:24px;line-height:1.15;margin:0 0 6px}
+  .muted{color:rgba(255,255,255,.62);font-size:14px}
+  .creator{display:flex;gap:12px;align-items:center;margin:20px 0;padding:12px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
+  .avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--ac);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+  .grow{flex:1;min-width:0}
+  .lvl{font-weight:800;color:var(--ac)}
+  .btns{display:flex;gap:10px;margin-bottom:22px}
+  a.btn{flex:1;text-align:center;padding:14px;border-radius:50px;font-weight:700;text-decoration:none;color:#0b1030;background:#fff}
+  a.btn.alt{background:var(--card);color:#fff;border:1px solid var(--line)}
+  ol{list-style:none;margin:0;padding:0}
+  li{display:flex;gap:12px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--line)}
+  li img{width:46px;height:46px;border-radius:10px;object-fit:cover;background:var(--card);flex:none}
+  li .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  li .n{width:22px;color:rgba(255,255,255,.4);font-size:13px;flex:none}
+  .err{padding:40px 10px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">♪ Aoto</div>
+  <div id="app" class="muted">Memuat…</div>
+</main>
+<script>
+// ISI DUA BARIS INI (sama seperti CLOUD_URL dan CLOUD_KEY di build aplikasi; kunci anon memang publik).
+const CLOUD_URL = "GANTI_CLOUD_URL";
+const CLOUD_KEY = "GANTI_CLOUD_KEY";
+// Alamat unduh aplikasi (halaman rilis GitHub dsb). Boleh dikosongkan.
+const DOWNLOAD_URL = "";
+
+const code = new URLSearchParams(location.search).get("c") || (location.pathname.match(/\/p\/([A-Za-z0-9]+)/) || [])[1] || "";
+const app = document.getElementById("app");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+// Hanya gambar https yang ditampilkan (data dari pengguna lain tidak dipercaya).
+const safeImg = u => /^https:\/\//i.test(String(u || "")) ? String(u) : "";
+const artist = s => String(s || "").split(" • ")[0];
+
+async function load() {
+  if (!/^[A-Za-z0-9]{4,16}$/.test(code)) return fail("Tautan tidak valid.");
+  try {
+    const r = await fetch(CLOUD_URL + "/rest/v1/rpc/get_shared_playlist", {
+      method: "POST",
+      headers: {apikey: CLOUD_KEY, Authorization: "Bearer " + CLOUD_KEY, "Content-Type": "application/json"},
+      body: JSON.stringify({p_code: code})
+    });
+    const d = r.ok ? await r.json() : null;
+    if (!d) return fail("Playlist tidak ditemukan atau sudah dihapus.");
+    render(d);
+  } catch (e) { fail("Tidak bisa menghubungi server."); }
+}
+function fail(msg) { app.innerHTML = '<div class="err">' + esc(msg) + '</div>'; }
+function render(d) {
+  const songs = d.songs || [], c = d.creator || {};
+  const name = c.display_name || c.username || "Pengguna Aoto";
+  document.title = d.title + " · Aoto";
+  const av = safeImg(c.avatar_url) ? '<img class="avatar" src="' + esc(safeImg(c.avatar_url)) + '" alt="">'
+                          : '<div class="avatar">' + esc(name.slice(0,1).toUpperCase()) + '</div>';
+  app.innerHTML =
+    '<div class="hero"><img class="cover" src="' + esc(safeImg(songs[0]?.thumbnail)) + '" alt="">' +
+    '<div><h1>' + esc(d.title) + '</h1><div class="muted">' + songs.length + (songs.length === 1 ? ' lagu' : ' lagu') + '</div></div></div>' +
+    '<div class="creator">' + av + '<div class="grow"><div class="muted" style="font-size:11px">Dibuat oleh</div><b>' + esc(name) + '</b>' +
+    (c.username ? '<div class="muted" style="font-size:12px">@' + esc(c.username) + '</div>' : '') + '</div><div class="lvl">Lvl. ' + (c.level || 1) + '</div></div>' +
+    '<div class="btns"><a class="btn" href="aoto://p/' + code + '">Buka di Aoto</a>' +
+    (DOWNLOAD_URL ? '<a class="btn alt" href="' + esc(DOWNLOAD_URL) + '">Unduh aplikasi</a>' : '') + '</div>' +
+    '<ol>' + songs.map((s, i) => '<li><span class="n">' + (i + 1) + '</span><img src="' + esc(safeImg(s.thumbnail)) + '" alt="">' +
+      '<div class="grow"><div class="t">' + esc(s.title) + '</div><div class="muted" style="font-size:12px">' + esc(artist(s.subtitle)) + '</div></div></li>').join("") + '</ol>';
+  // Coba buka aplikasi otomatis di HP (diabaikan kalau tidak terpasang).
+  if (/Android/i.test(navigator.userAgent)) setTimeout(() => { location.href = "aoto://p/" + code; }, 400);
+}
+load();
+</script>
+</body>
+</html>

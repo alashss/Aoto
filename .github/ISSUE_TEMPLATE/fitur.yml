@@ -1,0 +1,10 @@
+name: Usulan fitur
+description: Ide untuk Aoto
+labels: [enhancement]
+body:
+  - type: textarea
+    id: ide
+    attributes:
+      label: Idenya apa, dan masalah apa yang diselesaikan?
+    validations:
+      required: true

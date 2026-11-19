@@ -1,0 +1,44 @@
+name: Build APK
+
+# Tanpa secrets (mis. build dari fork) aplikasi tetap terbangun; fitur akun / Google saja yang nonaktif.
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Build debug APK
+        env:
+          CLOUD_URL: ${{ secrets.CLOUD_URL }}
+          CLOUD_KEY: ${{ secrets.CLOUD_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          # Alamat domain halaman bagikan (Vercel), mis. https://aoto.domainmu.com . Isi di Settings -> Variables -> Actions.
+          SHARE_BASE_URL: ${{ vars.SHARE_BASE_URL }}
+          SOURCE_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: gradle assembleDebug --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aoto-debug
+          path: app/build/outputs/apk/debug/*.apk
