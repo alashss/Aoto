@@ -74,7 +74,14 @@ class StreakWidgetProvider : AppWidgetProvider() {
             val now = SystemClock.elapsedRealtime()
             if (now - lastRefresh < 20_000L) return
             lastRefresh = now
-            refresh(context)
+            val app = context.applicationContext
+            // Selalu di thread terpisah: tidak boleh menahan thread utama atau kunci PlayLog.
+            Thread {
+                try {
+                    if (hasWidgets(app)) refresh(app)
+                } catch (_: Throwable) {
+                }
+            }.apply { isDaemon = true }.start()
         }
 
         fun refresh(context: Context) {
@@ -88,6 +95,10 @@ class StreakWidgetProvider : AppWidgetProvider() {
         }
 
         private fun build(context: Context, manager: AppWidgetManager, id: Int): RemoteViews {
+            try {
+                com.jimz.jimztune.AppGraph.init(context)
+            } catch (_: Throwable) {
+            }
             Streak.init(context)
             val density = context.resources.displayMetrics.density
             var wDp = 160

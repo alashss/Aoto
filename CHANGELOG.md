@@ -1,5 +1,14 @@
 # Catatan perubahan
 
+## 1.9.4
+
+- **Perbaikan crash saat dibuka**: build tanpa `CLOUD_URL` / `CLOUD_KEY` yang dipasang di atas versi lama (yang masih menyimpan sesi login)
+  membuat aplikasi crash. Permintaan ke server sekarang dilewati kalau server belum dikonfigurasi.
+
+## 1.9.3
+
+- Pembaruan widget streak dipindah ke thread terpisah dan aman dipanggil di proses yang baru dimulai.
+
 ## 1.9.2
 
 - Setelan -> **Lisensi & kode sumber** membuka repo kode sumber (kewajiban GPL bagi penerima APK).

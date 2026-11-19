@@ -69,6 +69,10 @@ object CloudApi {
         token: String?,
         headers: Map<String, String>
     ): Resp = withContext(Dispatchers.IO) {
+        // Server belum dikonfigurasi (build tanpa CLOUD_URL / CLOUD_KEY): jangan membuat permintaan sama sekali.
+        // Dulu alamat "GANTI_CLOUD_URL" membuat OkHttp melempar IllegalArgumentException (bukan IOException) dan aplikasi crash
+        // begitu ada sesi login lama yang tersimpan.
+        if (!configured) return@withContext Resp(-1, "Server belum dikonfigurasi")
         try {
             val builder = Request.Builder()
                 .url(url + path)
@@ -82,6 +86,9 @@ object CloudApi {
         } catch (e: IOException) {
             com.jimz.jimztune.util.UserError.log("Jaringan", "${e.javaClass.simpleName}: ${e.message}")
             Resp(-1, "Tidak bisa menghubungi server")
+        } catch (e: IllegalArgumentException) {
+            com.jimz.jimztune.util.UserError.log("Jaringan", "Alamat server tidak valid: ${e.message}")
+            Resp(-1, "Alamat server tidak valid")
         }
     }
 
