@@ -175,9 +175,14 @@ class LyricsWidgetProvider : AppWidgetProvider() {
                     }
                 }
                 if (partialIds.isNotEmpty() && prev != null) {
+                    val animate = ANIMATE_LINES && prev.title == snap.title && prev.line != snap.line &&
+                        prev.line.isNotBlank() && snap.playing
+                    val gen = ++animGen
                     for (id in partialIds) {
-                        val pv = buildPartial(context, prev, snap, sizeFor(context, manager, id)) ?: break
+                        val size = sizeFor(context, manager, id)
+                        val pv = buildPartial(context, prev, snap, size, withLyric = !animate) ?: break
                         manager.partiallyUpdateAppWidget(id, pv)
+                        if (animate) animateLine(context, manager, id, prev, snap, size, gen)
                     }
                 }
                 lastSnap = snap
@@ -346,6 +351,61 @@ class LyricsWidgetProvider : AppWidgetProvider() {
             return bmp
         }
 
+        /** Animasi ganti baris: baris lama naik & memudar, baris baru naik dari bawah & menguat (seperti di Dynamic Island). */
+        private const val ANIMATE_LINES = true
+        private const val ANIM_FRAMES = 9
+        private const val ANIM_STEP_MS = 36L
+
+        @Volatile
+        private var animGen = 0
+
+        private fun animateLine(
+            context: Context, manager: AppWidgetManager, id: Int,
+            prev: WidgetSnapshot, snap: WidgetSnapshot, size: IntArray, gen: Int
+        ) {
+            val theme = WidgetThemes.get(LyricsWidgetStore.style(context))
+            val oldBmp = lyricBitmap(context, prev, size, theme)
+            val newBmp = lyricBitmap(context, snap, size, theme)
+            val app = context.applicationContext
+            Thread {
+                try {
+                    val w = newBmp.width
+                    val h = newBmp.height
+                    val shift = h * 0.30f
+                    val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
+                    for (i in 1..ANIM_FRAMES) {
+                        if (gen != animGen) return@Thread
+                        val p = i / ANIM_FRAMES.toFloat()
+                        val e = 1f - (1f - p) * (1f - p) * (1f - p) // ease-out
+                        val frame = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+                        val c = android.graphics.Canvas(frame)
+                        val outA = (1f - p * 2.2f).coerceIn(0f, 1f)
+                        if (outA > 0f) {
+                            paint.alpha = (outA * 255).toInt()
+                            c.drawBitmap(oldBmp, 0f, -shift * e, paint)
+                        }
+                        val inA = ((p - 0.15f) / 0.6f).coerceIn(0f, 1f)
+                        paint.alpha = (inA * 255).toInt()
+                        c.drawBitmap(newBmp, 0f, shift * (1f - e), paint)
+                        val v = RemoteViews(app.packageName, R.layout.widget_lyrics)
+                        v.setImageViewBitmap(R.id.widget_lyric_img, frame)
+                        synchronized(LyricsWidgetProvider::class.java) {
+                            if (gen != animGen) return@Thread
+                            manager.partiallyUpdateAppWidget(id, v)
+                        }
+                        Thread.sleep(ANIM_STEP_MS)
+                    }
+                    synchronized(LyricsWidgetProvider::class.java) {
+                        if (gen != animGen) return@Thread
+                        val v = RemoteViews(app.packageName, R.layout.widget_lyrics)
+                        v.setImageViewBitmap(R.id.widget_lyric_img, newBmp)
+                        manager.partiallyUpdateAppWidget(id, v)
+                    }
+                } catch (_: Exception) {
+                }
+            }.apply { isDaemon = true }.start()
+        }
+
         private fun fmtTime(ms: Long): String {
             val s = (ms / 1000).coerceAtLeast(0)
             return "%d:%02d".format(s / 60, s % 60)
@@ -419,7 +479,7 @@ class LyricsWidgetProvider : AppWidgetProvider() {
          * Hanya bagian yang berubah dari [prev] ke [snap]. Mengembalikan null kalau tidak ada yang perlu dikirim.
          * Latar, sampul, warna, dan aksi ketuk tidak disentuh sehingga tetap diam di layar.
          */
-        private fun buildPartial(context: Context, prev: WidgetSnapshot, snap: WidgetSnapshot, size: IntArray): RemoteViews? {
+        private fun buildPartial(context: Context, prev: WidgetSnapshot, snap: WidgetSnapshot, size: IntArray, withLyric: Boolean = true): RemoteViews? {
             // Selalu kirim SELURUH bagian yang berubah-ubah (bukan selisih): kalau satu pembaruan sebelumnya dibuang peluncur,
             // pembaruan berikutnya otomatis memulihkan keadaan yang benar. Teks yang sama tidak menimbulkan kedip / animasi.
             if (snap == prev) return null
@@ -428,7 +488,7 @@ class LyricsWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_title, snap.title)
             views.setTextViewText(R.id.widget_artist, snap.artist)
             // Gambar lirik selalu ikut dikirim (dari simpanan, murah): kalau satu pembaruan dibuang peluncur, yang berikutnya memulihkannya.
-            views.setImageViewBitmap(R.id.widget_lyric_img, lyricBitmap(context, snap, size, theme))
+            if (withLyric) views.setImageViewBitmap(R.id.widget_lyric_img, lyricBitmap(context, snap, size, theme))
             views.setImageViewResource(
                 R.id.widget_play,
                 if (snap.playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play

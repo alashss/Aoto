@@ -1,5 +1,10 @@
 # Catatan perubahan
 
+## 1.9.6
+
+- **Widget lirik beranimasi lagi**: saat baris berganti, baris lama naik & memudar lalu baris baru naik dari bawah (seperti di Dynamic Island).
+  Animasi digambar sebagai gambar bertahap, jadi tidak ada lagi baris kosong atau kedip.
+
 ## 1.9.5
 
 - **Widget lirik**: area lirik sekarang digambar sebagai satu gambar (bukan TextView/ViewFlipper), jadi baris tidak lagi kosong atau
