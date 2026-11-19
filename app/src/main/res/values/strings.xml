@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Aoto</string>
+    <string name="widget_streak_name">Streak Aoto</string>
+    <string name="widget_streak_description">Api streak dan tujuh hari terakhir</string>
+    <string name="widget_lyrics_name">Lirik Aoto</string>
+    <string name="widget_lyrics_description">Lirik lagu yang sedang diputar, baris demi baris</string>
+</resources>

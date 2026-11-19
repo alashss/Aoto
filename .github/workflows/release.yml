@@ -1,0 +1,67 @@
+name: Release APK
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Siapkan keystore rilis
+        env:
+          KS_B64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/aoto.jks"
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/aoto.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::KEYSTORE_BASE64 belum diisi. APK memakai kunci debug acak, jadi TIDAK bisa dipasang sebagai pembaruan di atas versi sebelumnya."
+          fi
+
+      - name: Build APK rilis
+        env:
+          CLOUD_URL: ${{ secrets.CLOUD_URL }}
+          CLOUD_KEY: ${{ secrets.CLOUD_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          # Alamat domain halaman bagikan (Vercel), mis. https://aoto.domainmu.com . Isi di Settings -> Variables -> Actions.
+          SHARE_BASE_URL: ${{ vars.SHARE_BASE_URL }}
+          SOURCE_URL: ${{ github.server_url }}/${{ github.repository }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: gradle assembleRelease --no-daemon
+
+      - name: Beri nama tetap pada APK
+        run: cp app/build/outputs/apk/release/app-release.apk Aoto.apk
+
+      - name: Tentukan nama tag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "TAG=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+          else
+            echo "TAG=build-$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+          fi
+
+      - name: Terbitkan ke GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: Aoto ${{ env.TAG }}
+          files: Aoto.apk
+          generate_release_notes: true

@@ -1,0 +1,15 @@
+## Salin file ini menjadi `local.properties` (file itu diabaikan git) lalu isi nilainya.
+## Android Studio menambahkan sdk.dir sendiri. Tanpa nilai di bawah, aplikasi tetap terbangun,
+## tetapi akun, sinkronisasi, dan peringkat nonaktif.
+
+# Alamat dasar server aplikasi (tanpa garis miring di akhir)
+CLOUD_URL=https://server.contoh.com
+# Kunci PUBLIK klien. JANGAN pernah memakai kunci rahasia / administrator server.
+CLOUD_KEY=isi-kunci-publik
+# OAuth Client ID bertipe "Web application" (Google Cloud -> Credentials)
+GOOGLE_WEB_CLIENT_ID=1234567890-abc123.apps.googleusercontent.com
+# Alamat repo ini (tampil di Setelan -> Lisensi & kode sumber)
+SOURCE_URL=https://github.com/USERNAME/REPO
+
+# (Opsional) Alamat halaman web bagikan, mis. https://aoto.contoh.com
+#SHARE_BASE_URL=https://aoto.contoh.com

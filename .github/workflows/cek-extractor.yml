@@ -1,0 +1,32 @@
+name: Cek update NewPipeExtractor
+
+# YouTube sering mengubah sistemnya, dan perbaikannya datang lewat rilis NewPipeExtractor baru.
+# Workflow ini dijalankan tiap Senin dan membuka issue kalau ada versi yang lebih baru dari yang dipakai app.
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  cek:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bandingkan versi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pakai=$(grep -oP 'newpipeextractor:\Kv[0-9.]+' app/build.gradle.kts | head -1)
+          terbaru=$(gh api repos/TeamNewPipe/NewPipeExtractor/releases/latest --jq .tag_name)
+          echo "dipakai=$pakai terbaru=$terbaru"
+          if [ -n "$pakai" ] && [ "$pakai" != "$terbaru" ]; then
+            judul="Update NewPipeExtractor: $pakai -> $terbaru"
+            ada=$(gh issue list --state open --search "\"$judul\" in:title" --json number --jq 'length')
+            if [ "$ada" = "0" ]; then
+              gh issue create --title "$judul" --body "Ada rilis NewPipeExtractor baru. Naikkan versi di app/build.gradle.kts, build, lalu jalankan Uji pemutaran di Setelan sebelum rilis."
+            fi
+          fi

@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Latar digambar sebagai gambar (mengikuti tema, ukuran, dan kepekatan); drawable ini hanya cadangan sebelum gambar pertama datang. -->
+    <ImageView
+        android:id="@+id/widget_bg_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_bg" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="14dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="12dp">
+
+        <!-- Baris atas: sampul, judul + artis, tombol kontrol -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/widget_cover"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/widget_cover_placeholder" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Aoto"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_artist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text=""
+                    android:textColor="#B3FFFFFF"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/widget_prev"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@null"
+                android:contentDescription="Sebelumnya"
+                android:padding="7dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_media_previous" />
+
+            <ImageButton
+                android:id="@+id/widget_play"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@null"
+                android:contentDescription="Putar atau jeda"
+                android:padding="5dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_media_play" />
+
+            <ImageButton
+                android:id="@+id/widget_next"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@null"
+                android:contentDescription="Berikutnya"
+                android:padding="7dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_media_next" />
+        </LinearLayout>
+
+        <!--
+            Area lirik selebar widget. Dua "slot" bergantian: setiap baris baru ditulis ke slot yang
+            sedang tersembunyi lalu ViewFlipper menggesernya masuk (baris lama memudar keluar).
+            Teks mengecil otomatis (autosize) sehingga tidak ada lirik yang terpotong.
+        -->
+        <ViewFlipper
+            android:id="@+id/widget_flipper"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="6dp"
+            android:layout_weight="1"
+            android:animateFirstView="false"
+            android:inAnimation="@anim/widget_lyric_in"
+            android:outAnimation="@anim/widget_lyric_out">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_line_a"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="3"
+                    android:autoSizeMaxTextSize="22sp"
+                    android:autoSizeMinTextSize="9sp"
+                    android:autoSizeStepGranularity="1sp"
+                    android:autoSizeTextType="uniform"
+                    android:gravity="bottom|start"
+                    android:maxLines="5"
+                    android:text="Putar lagu untuk melihat lirik"
+                    android:textColor="#FFFFFFFF"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_next_a"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="3dp"
+                    android:layout_weight="1.3"
+                    android:autoSizeMaxTextSize="14sp"
+                    android:autoSizeMinTextSize="8sp"
+                    android:autoSizeStepGranularity="1sp"
+                    android:autoSizeTextType="uniform"
+                    android:gravity="top|start"
+                    android:maxLines="3"
+                    android:text=""
+                    android:textColor="#99FFFFFF" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_line_b"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="3"
+                    android:autoSizeMaxTextSize="22sp"
+                    android:autoSizeMinTextSize="9sp"
+                    android:autoSizeStepGranularity="1sp"
+                    android:autoSizeTextType="uniform"
+                    android:gravity="bottom|start"
+                    android:maxLines="5"
+                    android:text=""
+                    android:textColor="#FFFFFFFF"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_next_b"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="3dp"
+                    android:layout_weight="1.3"
+                    android:autoSizeMaxTextSize="14sp"
+                    android:autoSizeMinTextSize="8sp"
+                    android:autoSizeStepGranularity="1sp"
+                    android:autoSizeTextType="uniform"
+                    android:gravity="top|start"
+                    android:maxLines="3"
+                    android:text=""
+                    android:textColor="#99FFFFFF" />
+            </LinearLayout>
+        </ViewFlipper>
+
+        <!-- Progres lagu. Sepuluh area transparan di atasnya bisa diketuk untuk loncat ke bagian itu. -->
+        <LinearLayout
+            android:id="@+id/widget_progress_row"
+            android:layout_width="match_parent"
+            android:layout_height="26dp"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/widget_time_left"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="32dp"
+                android:text="0:00"
+                android:textColor="#99FFFFFF"
+                android:textSize="10sp" />
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1">
+
+                <ImageView
+                    android:id="@+id/widget_progress_img"
+                    android:layout_width="match_parent"
+                    android:layout_height="5dp"
+                    android:layout_gravity="center_vertical"
+                    android:scaleType="fitXY" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/widget_seek_0"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:contentDescription="Loncat ke 0 persen" />
+
+                <ImageView
+                    android:id="@+id/widget_seek_1"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:contentDescription="Loncat ke 10 persen" />
+
+                <ImageView
+                    android:id="@+id/widget_seek_2"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:contentDescription="Loncat ke 20 persen" />
+
+                <ImageView
+                    android:id="@+id/widget_seek_3"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:contentDescription="Loncat ke 30 persen" />
+
+                <ImageView
+                    android:id="@+id/widget_seek_4"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:contentDescription="Loncat ke 40 persen" />
+
+                <ImageView
+                    android:id="@+id/widget_seek_5"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:contentDescription="Loncat ke 50 persen" />
+
+                <ImageView
+                    android:id="@+id/widget_seek_6"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:contentDescription="Loncat ke 60 persen" />
+
+                <ImageView
+                    android:id="@+id/widget_seek_7"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:contentDescription="Loncat ke 70 persen" />
+
+                <ImageView
+                    android:id="@+id/widget_seek_8"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:contentDescription="Loncat ke 80 persen" />
+
+                <ImageView
+                    android:id="@+id/widget_seek_9"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:contentDescription="Loncat ke 90 persen" />
+                </LinearLayout>
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/widget_time_right"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:minWidth="32dp"
+                android:text="0:00"
+                android:textColor="#99FFFFFF"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.JimzTune" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/jimz_background</item>
+    </style>
+
+    <style name="Theme.JimzTune.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/jimz_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_blank</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/jimz_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.JimzTune</item>
+    </style>
+</resources>
