@@ -38,7 +38,7 @@ jobs:
           SOURCE_URL: ${{ github.server_url }}/${{ github.repository }}
         run: gradle assembleDebug --stacktrace
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Aoto-debug
           path: app/build/outputs/apk/debug/*.apk
