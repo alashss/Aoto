@@ -409,6 +409,18 @@ fun SettingsScreen(
                 }
             )
             RowDivider()
+            SettingRow(
+                icon = Icons.Rounded.Info,
+                title = "Lisensi & kode sumber",
+                subtitle = "GNU GPL v3 atau lebih baru. Ketuk untuk membuka kode sumber",
+                onClick = {
+                    val src = com.jimz.jimztune.AppConfig.SOURCE_URL
+                    context.openUrl(
+                        if (src.startsWith("http")) src else "https://www.gnu.org/licenses/gpl-3.0.html"
+                    )
+                }
+            )
+            RowDivider()
             val unread = remote.unreadCount()
             SettingRow(
                 icon = Icons.Rounded.Campaign,

@@ -1,6 +1,6 @@
 # Aoto
 
-[![Build](https://github.com/USERNAME/REPO/actions/workflows/build.yml/badge.svg)](../../actions/workflows/build.yml)
+[![Build](https://github.com/alashss/JIMZTUNE/actions/workflows/build.yml/badge.svg)](../../actions/workflows/build.yml)
 [![Lisensi: GPL v3+](https://img.shields.io/badge/lisensi-GPL--3.0--or--later-blue.svg)](LICENSE)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84.svg)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF.svg)
@@ -48,3 +48,8 @@ bertanggung jawab atas data penggunanya dan wajib memberi tahu mereka.
 [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) (GPL-3.0-or-later), sehingga seluruh aplikasi ikut
 GPL. Membagikan APK hasil build wajib menyertakan lisensi dan menyediakan kode sumbernya. Pustaka dan aset lain:
 [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md).
+
+### Nama dan logo
+
+Kode Aoto dilisensikan di bawah GPL, tetapi **nama "Aoto" dan logonya** (`aoto_logo`, `splash_icon`, ikon aplikasi) adalah
+merek/aset pemilik proyek dan tidak ikut dilisensikan GPL. Fork yang dibagikan sebaiknya memakai nama dan logo sendiri.

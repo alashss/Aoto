@@ -1,5 +1,10 @@
 # Catatan perubahan
 
+## 1.9.2
+
+- Setelan -> **Lisensi & kode sumber** membuka repo kode sumber (kewajiban GPL bagi penerima APK).
+- Tambah `NOTICE.md` (pemberitahuan GPL) dan catatan nama/logo di README.
+
 ## 1.9.1
 
 - **Widget lirik**: baris lirik tidak lagi hilang sesaat saat berganti baris (animasi ViewFlipper di widget dimatikan;
