@@ -1,5 +1,13 @@
 # Catatan perubahan
 
+## 1.9.5
+
+- **Widget lirik**: area lirik sekarang digambar sebagai satu gambar (bukan TextView/ViewFlipper), jadi baris tidak lagi kosong atau
+  berkedip saat berganti; ukuran huruf menyesuaikan otomatis.
+- **NewPipe jadi sumber utama** pencarian audio: berjalan lebih dulu, klien langsung ikut berlomba sebagai cadangan setelah 2,5 detik
+  (langsung jalan kalau NewPipe baru gagal).
+- **Judul panjang bergeser pelan** (marquee) di pemutar, mini player, dan Dynamic Island, tidak lagi terpotong "...".
+
 ## 1.9.4
 
 - **Perbaikan crash saat dibuka**: build tanpa `CLOUD_URL` / `CLOUD_KEY` yang dipasang di atas versi lama (yang masih menyimpan sesi login)

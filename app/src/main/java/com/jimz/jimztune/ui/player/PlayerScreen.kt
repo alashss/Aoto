@@ -1,6 +1,9 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.jimz.jimztune.ui.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -255,7 +258,8 @@ fun PlayerScreen(
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Clip,
+                            modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
@@ -263,7 +267,8 @@ fun PlayerScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             color = white70,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Clip,
+                            modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
                         )
                     }
                     val favorite = AppGraph.library.isFavorite(song.id)

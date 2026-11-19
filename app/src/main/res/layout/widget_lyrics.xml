@@ -96,92 +96,17 @@
         </LinearLayout>
 
         <!--
-            Area lirik selebar widget. Dua "slot" bergantian: setiap baris baru ditulis ke slot yang
-            sedang tersembunyi lalu ViewFlipper menggesernya masuk (baris lama memudar keluar).
-            Teks mengecil otomatis (autosize) sehingga tidak ada lirik yang terpotong.
+            Area lirik digambar sebagai SATU gambar (baris sekarang + baris berikutnya, ukuran huruf disesuaikan di kode).
+            Dengan begitu tidak ada TextView yang bisa kosong/berkedip saat peluncur memproses pembaruan teks sebagian.
         -->
-        <ViewFlipper
-            android:id="@+id/widget_flipper"
+        <ImageView
+            android:id="@+id/widget_lyric_img"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_marginTop="6dp"
             android:layout_weight="1"
-            android:animateFirstView="false"
-            android:inAnimation="@anim/widget_lyric_in"
-            android:outAnimation="@anim/widget_lyric_out">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_line_a"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="3"
-                    android:autoSizeMaxTextSize="22sp"
-                    android:autoSizeMinTextSize="9sp"
-                    android:autoSizeStepGranularity="1sp"
-                    android:autoSizeTextType="uniform"
-                    android:gravity="bottom|start"
-                    android:maxLines="5"
-                    android:text="Putar lagu untuk melihat lirik"
-                    android:textColor="#FFFFFFFF"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_next_a"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_marginTop="3dp"
-                    android:layout_weight="1.3"
-                    android:autoSizeMaxTextSize="14sp"
-                    android:autoSizeMinTextSize="8sp"
-                    android:autoSizeStepGranularity="1sp"
-                    android:autoSizeTextType="uniform"
-                    android:gravity="top|start"
-                    android:maxLines="3"
-                    android:text=""
-                    android:textColor="#99FFFFFF" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/widget_line_b"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="3"
-                    android:autoSizeMaxTextSize="22sp"
-                    android:autoSizeMinTextSize="9sp"
-                    android:autoSizeStepGranularity="1sp"
-                    android:autoSizeTextType="uniform"
-                    android:gravity="bottom|start"
-                    android:maxLines="5"
-                    android:text=""
-                    android:textColor="#FFFFFFFF"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_next_b"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_marginTop="3dp"
-                    android:layout_weight="1.3"
-                    android:autoSizeMaxTextSize="14sp"
-                    android:autoSizeMinTextSize="8sp"
-                    android:autoSizeStepGranularity="1sp"
-                    android:autoSizeTextType="uniform"
-                    android:gravity="top|start"
-                    android:maxLines="3"
-                    android:text=""
-                    android:textColor="#99FFFFFF" />
-            </LinearLayout>
-        </ViewFlipper>
+            android:contentDescription="Lirik"
+            android:scaleType="fitStart" />
 
         <!-- Progres lagu. Sepuluh area transparan di atasnya bisa diketuk untuk loncat ke bagian itu. -->
         <LinearLayout

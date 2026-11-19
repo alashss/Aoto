@@ -1,9 +1,12 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.jimz.jimztune.ui.player
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -89,14 +92,16 @@ fun MiniPlayer(
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Clip,
+                        modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
                     )
                     Text(
                         song.subtitle.substringBefore(" • "),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.65f),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Clip,
+                        modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
                     )
                 }
                 IconButton(onClick = onToggle) {

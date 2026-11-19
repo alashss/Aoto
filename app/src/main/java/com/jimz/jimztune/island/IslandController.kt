@@ -400,6 +400,13 @@ class IslandController(private val context: Context, private val player: Player)
         outlineProvider = if (round) ovalOutline() else roundOutline(dp(cornerDp))
     }
 
+    private fun scrollText(color: Int, sp: Float, bold: Boolean = false): TextView = ScrollTextView(context).apply {
+        setTextColor(color)
+        textSize = sp
+        typeface = Typeface.create(if (bold) "sans-serif-medium" else "sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
+        includeFontPadding = false
+    }
+
     private fun text(color: Int, sp: Float, bold: Boolean = false): TextView = TextView(context).apply {
         setTextColor(color)
         textSize = sp
@@ -437,12 +444,7 @@ class IslandController(private val context: Context, private val player: Player)
             FrameLayout.LayoutParams(dp(28), dp(28), Gravity.START or Gravity.CENTER_VERTICAL).apply { marginStart = dp(5) }
         )
         // Lirik yang kepanjangan bergeser pelan otomatis (marquee) alih-alih terpotong.
-        val compactText = text(pal.fg, 12f, bold = true).apply {
-            setSingleLine()
-            setHorizontallyScrolling(true)
-            ellipsize = TextUtils.TruncateAt.MARQUEE
-            marqueeRepeatLimit = -1
-            isSelected = true
+        val compactText = scrollText(pal.fg, 12f, bold = true).apply {
             gravity = Gravity.CENTER_VERTICAL
             visibility = View.GONE
         }
@@ -499,16 +501,8 @@ class IslandController(private val context: Context, private val player: Player)
             setOnClickListener { openMain() }
         }
         val texts = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        val title = text(pal.fg, 18f, bold = true).apply {
-            setSingleLine()
-            ellipsize = TextUtils.TruncateAt.MARQUEE
-            marqueeRepeatLimit = -1
-            isSelected = true
-        }
-        val artist = text(pal.soft, 14f).apply {
-            setSingleLine()
-            ellipsize = TextUtils.TruncateAt.END
-        }
+        val title = scrollText(pal.fg, 18f, bold = true)
+        val artist = scrollText(pal.soft, 14f)
         texts.addView(title)
         texts.addView(artist, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(5) })
         val fullEq = IslandEqView(context)

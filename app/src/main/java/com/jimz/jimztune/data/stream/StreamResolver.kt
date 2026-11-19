@@ -49,6 +49,11 @@ object StreamResolver {
 
     @Volatile private var lastWarm = 0L
 
+    /** NewPipe gagal baru-baru ini: sampai kapan cadangan tidak perlu menunggu NewPipe. */
+    @Volatile private var newPipeDownUntil = 0L
+    private fun isNewPipeDown() = newPipeDownUntil > System.currentTimeMillis()
+    private const val NEWPIPE_HEAD_START_MS = 2_500L
+
     /**
      * Menghangatkan sambungan (DNS + TLS) ke YouTube dan menyiapkan NewPipe di latar belakang, supaya pencarian lagu PERTAMA
      * tidak membayar biaya sambungan awal. Aman dipanggil berulang (dibatasi sekali per 4 menit).
@@ -156,6 +161,7 @@ object StreamResolver {
                 cache[videoId] = Cached(winner.second, until)
                 lastProvider[videoId] = winner.first
                 weakUntil.remove(winner.first)
+                if (winner.first == "NewPipe") newPipeDownUntil = 0L
                 if (winner.first != "NewPipe" && group === groups.first().first) lastFastWin.set(now)
                 PlaybackDiagnostics.add("Sumber audio: ${winner.first}")
                 return winner.second
@@ -171,19 +177,15 @@ object StreamResolver {
         timeoutMs: Long
     ): Pair<String, String>? {
         val channel = Channel<Pair<StreamProvider, Result<String>>>(group.size)
-        val fastRecentlyOk = System.currentTimeMillis() - lastFastWin.get() < 15 * 60_000L
-        val directOthers = group.filter { it.name != "NewPipe" && it.name != "Piped" && it.name != "Invidious" }
-        val allDirectWeak = directOthers.isNotEmpty() && directOthers.all { isWeak(it.name) }
         val jobs = group.map { p ->
             scope.launch {
-                // NewPipe berat (CPU + banyak permintaan) dan biasanya kalah cepat dari klien langsung, jadi klien langsung
-                // diberi kesempatan dulu (1,5 dtk; 2,5 dtk kalau baru sukses). PENGECUALIAN: kalau semua klien langsung baru saja
-                // ditolak server (lemah), NewPipe langsung jalan, tidak menunggu. Klien lemah ikut giliran belakangan (0,6 dtk).
-                if (p.name == "NewPipe" && group.size > 1) {
-                    val wait = if (allDirectWeak) 0L else if (fastRecentlyOk) 2_500L else 1_500L
-                    if (wait > 0L) delay(wait)
-                } else if (p.name != "NewPipe" && !allDirectWeak && isWeak(p.name)) {
-                    delay(600L)
+                // NewPipe adalah sumber UTAMA: langsung jalan tanpa menunggu. Klien YouTube langsung menjadi cadangan yang baru
+                // ikut berlomba setelah NewPipe diberi waktu [NEWPIPE_HEAD_START_MS]. Kalau NewPipe baru saja gagal, cadangan
+                // langsung jalan tanpa menunggu (supaya tidak ada jeda sia-sia). Klien yang baru ditolak server (lemah) menunggu lebih lama.
+                if (p.name != "NewPipe" && group.size > 1) {
+                    val wait = if (isNewPipeDown()) 0L else NEWPIPE_HEAD_START_MS
+                    val extra = if (isWeak(p.name)) 600L else 0L
+                    if (wait + extra > 0L) delay(wait + extra)
                 }
                 val result = try {
                     val url = p.audioUrl(videoId)
@@ -220,6 +222,7 @@ object StreamResolver {
                 val e = result.exceptionOrNull()
                 val reason = "${e?.javaClass?.simpleName}: ${e?.message}".take(110)
                 errors += "${provider.name}: $reason"
+                if (provider.name == "NewPipe") newPipeDownUntil = System.currentTimeMillis() + 3 * 60_000L
                 PlaybackDiagnostics.add("${provider.name} gagal — $reason")
             }
         }

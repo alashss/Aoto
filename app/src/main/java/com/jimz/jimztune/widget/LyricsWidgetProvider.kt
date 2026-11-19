@@ -175,8 +175,10 @@ class LyricsWidgetProvider : AppWidgetProvider() {
                     }
                 }
                 if (partialIds.isNotEmpty() && prev != null) {
-                    val pv = buildPartial(context, prev, snap)
-                    if (pv != null) manager.partiallyUpdateAppWidget(partialIds.toIntArray(), pv)
+                    for (id in partialIds) {
+                        val pv = buildPartial(context, prev, snap, sizeFor(context, manager, id)) ?: break
+                        manager.partiallyUpdateAppWidget(id, pv)
+                    }
                 }
                 lastSnap = snap
             } catch (_: Exception) {
@@ -221,7 +223,7 @@ class LyricsWidgetProvider : AppWidgetProvider() {
                 else -> 24f
             }
             val radius = baseDp * density * scale.toFloat()
-            return intArrayOf(w, h, radius.toInt())
+            return intArrayOf(w, h, radius.toInt(), (density * scale.toFloat() * 100f).toInt())
         }
 
         private val bgCache = object : LinkedHashMap<String, android.graphics.Bitmap>(8, 0.75f, true) {
@@ -278,6 +280,72 @@ class LyricsWidgetProvider : AppWidgetProvider() {
                 bmp
             }
 
+        private val lyricCache = object : LinkedHashMap<String, android.graphics.Bitmap>(8, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, android.graphics.Bitmap>?) = size > 4
+        }
+
+        /** Mencari ukuran huruf terbesar (antara [maxPx] dan [minPx]) yang membuat [text] muat di [w] x [maxH] px. */
+        private fun fitLayout(
+            text: String, paint: android.text.TextPaint, w: Int, maxH: Int, maxPx: Float, minPx: Float, maxLines: Int, step: Float
+        ): android.text.StaticLayout {
+            fun make(px: Float, limited: Boolean): android.text.StaticLayout {
+                paint.textSize = px
+                val b = android.text.StaticLayout.Builder.obtain(text, 0, text.length, paint, w)
+                    .setAlignment(android.text.Layout.Alignment.ALIGN_NORMAL)
+                    .setIncludePad(false)
+                if (limited) b.setMaxLines(maxLines).setEllipsize(android.text.TextUtils.TruncateAt.END)
+                return b.build()
+            }
+            var px = maxPx
+            while (px > minPx) {
+                val l = make(px, false)
+                if (l.lineCount <= maxLines && l.height <= maxH) return l
+                px -= step
+            }
+            return make(minPx, true)
+        }
+
+        /**
+         * Area lirik sebagai gambar: baris sekarang (tebal, rata bawah) dan baris berikutnya (redup, rata atas). Ukuran area dihitung
+         * dari ukuran widget dikurangi bagian lain (baris atas dan progres), lalu huruf diperkecil otomatis agar tidak terpotong.
+         */
+        @Synchronized
+        private fun lyricBitmap(context: Context, snap: WidgetSnapshot, size: IntArray, theme: WidgetTheme): android.graphics.Bitmap {
+            val d = (size.getOrElse(3) { 300 } / 100f).coerceAtLeast(0.5f)
+            val showNext = LyricsWidgetStore.showNext(context)
+            val showProgress = LyricsWidgetStore.showProgress(context)
+            val w = (size[0] - 24f * d).toInt().coerceAtLeast(60)
+            val h = (size[1] - (24f + 40f + 6f + (if (showProgress) 30f else 0f)) * d).toInt().coerceAtLeast(40)
+            val key = "${snap.line}|${if (showNext) snap.next else ""}|$w|$h|${theme.id}|${theme.main}"
+            lyricCache[key]?.let { return it }
+
+            val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+            val c = android.graphics.Canvas(bmp)
+            val mainPaint = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = theme.main
+                typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+            }
+            val gap = (3f * d).toInt()
+            val hasNext = showNext && snap.next.isNotBlank()
+            val mainH = if (hasNext) (h * 0.70f).toInt() else h
+            val main = fitLayout(snap.line, mainPaint, w, mainH, 22f * d, 9f * d, 5, d)
+            c.save()
+            c.translate(0f, (mainH - main.height).coerceAtLeast(0).toFloat())
+            main.draw(c)
+            c.restore()
+            if (hasNext) {
+                val nextPaint = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { color = theme.soft }
+                val nextH = (h - mainH - gap).coerceAtLeast(10)
+                val next = fitLayout(snap.next, nextPaint, w, nextH, 14f * d, 8f * d, 3, d * 0.5f)
+                c.save()
+                c.translate(0f, (mainH + gap).toFloat())
+                next.draw(c)
+                c.restore()
+            }
+            lyricCache[key] = bmp
+            return bmp
+        }
+
         private fun fmtTime(ms: Long): String {
             val s = (ms / 1000).coerceAtLeast(0)
             return "%d:%02d".format(s / 60, s % 60)
@@ -291,18 +359,9 @@ class LyricsWidgetProvider : AppWidgetProvider() {
             val soft = theme.soft
             views.setTextViewText(R.id.widget_title, snap.title)
             views.setTextViewText(R.id.widget_artist, snap.artist)
-            // Baris baru ditulis ke slot yang akan ditampilkan; ViewFlipper menggesernya masuk dengan animasi.
-            val slotA = snap.slot == 0
-            views.setTextViewText(if (slotA) R.id.widget_line_a else R.id.widget_line_b, snap.line)
-            views.setTextViewText(if (slotA) R.id.widget_next_a else R.id.widget_next_b, snap.next)
-            views.setDisplayedChild(R.id.widget_flipper, if (slotA) 0 else 1)
             views.setImageViewBitmap(R.id.widget_bg_image, background(snap.color, size, theme, LyricsWidgetStore.opacity(context)))
             views.setTextColor(R.id.widget_title, main)
             views.setTextColor(R.id.widget_artist, soft)
-            views.setTextColor(R.id.widget_line_a, main)
-            views.setTextColor(R.id.widget_line_b, main)
-            views.setTextColor(R.id.widget_next_a, soft)
-            views.setTextColor(R.id.widget_next_b, soft)
             for (id in intArrayOf(R.id.widget_prev, R.id.widget_play, R.id.widget_next)) {
                 views.setInt(id, "setColorFilter", main)
             }
@@ -311,10 +370,8 @@ class LyricsWidgetProvider : AppWidgetProvider() {
             val showNext = LyricsWidgetStore.showNext(context)
             val showProgress = LyricsWidgetStore.showProgress(context)
             views.setViewVisibility(R.id.widget_cover, if (showCover) android.view.View.VISIBLE else android.view.View.GONE)
-            for (id in intArrayOf(R.id.widget_next_a, R.id.widget_next_b)) {
-                views.setViewVisibility(id, if (showNext) android.view.View.VISIBLE else android.view.View.GONE)
-            }
             views.setViewVisibility(R.id.widget_progress_row, if (showProgress) android.view.View.VISIBLE else android.view.View.GONE)
+            views.setImageViewBitmap(R.id.widget_lyric_img, lyricBitmap(context, snap, size, theme))
 
             val cover = coverBitmap(context, snap.coverVersion)
             if (cover != null) views.setImageViewBitmap(R.id.widget_cover, cover)
@@ -362,7 +419,7 @@ class LyricsWidgetProvider : AppWidgetProvider() {
          * Hanya bagian yang berubah dari [prev] ke [snap]. Mengembalikan null kalau tidak ada yang perlu dikirim.
          * Latar, sampul, warna, dan aksi ketuk tidak disentuh sehingga tetap diam di layar.
          */
-        private fun buildPartial(context: Context, prev: WidgetSnapshot, snap: WidgetSnapshot): RemoteViews? {
+        private fun buildPartial(context: Context, prev: WidgetSnapshot, snap: WidgetSnapshot, size: IntArray): RemoteViews? {
             // Selalu kirim SELURUH bagian yang berubah-ubah (bukan selisih): kalau satu pembaruan sebelumnya dibuang peluncur,
             // pembaruan berikutnya otomatis memulihkan keadaan yang benar. Teks yang sama tidak menimbulkan kedip / animasi.
             if (snap == prev) return null
@@ -370,10 +427,8 @@ class LyricsWidgetProvider : AppWidgetProvider() {
             val theme = WidgetThemes.get(LyricsWidgetStore.style(context))
             views.setTextViewText(R.id.widget_title, snap.title)
             views.setTextViewText(R.id.widget_artist, snap.artist)
-            val slotA = snap.slot == 0
-            views.setTextViewText(if (slotA) R.id.widget_line_a else R.id.widget_line_b, snap.line)
-            views.setTextViewText(if (slotA) R.id.widget_next_a else R.id.widget_next_b, snap.next)
-            if (snap.slot != prev.slot) views.setDisplayedChild(R.id.widget_flipper, if (slotA) 0 else 1)
+            // Gambar lirik selalu ikut dikirim (dari simpanan, murah): kalau satu pembaruan dibuang peluncur, yang berikutnya memulihkannya.
+            views.setImageViewBitmap(R.id.widget_lyric_img, lyricBitmap(context, snap, size, theme))
             views.setImageViewResource(
                 R.id.widget_play,
                 if (snap.playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
