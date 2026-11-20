@@ -177,10 +177,12 @@ class LyricsWidgetProvider : AppWidgetProvider() {
                 if (partialIds.isNotEmpty() && prev != null) {
                     val animate = ANIMATE_LINES && prev.title == snap.title && prev.line != snap.line &&
                         prev.line.isNotBlank() && snap.playing
-                    val gen = ++animGen
+                    // Update lain (mis. progres) yang masuk saat animasi berjalan tidak boleh memotong animasinya.
+                    val keepRunning = !animate && animRunning && prev.line == snap.line && prev.title == snap.title
+                    val gen = if (keepRunning) animGen else ++animGen
                     for (id in partialIds) {
                         val size = sizeFor(context, manager, id)
-                        val pv = buildPartial(context, prev, snap, size, withLyric = !animate) ?: break
+                        val pv = buildPartial(context, prev, snap, size, withLyric = !animate && !keepRunning) ?: break
                         manager.partiallyUpdateAppWidget(id, pv)
                         if (animate) animateLine(context, manager, id, prev, snap, size, gen)
                     }
@@ -359,6 +361,9 @@ class LyricsWidgetProvider : AppWidgetProvider() {
         @Volatile
         private var animGen = 0
 
+        @Volatile
+        private var animRunning = false
+
         private fun animateLine(
             context: Context, manager: AppWidgetManager, id: Int,
             prev: WidgetSnapshot, snap: WidgetSnapshot, size: IntArray, gen: Int
@@ -367,6 +372,7 @@ class LyricsWidgetProvider : AppWidgetProvider() {
             val oldBmp = lyricBitmap(context, prev, size, theme)
             val newBmp = lyricBitmap(context, snap, size, theme)
             val app = context.applicationContext
+            animRunning = true
             Thread {
                 try {
                     val w = newBmp.width
@@ -402,6 +408,8 @@ class LyricsWidgetProvider : AppWidgetProvider() {
                         manager.partiallyUpdateAppWidget(id, v)
                     }
                 } catch (_: Exception) {
+                } finally {
+                    if (gen == animGen) animRunning = false
                 }
             }.apply { isDaemon = true }.start()
         }

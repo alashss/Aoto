@@ -70,6 +70,9 @@ class MainActivity : ComponentActivity() {
         com.jimz.jimztune.data.stream.StreamResolver.warmUp()
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        com.jimz.jimztune.util.ScreenGuard.apply(this)
+        com.jimz.jimztune.util.PrivacyPrefs.applyRefresh(this)
+        com.jimz.jimztune.ui.theme.AppFont.init(this)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
@@ -132,7 +135,7 @@ class MainActivity : ComponentActivity() {
     private fun handleAuthIntent(intent: Intent?) {
         val data = intent?.data ?: return
         // Tautan bagikan (playlist / lagu): tampilkan isinya, bukan alur login.
-        com.jimz.jimztune.data.share.ShareLinks.parse(data)?.let { code ->
+        if (AppConfig.SHARE_ENABLED) com.jimz.jimztune.data.share.ShareLinks.parse(data)?.let { code ->
             intent?.data = null
             com.jimz.jimztune.data.share.ShareLinks.pending = code
             return

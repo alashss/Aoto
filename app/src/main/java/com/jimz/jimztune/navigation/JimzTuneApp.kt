@@ -60,6 +60,7 @@ import com.jimz.jimztune.ui.detail.AlbumScreen
 import com.jimz.jimztune.ui.detail.ArtistScreen
 import com.jimz.jimztune.ui.components.BarHeight
 import com.jimz.jimztune.ui.components.JimzBottomBar
+import com.jimz.jimztune.ui.theme.backdropSource
 import com.jimz.jimztune.ui.components.LocalOverlayPadding
 import com.jimz.jimztune.ui.home.HomeScreen
 import com.jimz.jimztune.ui.library.LibraryScreen
@@ -167,9 +168,11 @@ fun JimzTuneApp() {
     val overlay = BarHeight + 12.dp + navInset + miniSpace + 24.dp
 
     // Warna teks bawaan ditentukan di akar, agar komponen di luar Scaffold tidak jadi hitam.
+    val backdrop = com.jimz.jimztune.ui.theme.rememberBackdropHolder()
     CompositionLocalProvider(
         LocalContentColor provides MaterialTheme.colorScheme.onBackground,
-        LocalCoverTheme provides cover
+        LocalCoverTheme provides cover,
+        com.jimz.jimztune.ui.theme.LocalBackdrop provides backdrop
     ) {
         Box(
             modifier = Modifier
@@ -181,6 +184,7 @@ fun JimzTuneApp() {
                 LocalOpenDetail provides openDetail,
                 LocalQueueActions provides queueActions
             ) {
+              Box(modifier = Modifier.fillMaxSize().backdropSource(backdrop).appBackground(cover)) {
                 NavHost(
                     navController = nav,
                     startDestination = Dest.Home.route,
@@ -272,6 +276,7 @@ fun JimzTuneApp() {
                         }
                     }
                 }
+              }
             }
 
             // Pudar lembut di dasar layar agar navbar kaca tetap jelas di atas konten.
@@ -280,7 +285,7 @@ fun JimzTuneApp() {
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .height(overlay)
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, JimzBackground.copy(alpha = 0.92f))))
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, JimzBackground.copy(alpha = if (com.jimz.jimztune.ui.theme.AppTheme.uiStyle == com.jimz.jimztune.ui.theme.UiStyle.GLASS && com.jimz.jimztune.ui.theme.backdropSupported) 0.30f else 0.92f))))
             )
 
             Column(

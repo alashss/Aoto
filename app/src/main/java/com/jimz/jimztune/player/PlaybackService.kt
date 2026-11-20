@@ -29,7 +29,10 @@ import androidx.media3.session.MediaSessionService
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.jimz.jimztune.data.stream.StreamResolver
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.Network
 import android.os.Handler
@@ -70,6 +73,32 @@ class PlaybackService : MediaSessionService() {
     private var listenLogger: ListenLogger? = null
     private var island: com.jimz.jimztune.island.IslandController? = null
     private var sponsorBlock: SponsorBlock? = null
+
+    private var btCallback: android.media.AudioDeviceCallback? = null
+    private var lastPlayingAt = 0L
+
+    /**
+     * Lanjut memutar saat perangkat Bluetooth audio tersambung, kalau fitur aktif dan lagu baru saja dijeda.
+     * Memakai AudioDeviceCallback supaya tidak perlu izin Bluetooth.
+     */
+    private fun registerBtResume() {
+        val am = getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager ?: return
+        val cb = object : android.media.AudioDeviceCallback() {
+            override fun onAudioDevicesAdded(added: Array<out android.media.AudioDeviceInfo>) {
+                val bt = added.any {
+                    it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                        it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                        it.type == android.media.AudioDeviceInfo.TYPE_HEARING_AID ||
+                        (android.os.Build.VERSION.SDK_INT >= 31 && it.type == android.media.AudioDeviceInfo.TYPE_BLE_HEADSET)
+                }
+                if (!bt || !com.jimz.jimztune.util.PrivacyPrefs.btResume(applicationContext)) return
+                val p = session?.player ?: return
+                if (p.mediaItemCount > 0 && !p.isPlaying && System.currentTimeMillis() - lastPlayingAt < 10 * 60_000L) p.play()
+            }
+        }
+        am.registerAudioDeviceCallback(cb, handler)
+        btCallback = cb
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -244,6 +273,7 @@ class PlaybackService : MediaSessionService() {
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                lastPlayingAt = System.currentTimeMillis()
                 if (isPlaying) {
                     retries = 0
                     skipStreak = 0
@@ -254,8 +284,24 @@ class PlaybackService : MediaSessionService() {
             }
         })
 
+        registerBtResume()
         session = MediaSession.Builder(this, player)
             .setCallback(object : MediaSession.Callback {
+                /**
+                 * KEAMANAN: layanan ini harus bisa dihubungi sistem (notifikasi, Bluetooth, layar kunci), tapi aplikasi
+                 * sembarangan tidak perlu boleh mengendalikan pemutar atau membaca lagu yang sedang diputar.
+                 * Yang diterima: sistem/terpercaya, aplikasi ini sendiri, dan beberapa pengendali media yang dikenal.
+                 */
+                override fun onConnect(
+                    mediaSession: MediaSession,
+                    controller: MediaSession.ControllerInfo
+                ): MediaSession.ConnectionResult {
+                    val pkg = controller.packageName
+                    val ok = controller.isTrusted || pkg == packageName || pkg in TRUSTED_CONTROLLERS
+                    return if (ok) MediaSession.ConnectionResult.AcceptedResultBuilder(mediaSession).build()
+                    else MediaSession.ConnectionResult.reject()
+                }
+
                 // Pastikan setiap item selalu punya URI dan kunci yang dikenali resolver.
                 override fun onAddMediaItems(
                     mediaSession: MediaSession,
@@ -426,6 +472,11 @@ class PlaybackService : MediaSessionService() {
     }
 
     private companion object {
+        val TRUSTED_CONTROLLERS = setOf(
+            "com.android.systemui", "com.android.bluetooth", "com.google.android.projection.gearhead",
+            "com.google.android.googlequicksearchbox", "com.google.android.wearable.app",
+            "com.google.android.apps.wear.companion", "com.google.android.gms", "android"
+        )
         val PARSING_ERRORS = setOf(
             PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
             PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED,
@@ -478,6 +529,8 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        btCallback?.let { (getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager)?.unregisterAudioDeviceCallback(it) }
+        btCallback = null
         cancelRetry()
         fxController?.release()
         fxController = null

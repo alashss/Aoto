@@ -33,9 +33,7 @@ fun Modifier.cardSurface(shape: Shape, style: UiStyle = AppTheme.uiStyle): Modif
     val high = AppTheme.colors.surfaceHigh
     val surface = AppTheme.colors.surface
     return when (style) {
-        UiStyle.GLASS -> this
-            .background(Color.White.copy(alpha = 0.06f), shape)
-            .border(1.dp, Color.White.copy(alpha = 0.07f), shape)
+        UiStyle.GLASS -> this.realGlass(shape, accent)
 
         UiStyle.FROSTED -> this
             .background(
@@ -74,6 +72,82 @@ fun Modifier.cardSurface(shape: Shape, style: UiStyle = AppTheme.uiStyle): Modif
             .background(Color.White.copy(alpha = 0.025f), shape)
     }
 }
+
+/**
+ * Kaca sungguhan: tebal, bening, dan memantulkan cahaya. Bukan sekadar buram.
+ *  - badan tembus pandang dengan sedikit rona aksen dan gradasi diagonal (sisi kena cahaya lebih terang),
+ *  - kilap lengkung (specular) di sudut kiri atas dan pantulan lembut di kanan bawah,
+ *  - tepi bercahaya: terang di sisi yang menghadap cahaya, redup di sisi lain, plus garis dalam tipis
+ *    yang memberi kesan ketebalan kaca.
+ */
+fun Modifier.realGlass(shape: Shape, accent: Color): Modifier = this
+    .background(
+        Brush.linearGradient(
+            0f to Color.White.copy(alpha = 0.20f),
+            0.45f to lerp(Color.White, accent, 0.25f).copy(alpha = 0.05f),
+            1f to Color.White.copy(alpha = 0.12f)
+        ),
+        shape
+    )
+    .drawBehind {
+        val outline = shape.createOutline(size, layoutDirection, this)
+        val path = androidx.compose.ui.graphics.Path().apply { addOutline(outline) }
+        val w = size.width
+        val h = size.height
+        val r = maxOf(w, h)
+        androidx.compose.ui.graphics.drawscope.clipPath(path) {
+            // kilap utama di kiri atas
+            drawRect(
+                Brush.radialGradient(
+                    listOf(Color.White.copy(alpha = 0.34f), Color.Transparent),
+                    center = Offset(w * 0.12f, -h * 0.05f),
+                    radius = r * 0.75f
+                )
+            )
+            // pantulan balik di kanan bawah
+            drawRect(
+                Brush.radialGradient(
+                    listOf(lerp(Color.White, accent, 0.4f).copy(alpha = 0.16f), Color.Transparent),
+                    center = Offset(w * 0.95f, h * 1.05f),
+                    radius = r * 0.6f
+                )
+            )
+            // pita cahaya tipis memotong diagonal
+            drawRect(
+                Brush.linearGradient(
+                    0f to Color.Transparent,
+                    0.38f to Color.Transparent,
+                    0.47f to Color.White.copy(alpha = 0.07f),
+                    0.56f to Color.Transparent,
+                    1f to Color.Transparent,
+                    start = Offset(0f, 0f),
+                    end = Offset(w, h)
+                )
+            )
+            // garis dalam: ketebalan kaca
+            drawPath(
+                path,
+                Brush.linearGradient(
+                    listOf(Color.White.copy(alpha = 0.22f), Color.Transparent, Color.White.copy(alpha = 0.10f)),
+                    start = Offset(0f, 0f),
+                    end = Offset(w, h)
+                ),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.dp.toPx())
+            )
+        }
+    }
+    .border(
+        1.dp,
+        Brush.linearGradient(
+            0f to Color.White.copy(alpha = 0.85f),
+            0.35f to Color.White.copy(alpha = 0.14f),
+            0.65f to Color.White.copy(alpha = 0.06f),
+            1f to Color.White.copy(alpha = 0.50f),
+            start = Offset.Zero,
+            end = Offset.Infinite
+        ),
+        shape
+    )
 
 /** Latar utama aplikasi sesuai pilihan "Latar aplikasi". [cover] dipakai kalau pilihannya "Ikuti lagu". */
 @Composable

@@ -74,7 +74,7 @@ enum class ThemePreset(
  * Nama lama GLASS dan FLAT dipertahankan supaya pilihan yang sudah tersimpan tetap terbaca.
  */
 enum class UiStyle(val label: String, val hint: String) {
-    GLASS("Kaca", "Transparan dengan bingkai tipis"),
+    GLASS("Kaca", "Kaca bening: kilap, pantulan cahaya, dan tepi bercahaya"),
     FROSTED("Kaca es", "Kaca lebih terang dengan kilau di tepi atas"),
     FLAT("Flat", "Warna solid tanpa bingkai"),
     SOFT("Timbul", "Solid dengan bayangan lembut"),

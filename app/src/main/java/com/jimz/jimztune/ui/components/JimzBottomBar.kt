@@ -8,9 +8,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,7 +27,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,12 +48,14 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jimz.jimztune.navigation.Dest
 import com.jimz.jimztune.ui.theme.LocalCoverTheme
 import com.jimz.jimztune.ui.theme.cardSurface
+import com.jimz.jimztune.ui.theme.glassBackdrop
 
 val BarHeight = 64.dp
 
@@ -84,35 +95,109 @@ fun JimzBottomBar(
         label = "borderTop"
     )
 
+    val glassy = com.jimz.jimztune.ui.theme.AppTheme.uiStyle == com.jimz.jimztune.ui.theme.UiStyle.GLASS &&
+        com.jimz.jimztune.ui.theme.backdropSupported && com.jimz.jimztune.ui.theme.LocalBackdrop.current != null
+
+    // Gestur: tekan lalu geser kiri/kanan. Indikator mengikuti jari (membesar sedikit), tab berpindah saat jari melewatinya,
+    // dan saat dilepas indikator menempel ke tab terpilih dengan pegas.
+    var pressing by remember { mutableStateOf(false) }
+    var dragging by remember { mutableStateOf(false) }
+    var fingerX by remember { mutableStateOf<Float?>(null) }
+    var downIndex by remember { mutableStateOf(-1) }
+    val currentSelected by rememberUpdatedState(selected)
+    val currentOnSelect by rememberUpdatedState(onSelect)
+
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .height(BarHeight)
-            // Alas solid dulu supaya isi layar di belakang bar tidak tembus, lalu gaya kartu pilihan (Tampilan & tema) di atasnya.
-            .background(Brush.verticalGradient(listOf(barTopColor, barBottomColor)), shape)
+            // Mode Kaca: blur dari konten di belakang bar. Gaya lain: alas solid supaya isi layar tidak tembus.
+            .then(if (glassy) Modifier.glassBackdrop(shape) else Modifier)
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        if (glassy) barTopColor.copy(alpha = 0.30f) else barTopColor,
+                        if (glassy) barBottomColor.copy(alpha = 0.40f) else barBottomColor
+                    )
+                ),
+                shape
+            )
             .cardSurface(shape)
             .clip(shape)
+            .pointerInput(items.size) {
+                val count = items.size
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val w = size.width.toFloat()
+                    fun indexAt(x: Float) = (x / w * count).toInt().coerceIn(0, count - 1)
+                    pressing = true
+                    downIndex = indexAt(down.position.x)
+                    dragging = false
+                    val slop = viewConfiguration.touchSlop
+                    while (true) {
+                        val ev = awaitPointerEvent()
+                        val ch = ev.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!ch.pressed) {
+                            if (!dragging && downIndex != currentSelected) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                currentOnSelect(downIndex)
+                            }
+                            break
+                        }
+                        if (!dragging && abs(ch.position.x - down.position.x) > slop) dragging = true
+                        if (dragging) {
+                            ch.consume()
+                            fingerX = ch.position.x
+                            val idx = indexAt(ch.position.x)
+                            if (idx != currentSelected) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                currentOnSelect(idx)
+                            }
+                        }
+                    }
+                    pressing = false
+                    dragging = false
+                    fingerX = null
+                    downIndex = -1
+                }
+            }
     ) {
         val itemWidth = maxWidth / items.size
         val pillWidth = itemWidth - 14.dp
-        // Satu indikator saja (dulu ada glow blur tambahan di belakangnya, jadi kelihatan seperti dua oval).
-        val pillX by animateDpAsState(
-            targetValue = itemWidth * selected + (itemWidth - pillWidth) / 2,
-            animationSpec = spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow),
+        val density = LocalDensity.current
+        val totalPx = with(density) { maxWidth.toPx() }
+        val itemPx = totalPx / items.size
+        val pillPx = with(density) { pillWidth.toPx() }
+        val restX = itemPx * selected + (itemPx - pillPx) / 2f
+        val targetX = fingerX?.let { (it - pillPx / 2f).coerceIn(0f, totalPx - pillPx) } ?: restX
+        val pillX by animateFloatAsState(
+            targetValue = targetX,
+            animationSpec = if (dragging) spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessHigh)
+            else spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow),
             label = "pillX"
         )
+        val pillScale by animateFloatAsState(
+            targetValue = if (dragging) 1.12f else if (pressing) 1.05f else 1f,
+            animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMedium),
+            label = "pillScale"
+        )
+        val topPx = with(density) { 8.dp.toPx() }
 
         // Pill indikator utama
         Box(
             modifier = Modifier
-                .offset(x = pillX, y = 8.dp)
+                .offset { IntOffset(pillX.roundToInt(), topPx.roundToInt()) }
                 .size(pillWidth, BarHeight - 16.dp)
+                .graphicsLayer {
+                    scaleX = pillScale
+                    scaleY = pillScale
+                }
                 .clip(RoundedCornerShape(com.jimz.jimztune.ui.theme.AppTheme.round(24.dp)))
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            accent.copy(alpha = 0.28f),
-                            accent.copy(alpha = 0.14f)
+                            accent.copy(alpha = if (pressing) 0.38f else 0.28f),
+                            accent.copy(alpha = if (pressing) 0.22f else 0.14f)
                         )
                     )
                 )
@@ -128,13 +213,9 @@ fun JimzBottomBar(
                 BarItem(
                     dest = dest,
                     selected = index == selected,
+                    pressed = pressing && !dragging && downIndex == index,
                     accent = accent,
-                    onClick = {
-                        if (index != selected) {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onSelect(index)
-                        }
-                    }
+                    onClick = { if (index != selected) onSelect(index) }
                 )
             }
         }
@@ -145,12 +226,11 @@ fun JimzBottomBar(
 private fun RowScope.BarItem(
     dest: Dest,
     selected: Boolean,
+    pressed: Boolean,
     accent: Color,
     onClick: () -> Unit
 ) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-
+    val tap = onClick
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.9f else 1f,
         animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMedium),
@@ -172,12 +252,10 @@ private fun RowScope.BarItem(
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
-            .clickable(
-                interactionSource = interaction,
-                indication = null,
-                role = Role.Tab,
-                onClick = onClick
-            )
+            .semantics {
+                role = Role.Tab
+                onClick { tap(); true }
+            }
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale

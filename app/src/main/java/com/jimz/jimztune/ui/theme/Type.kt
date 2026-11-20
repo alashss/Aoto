@@ -32,3 +32,43 @@ val NeonTitleStyle = TextStyle(
     lineHeight = 36.sp,
     letterSpacing = (-0.5).sp
 )
+
+/** Pilihan font (keluarga bawaan sistem, jadi tidak menambah ukuran aplikasi). Disimpan di perangkat. */
+object AppFont {
+    class Option(val id: String, val label: String, val family: androidx.compose.ui.text.font.FontFamily)
+
+    val options = listOf(
+        Option("default", "Bawaan", androidx.compose.ui.text.font.FontFamily.Default),
+        Option("sans", "Sans", androidx.compose.ui.text.font.FontFamily.SansSerif),
+        Option("serif", "Serif", androidx.compose.ui.text.font.FontFamily.Serif),
+        Option("mono", "Mono", androidx.compose.ui.text.font.FontFamily.Monospace),
+        Option("cursive", "Tulis", androidx.compose.ui.text.font.FontFamily.Cursive)
+    )
+
+    var id by androidx.compose.runtime.mutableStateOf("default")
+        private set
+
+    fun init(context: android.content.Context) {
+        id = context.getSharedPreferences("jimztune_settings", android.content.Context.MODE_PRIVATE).getString("font", "default") ?: "default"
+    }
+
+    fun set(context: android.content.Context, value: String) {
+        id = value
+        context.getSharedPreferences("jimztune_settings", android.content.Context.MODE_PRIVATE).edit().putString("font", value).apply()
+    }
+
+    val family: androidx.compose.ui.text.font.FontFamily get() = options.firstOrNull { it.id == id }?.family ?: androidx.compose.ui.text.font.FontFamily.Default
+}
+
+fun jimzTypography(f: androidx.compose.ui.text.font.FontFamily): Typography = JimzTypography.run {
+    if (f == androidx.compose.ui.text.font.FontFamily.Default) this else copy(
+        displayLarge = displayLarge.copy(fontFamily = f), displayMedium = displayMedium.copy(fontFamily = f),
+        displaySmall = displaySmall.copy(fontFamily = f), headlineLarge = headlineLarge.copy(fontFamily = f),
+        headlineMedium = headlineMedium.copy(fontFamily = f), headlineSmall = headlineSmall.copy(fontFamily = f),
+        titleLarge = titleLarge.copy(fontFamily = f), titleMedium = titleMedium.copy(fontFamily = f),
+        titleSmall = titleSmall.copy(fontFamily = f), bodyLarge = bodyLarge.copy(fontFamily = f),
+        bodyMedium = bodyMedium.copy(fontFamily = f), bodySmall = bodySmall.copy(fontFamily = f),
+        labelLarge = labelLarge.copy(fontFamily = f), labelMedium = labelMedium.copy(fontFamily = f),
+        labelSmall = labelSmall.copy(fontFamily = f)
+    )
+}

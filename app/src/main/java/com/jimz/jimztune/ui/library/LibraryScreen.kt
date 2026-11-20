@@ -78,6 +78,9 @@ import com.jimz.jimztune.ui.components.ScreenHeader
 import com.jimz.jimztune.ui.components.SegmentedTabs
 import com.jimz.jimztune.ui.components.SongListRow
 import com.jimz.jimztune.ui.components.CompactIconButton
+import com.jimz.jimztune.ui.components.SortButton
+import com.jimz.jimztune.ui.components.rememberSortMode
+import com.jimz.jimztune.ui.components.sortSongs
 import com.jimz.jimztune.ui.components.CompactPillButton
 import com.jimz.jimztune.ui.components.DownloadAllIconButton
 import com.jimz.jimztune.ui.components.LikeColor
@@ -174,6 +177,7 @@ fun LibraryScreen(
                 when (t) {
                     0 -> SongList(
                         songs = library.favorites,
+                        sortKey = "fav",
                         currentId = currentId,
                         onPlay = onPlay,
                         emptyIcon = Icons.Rounded.Favorite,
@@ -239,26 +243,32 @@ private fun SongList(
     emptyBody: String,
     extraHeader: (@Composable () -> Unit)? = null,
     barTrailing: @Composable RowScope.() -> Unit = {},
+    sortKey: String? = null,
     extraMenu: (SearchItem) -> List<Pair<String, () -> Unit>> = { emptyList() }
 ) {
     if (songs.isEmpty()) {
         EmptyState(emptyIcon, emptyTitle, emptyBody)
         return
     }
+    val (sortMode, setSort) = rememberSortMode(sortKey ?: "none")
+    val shown = remember(songs, sortMode, sortKey) { if (sortKey == null) songs else sortSongs(songs, sortMode) }
     LazyColumn(contentPadding = PaddingValues(bottom = LocalOverlayPadding.current)) {
         item {
             PlayAllBar(
-                onPlayAll = { onPlay(songs, 0) },
-                onShuffle = { onPlay(songs.shuffled(), 0) },
-                trailing = barTrailing
+                onPlayAll = { onPlay(shown, 0) },
+                onShuffle = { onPlay(shown.shuffled(), 0) },
+                trailing = {
+                    if (sortKey != null) SortButton(sortMode, setSort)
+                    barTrailing()
+                }
             )
             extraHeader?.invoke()
         }
-        itemsIndexed(songs, key = { _, s -> s.id }) { index, song ->
+        itemsIndexed(shown, key = { _, s -> s.id }) { index, song ->
             SongListRow(
                 song = song,
                 playing = song.id == currentId,
-                onClick = { onPlay(songs, index) },
+                onClick = { onPlay(shown, index) },
                 modifier = Modifier.animateItem(),
                 extraMenu = extraMenu(song)
             )
@@ -380,6 +390,7 @@ private fun PlaylistTab(
             Box(modifier = Modifier.weight(1f)) {
                 SongList(
                     songs = open.songs,
+                    sortKey = "pl_" + open.id,
                     currentId = currentId,
                     onPlay = onPlay,
                     emptyIcon = Icons.Rounded.LibraryMusic,
@@ -580,6 +591,8 @@ private fun DownloadsTab(currentId: String?, onPlay: (List<SearchItem>, Int) -> 
         return
     }
     val sizeText = remember(songs) { formatBytes(downloads.totalBytes()) }
+    val (dlMode, setDlMode) = rememberSortMode("downloads")
+    val shownSongs = remember(songs.toList(), dlMode) { sortSongs(songs.toList(), dlMode) }
 
     LazyColumn(contentPadding = PaddingValues(bottom = LocalOverlayPadding.current)) {
         if (active.isNotEmpty()) {
@@ -613,13 +626,17 @@ private fun DownloadsTab(currentId: String?, onPlay: (List<SearchItem>, Int) -> 
                         )
                     }
                 }
-                PlayAllBar(onPlayAll = { onPlay(songs, 0) }, onShuffle = { onPlay(songs.shuffled(), 0) })
+                PlayAllBar(
+                    onPlayAll = { onPlay(shownSongs, 0) },
+                    onShuffle = { onPlay(shownSongs.shuffled(), 0) },
+                    trailing = { SortButton(dlMode, setDlMode) }
+                )
             }
-            itemsIndexed(songs, key = { _, s -> s.id }) { index, song ->
+            itemsIndexed(shownSongs, key = { _, s -> s.id }) { index, song ->
                 SongListRow(
                     song = song,
                     playing = song.id == currentId,
-                    onClick = { onPlay(songs, index) },
+                    onClick = { onPlay(shownSongs, index) },
                     modifier = Modifier.animateItem()
                 )
             }

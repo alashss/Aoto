@@ -380,6 +380,205 @@ fun SettingsScreen(
             }
         }
 
+        // ---- Personalisasi ----
+        Section("Personalisasi")
+        var hiRefresh by remember { mutableStateOf(com.jimz.jimztune.util.PrivacyPrefs.highRefresh(context)) }
+        var iconId by remember { mutableStateOf(com.jimz.jimztune.util.AppIcons.current(context)) }
+        GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+            SettingRow(
+                icon = Icons.Rounded.Bolt,
+                title = "Refresh rate tinggi",
+                subtitle = "Minta layar 120 Hz kalau didukung (lebih mulus, sedikit lebih boros)",
+                onClick = null,
+                trailing = {
+                    Switch(checked = hiRefresh, onCheckedChange = {
+                        hiRefresh = it
+                        com.jimz.jimztune.util.PrivacyPrefs.setHighRefresh(context, it)
+                        (context as? android.app.Activity)?.let { a -> com.jimz.jimztune.util.PrivacyPrefs.applyRefresh(a) }
+                    })
+                }
+            )
+            RowDivider()
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Text("Ikon aplikasi", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(
+                    "Aoto bisa menutup sebentar saat ikon diganti",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    com.jimz.jimztune.util.AppIcons.options.forEach { o ->
+                        val sel = o.id == iconId
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(
+                                    androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(o.end), Color(o.start))),
+                                    CircleShape
+                                )
+                                .border(if (sel) 3.dp else 1.dp, if (sel) Color.White else Color.White.copy(alpha = 0.25f), CircleShape)
+                                .clickable {
+                                    iconId = o.id
+                                    com.jimz.jimztune.util.AppIcons.set(context, o.id)
+                                }
+                        )
+                    }
+                }
+            }
+            RowDivider()
+            var fontId by remember { mutableStateOf(com.jimz.jimztune.ui.theme.AppFont.id) }
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Text("Font", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    com.jimz.jimztune.ui.theme.AppFont.options.forEach { o ->
+                        val sel = o.id == fontId
+                        Text(
+                            o.label,
+                            fontFamily = o.family,
+                            color = if (sel) Color.White else Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier
+                                .background(Color.White.copy(alpha = if (sel) 0.22f else 0.08f), RoundedCornerShape(50))
+                                .clickable {
+                                    fontId = o.id
+                                    com.jimz.jimztune.ui.theme.AppFont.set(context, o.id)
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // ---- Privasi & cadangan ----
+        Section("Privasi & cadangan")
+        var blockShots by remember { mutableStateOf(com.jimz.jimztune.util.ScreenGuard.enabled(context)) }
+        val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")
+        ) { uri ->
+            if (uri != null) {
+                val r = com.jimz.jimztune.data.backup.BackupManager.export(context, uri)
+                Toast.makeText(
+                    context,
+                    if (r.isSuccess) "Cadangan tersimpan (${r.getOrNull()} pengaturan)" else "Gagal menyimpan cadangan",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+        val importLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            if (uri != null) {
+                val r = com.jimz.jimztune.data.backup.BackupManager.restore(context, uri)
+                Toast.makeText(
+                    context,
+                    if (r.isSuccess) "Dipulihkan (${r.getOrNull()} pengaturan). Tutup lalu buka lagi Aoto."
+                    else "Berkas bukan cadangan Aoto yang valid",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+        val m3uExport = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.CreateDocument("audio/x-mpegurl")
+        ) { uri ->
+            if (uri != null) {
+                val r = com.jimz.jimztune.data.backup.M3uPlaylists.export(context, uri, com.jimz.jimztune.AppGraph.library.playlists)
+                Toast.makeText(context, if (r.isSuccess) "${r.getOrNull()} lagu diekspor" else "Gagal mengekspor", Toast.LENGTH_LONG).show()
+            }
+        }
+        val m3uImport = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            if (uri != null) {
+                val r = com.jimz.jimztune.data.backup.M3uPlaylists.import(context, uri)
+                Toast.makeText(
+                    context,
+                    if (r.isSuccess) "${r.getOrNull()} lagu diimpor" else (r.exceptionOrNull()?.message ?: "Gagal mengimpor"),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+        var btResume by remember { mutableStateOf(com.jimz.jimztune.util.PrivacyPrefs.btResume(context)) }
+        GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+            SettingRow(
+                icon = Icons.Rounded.PhoneAndroid,
+                title = "Blokir tangkapan layar",
+                subtitle = "Sembunyikan Aoto dari screenshot dan tampilan Recents",
+                onClick = {
+                    blockShots = !blockShots
+                    com.jimz.jimztune.util.ScreenGuard.set(context, blockShots)
+                },
+                trailing = {
+                    Switch(checked = blockShots, onCheckedChange = {
+                        blockShots = it
+                        com.jimz.jimztune.util.ScreenGuard.set(context, it)
+                    })
+                }
+            )
+            RowDivider()
+            var pauseHist by remember { mutableStateOf(com.jimz.jimztune.util.PrivacyPrefs.historyPaused(context)) }
+            SettingRow(
+                icon = Icons.Rounded.Insights,
+                title = "Jeda riwayat dengar",
+                subtitle = "Lagu yang diputar tidak dicatat ke riwayat dan statistik",
+                onClick = {
+                    pauseHist = !pauseHist
+                    com.jimz.jimztune.util.PrivacyPrefs.setHistoryPaused(context, pauseHist)
+                },
+                trailing = {
+                    Switch(checked = pauseHist, onCheckedChange = {
+                        pauseHist = it
+                        com.jimz.jimztune.util.PrivacyPrefs.setHistoryPaused(context, it)
+                    })
+                }
+            )
+            RowDivider()
+            SettingRow(
+                icon = Icons.Rounded.Bolt,
+                title = "Lanjut otomatis saat Bluetooth tersambung",
+                subtitle = "Putar lagi kalau baru dijeda (maks 10 menit) saat earphone/speaker tersambung",
+                onClick = {
+                    btResume = !btResume
+                    com.jimz.jimztune.util.PrivacyPrefs.setBtResume(context, btResume)
+                },
+                trailing = {
+                    Switch(checked = btResume, onCheckedChange = {
+                        btResume = it
+                        com.jimz.jimztune.util.PrivacyPrefs.setBtResume(context, it)
+                    })
+                }
+            )
+            RowDivider()
+            SettingRow(
+                icon = Icons.Rounded.Link,
+                title = "Ekspor playlist (M3U)",
+                subtitle = "Semua playlist jadi satu berkas M3U",
+                onClick = { m3uExport.launch("aoto-playlist.m3u") }
+            )
+            RowDivider()
+            SettingRow(
+                icon = Icons.Rounded.Link,
+                title = "Impor playlist (M3U)",
+                subtitle = "Baca berkas M3U berisi tautan YouTube / YouTube Music",
+                onClick = { m3uImport.launch(arrayOf("*/*")) }
+            )
+            RowDivider()
+            SettingRow(
+                icon = Icons.Rounded.Storage,
+                title = "Cadangkan pengaturan",
+                subtitle = "Simpan tema, gaya, widget, streak, dan riwayat ke satu berkas",
+                onClick = { exportLauncher.launch("aoto-cadangan.json") }
+            )
+            RowDivider()
+            SettingRow(
+                icon = Icons.Rounded.SystemUpdate,
+                title = "Pulihkan dari cadangan",
+                subtitle = "Pilih berkas cadangan Aoto (akun tidak ikut)",
+                onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }
+            )
+        }
+
         // ---- Aplikasi ----
         Section("Aplikasi")
         val announcements = remote.activeAnnouncements()

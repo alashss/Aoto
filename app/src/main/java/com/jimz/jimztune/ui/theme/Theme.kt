@@ -44,7 +44,7 @@ fun JimzTuneTheme(content: @Composable () -> Unit) {
     )
     MaterialTheme(
         colorScheme = scheme,
-        typography = JimzTypography,
+        typography = jimzTypography(AppFont.family),
         shapes = jimzShapes()
     ) {
         // Surface menyediakan warna teks bawaan (putih kebiruan) untuk semua layar, termasuk layar

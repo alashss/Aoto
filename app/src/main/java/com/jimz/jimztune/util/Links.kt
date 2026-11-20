@@ -8,11 +8,11 @@ import android.widget.Toast
 
 /** Membuka tautan di browser. Tidak crash kalau tidak ada aplikasi yang bisa membukanya. */
 fun Context.openUrl(url: String) {
-    // KEAMANAN: tautan datang dari server (banner, pengumuman, donasi) dan data pengguna lain. Hanya http(s) yang boleh dibuka;
+    // KEAMANAN: tautan datang dari server (banner, pengumuman, donasi) dan data pengguna lain. Hanya https yang boleh dibuka (http bisa disadap/dibelokkan);
     // skema lain (intent:, file:, content:, tel:, sms:, dll) bisa dipakai untuk memicu aksi tak terduga di HP.
     val uri = try { Uri.parse(url.trim()) } catch (_: Exception) { null }
     val scheme = uri?.scheme?.lowercase()
-    if (uri == null || (scheme != "https" && scheme != "http") || uri.host.isNullOrBlank()) {
+    if (uri == null || scheme != "https" || uri.host.isNullOrBlank()) {
         Toast.makeText(this, "Tautan tidak aman, tidak dibuka", Toast.LENGTH_SHORT).show()
         return
     }
