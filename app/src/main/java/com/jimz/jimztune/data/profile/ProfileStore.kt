@@ -120,7 +120,7 @@ class ProfileStore(context: Context) {
             accentHex = o.s("accent_color") ?: "#6C93FF",
             statusEmoji = o.s("status_emoji").orEmpty(),
             statusText = o.s("status_text").orEmpty(),
-            badges = badges.filter { it.isNotBlank() },
+            badges = badges.filter { it.isNotBlank() && !it.equals("vip", ignoreCase = true) },
             createdAt = o.s("created_at")
         )
     }

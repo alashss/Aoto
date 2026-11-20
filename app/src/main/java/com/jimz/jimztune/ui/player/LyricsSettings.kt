@@ -72,6 +72,7 @@ fun LyricsSettingsButton(
     positionMs: Long = 0L,
     songTitle: String = "",
     songArtist: String = "",
+    songCover: String? = null,
     onPickSource: (Int) -> Unit = {},
     onStartTapSync: () -> Unit = {}
 ) {
@@ -90,7 +91,7 @@ fun LyricsSettingsButton(
     }
 
     if (sharing) {
-        LyricShareSheet(state.lyrics, positionMs, songTitle, songArtist, onDismiss = { sharing = false })
+        LyricShareSheet(state.lyrics, positionMs, songTitle, songArtist, songCover, onDismiss = { sharing = false })
     }
     if (!open) return
     val prefs = AppGraph.lyricsPrefs

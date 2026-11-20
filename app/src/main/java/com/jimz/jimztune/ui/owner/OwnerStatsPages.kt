@@ -200,7 +200,7 @@ internal fun UserListenBlock(userId: String) {
     val cur = badges
     if (cur == null) LoadingRow() else GroupCard {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            val all = (listOf("Supporter", "Tester", "VIP") + cur).distinct()
+            val all = (listOf("Supporter", "Tester") + cur).distinct()
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 all.take(4).forEach { b -> OptionChip(b, b in cur, { badges = if (b in cur) cur - b else cur + b }) }
             }

@@ -147,7 +147,7 @@ fun GenreGrid(
                 modifier = Modifier.padding(top = 10.dp, bottom = 0.dp)
             )
         }
-        items(GENRES) { genre ->
+        items(GENRES, key = { it.query }) { genre ->
             LaunchedEffect(genre.query) { onNeedCover(genre.query) }
             GenreCard(genre, covers[genre.query]) { onPick(genre.query) }
         }

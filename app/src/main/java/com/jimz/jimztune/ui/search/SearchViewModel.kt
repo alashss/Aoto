@@ -67,19 +67,52 @@ class SearchViewModel : ViewModel() {
         history = emptyList()
     }
 
-    /** Sampul contoh lagu untuk tiap card genre (kunci = kata kunci genre), diisi pelan-pelan saat card tampil. */
-    var genreCovers by mutableStateOf<Map<String, String>>(emptyMap())
+    /**
+     * Sampul contoh lagu untuk tiap card genre (kunci = kata kunci genre). Dimuat satu-dua per waktu, menunggu kalau
+     * pengguna sedang mencari, dan disimpan di perangkat. Dulu ~20 permintaan jalan sekaligus dan bersaing dengan pencarian
+     * sungguhan, sehingga hasil/sampul sering telat atau tidak muncul.
+     */
+    var genreCovers by mutableStateOf<Map<String, String>>(loadCoverCache())
         private set
     private val coverRequested = HashSet<String>()
+    private val coverGate = kotlinx.coroutines.sync.Semaphore(2)
+
+    private fun loadCoverCache(): Map<String, String> = try {
+        val o = org.json.JSONObject(
+            AppGraph.appContext.getSharedPreferences("jimztune_genre_covers", android.content.Context.MODE_PRIVATE).getString("map", "{}") ?: "{}"
+        )
+        o.keys().asSequence().associateWith { o.getString(it) }
+    } catch (_: Exception) {
+        emptyMap()
+    }
+
+    private fun saveCoverCache() {
+        try {
+            val o = org.json.JSONObject()
+            genreCovers.forEach { (k, v) -> o.put(k, v) }
+            AppGraph.appContext.getSharedPreferences("jimztune_genre_covers", android.content.Context.MODE_PRIVATE)
+                .edit().putString("map", o.toString()).apply()
+        } catch (_: Exception) {
+        }
+    }
 
     fun loadGenreCover(query: String) {
-        if (!coverRequested.add(query)) return
+        if (genreCovers.containsKey(query) || !coverRequested.add(query)) return
         viewModelScope.launch {
             try {
-                val cover = repo.search(query, SearchType.SONG, quick = true).items
-                    .firstOrNull { it.type == SearchType.SONG && !it.thumbnailUrl.isNullOrBlank() }
-                    ?.thumbnailUrl
-                if (cover != null) genreCovers = genreCovers + (query to cover)
+                coverGate.acquire()
+                try {
+                    while (state is SearchUiState.Loading) delay(400)
+                    val cover = repo.search(query, SearchType.SONG, quick = true).items
+                        .firstOrNull { it.type == SearchType.SONG && !it.thumbnailUrl.isNullOrBlank() }
+                        ?.thumbnailUrl
+                    if (cover != null) {
+                        genreCovers = genreCovers + (query to cover)
+                        saveCoverCache()
+                    }
+                } finally {
+                    coverGate.release()
+                }
             } catch (e: CancellationException) {
                 coverRequested.remove(query)
                 throw e

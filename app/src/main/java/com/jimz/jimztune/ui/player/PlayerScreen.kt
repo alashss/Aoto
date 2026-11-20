@@ -62,6 +62,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.animation.togetherWith
+import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -112,6 +115,12 @@ fun PlayerScreen(
     val song = state.current ?: return
     var pane by remember { mutableStateOf(PlayerPane.Cover) }
     var dragging by remember { mutableStateOf<Float?>(null) }
+    // Tarik ke bawah untuk menutup: halaman ikut turun dan mengecil, lalu kembali kalau dilepas sebelum cukup jauh.
+    val dragY = remember { androidx.compose.animation.core.Animatable(0f) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val closeThreshold = with(density) { 140.dp.toPx() }
+    var paneDrag by remember { mutableStateOf(0f) }
 
     // Terjemahan hanya diminta ke internet saat halaman lirik penuh terbuka (hemat permintaan).
     DisposableEffect(pane) {
@@ -130,9 +139,30 @@ fun PlayerScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .graphicsLayer {
+                    val p = (dragY.value / 1400f).coerceIn(0f, 0.14f)
+                    translationY = dragY.value
+                    scaleX = 1f - p
+                    scaleY = 1f - p
+                    shape = RoundedCornerShape((p * 220f).dp)
+                    clip = true
+                }
                 .background(JimzBackground)
                 .clipToBounds()
                 .pointerInput(Unit) { detectTapGestures { } }
+                .pointerInput(Unit) {
+                    androidx.compose.foundation.gestures.detectVerticalDragGestures(
+                        onDragEnd = {
+                            if (dragY.value > closeThreshold) onClose()
+                            scope.launch { dragY.animateTo(0f, androidx.compose.animation.core.spring(0.8f, 400f)) }
+                        },
+                        onDragCancel = { scope.launch { dragY.animateTo(0f) } },
+                        onVerticalDrag = { change, amount ->
+                            change.consume()
+                            scope.launch { dragY.snapTo((dragY.value + amount).coerceAtLeast(0f)) }
+                        }
+                    )
+                }
         ) {
             // Latar sesuai pilihan di Setelan -> Tampilan: sampul diburamkan (bawaan), polos, atau cerah.
             val bgMode = com.jimz.jimztune.ui.theme.AppTheme.playerBg
@@ -201,10 +231,39 @@ fun PlayerScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 8.dp)
+                        // Geser kiri: Cover -> Lirik -> Antrean. Geser kanan: kembali.
+                        .pointerInput(Unit) {
+                            androidx.compose.foundation.gestures.detectHorizontalDragGestures(
+                                onDragStart = { paneDrag = 0f },
+                                onDragEnd = {
+                                    val all = PlayerPane.entries
+                                    val i = all.indexOf(pane)
+                                    if (paneDrag < -90f && i < all.lastIndex) pane = all[i + 1]
+                                    else if (paneDrag > 90f && i > 0) pane = all[i - 1]
+                                    paneDrag = 0f
+                                },
+                                onDragCancel = { paneDrag = 0f },
+                                onHorizontalDrag = { change, amount ->
+                                    change.consume()
+                                    paneDrag += amount
+                                }
+                            )
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    when (pane) {
+                  androidx.compose.animation.AnimatedContent(
+                    targetState = pane,
+                    transitionSpec = {
+                        val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
+                        (androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(320)) { it / 3 * dir } +
+                            androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(260))) togetherWith
+                            (androidx.compose.animation.slideOutHorizontally(androidx.compose.animation.core.tween(260)) { -it / 3 * dir } +
+                                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(180)))
+                    },
+                    label = "playerPane"
+                  ) { shownPane ->
+                    when (shownPane) {
                         PlayerPane.Cover -> {
                             val shape = RoundedCornerShape(20.dp)
                             Box(
@@ -233,6 +292,7 @@ fun PlayerScreen(
                             onPickSource = onPickLyricsSource,
                             songTitle = song.title,
                             songArtist = song.subtitle.substringBefore(" • ").trim(),
+                            songCover = song.thumbnailUrl?.hiRes(),
                             translation = translation,
                             onTranslationSettingsChanged = onTranslationSettingsChanged
                         )
@@ -245,6 +305,7 @@ fun PlayerScreen(
                             onMove = onMoveInQueue
                         )
                     }
+                  }
                 }
 
                 // Satu baris lirik yang sedang dinyanyikan, tepat di atas judul (hanya di tab Cover).

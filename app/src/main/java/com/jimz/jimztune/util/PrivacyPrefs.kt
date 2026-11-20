@@ -9,9 +9,6 @@ object PrivacyPrefs {
     private const val PREFS = "jimztune_settings"
     private fun p(c: Context) = c.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    fun historyPaused(c: Context): Boolean = p(c).getBoolean("pause_history", false)
-    fun setHistoryPaused(c: Context, v: Boolean) = p(c).edit().putBoolean("pause_history", v).apply()
-
     fun btResume(c: Context): Boolean = p(c).getBoolean("bt_resume", false)
     fun setBtResume(c: Context, v: Boolean) = p(c).edit().putBoolean("bt_resume", v).apply()
 

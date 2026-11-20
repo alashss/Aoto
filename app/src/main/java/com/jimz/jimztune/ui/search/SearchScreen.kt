@@ -350,7 +350,8 @@ private fun ResultList(
                 }
             }
         }
-        items(if (showLong) long else normal) { entry ->
+        // Kunci stabil + buang duplikat: tanpa ini kartu bisa tertukar/hilang saat daftar berganti, dan kunci kembar membuat crash.
+        items((if (showLong) long else normal).distinctBy { "${it.type}:${it.id}" }, key = { "${it.type}:${it.id}" }) { entry ->
             ResultRow(
                 item = entry,
                 playing = entry.type == SearchType.SONG && entry.id == currentId,

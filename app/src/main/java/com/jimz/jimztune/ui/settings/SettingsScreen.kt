@@ -11,6 +11,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.jimz.jimztune.util.BackgroundPlayback
 import android.widget.Toast
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -407,22 +409,55 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                ) {
                     com.jimz.jimztune.util.AppIcons.options.forEach { o ->
                         val sel = o.id == iconId
-                        Box(
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .size(44.dp)
-                                .background(
-                                    androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(o.end), Color(o.start))),
-                                    CircleShape
-                                )
-                                .border(if (sel) 3.dp else 1.dp, if (sel) Color.White else Color.White.copy(alpha = 0.25f), CircleShape)
+                                .clip(RoundedCornerShape(16.dp))
                                 .clickable {
                                     iconId = o.id
                                     com.jimz.jimztune.util.AppIcons.set(context, o.id)
                                 }
-                        )
+                                .padding(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(58.dp)
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(
+                                        androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(o.end), Color(o.start)))
+                                    )
+                                    .border(
+                                        if (sel) 2.5.dp else 1.dp,
+                                        if (sel) Color.White else Color.White.copy(alpha = 0.18f),
+                                        RoundedCornerShape(18.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = androidx.compose.ui.res.painterResource(com.jimz.jimztune.R.drawable.ic_launcher_foreground),
+                                    contentDescription = o.label,
+                                    modifier = Modifier
+                                        .size(58.dp)
+                                        .graphicsLayer {
+                                            scaleX = 1.45f
+                                            scaleY = 1.45f
+                                        }
+                                )
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                o.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
+                                color = if (sel) Color.White else Color.White.copy(alpha = 0.6f)
+                            )
+                        }
                     }
                 }
             }
@@ -513,23 +548,6 @@ fun SettingsScreen(
                     Switch(checked = blockShots, onCheckedChange = {
                         blockShots = it
                         com.jimz.jimztune.util.ScreenGuard.set(context, it)
-                    })
-                }
-            )
-            RowDivider()
-            var pauseHist by remember { mutableStateOf(com.jimz.jimztune.util.PrivacyPrefs.historyPaused(context)) }
-            SettingRow(
-                icon = Icons.Rounded.Insights,
-                title = "Jeda riwayat dengar",
-                subtitle = "Lagu yang diputar tidak dicatat ke riwayat dan statistik",
-                onClick = {
-                    pauseHist = !pauseHist
-                    com.jimz.jimztune.util.PrivacyPrefs.setHistoryPaused(context, pauseHist)
-                },
-                trailing = {
-                    Switch(checked = pauseHist, onCheckedChange = {
-                        pauseHist = it
-                        com.jimz.jimztune.util.PrivacyPrefs.setHistoryPaused(context, it)
                     })
                 }
             )

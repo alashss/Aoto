@@ -62,7 +62,6 @@ object PlayLog {
     @Synchronized
     fun record(id: String, title: String, artist: String, art: String?, seconds: Int, newPlay: Boolean) {
         if (id.isBlank() || seconds <= 0 && !newPlay) return
-        if (com.jimz.jimztune.util.PrivacyPrefs.historyPaused(com.jimz.jimztune.AppGraph.appContext)) return
         val day = LocalDate.now().toString()
         val e = days.getOrPut(day) { HashMap() }.getOrPut(id) { IntArray(2) }
         e[0] += seconds

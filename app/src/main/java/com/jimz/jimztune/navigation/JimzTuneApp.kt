@@ -319,8 +319,11 @@ fun JimzTuneApp() {
 
             AnimatedVisibility(
                 visible = playerOpen,
-                enter = slideInVertically(tween(400, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(250)),
-                exit = slideOutVertically(tween(320, easing = FastOutSlowInEasing)) { it } + fadeOut(tween(250))
+                // Naik dari mini player (membesar) dan turun kembali (mengecil), seperti pemutar bawaan sistem.
+                enter = slideInVertically(tween(420, easing = FastOutSlowInEasing)) { it / 2 } + fadeIn(tween(260)) +
+                    androidx.compose.animation.scaleIn(tween(420, easing = FastOutSlowInEasing), initialScale = 0.86f, transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)),
+                exit = slideOutVertically(tween(340, easing = FastOutSlowInEasing)) { it / 2 } + fadeOut(tween(260)) +
+                    androidx.compose.animation.scaleOut(tween(340, easing = FastOutSlowInEasing), targetScale = 0.86f, transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f))
             ) {
                 CompositionLocalProvider(
                     LocalOpenDetail provides openDetail,

@@ -21,7 +21,6 @@ class HistoryStore(context: Context) {
     fun load(): List<SearchItem> = items
 
     fun add(item: SearchItem) {
-        if (com.jimz.jimztune.util.PrivacyPrefs.historyPaused(AppGraph.appContext)) return
         items = (listOf(item) + items.filter { it.id != item.id }).take(MAX)
         persist()
         AppGraph.cloud.markDirty()

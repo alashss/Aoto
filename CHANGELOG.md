@@ -1,5 +1,13 @@
 # Catatan perubahan
 
+## 2.3.0
+
+- **Pemutar**: geser kiri untuk Lirik, geser lagi untuk Antrean (kanan untuk kembali), dengan animasi antar halaman. Tarik ke bawah untuk menutup: halaman ikut turun dan mengecil, lalu kembali ke beranda. Animasi buka/tutup dari mini player juga ikut membesar/mengecil.
+- **Bagikan lirik jadi poster**: ada sampul dan judul, pratinjau langsung, latar Gradasi/Polos/Buram/Kaca, format Kotak/Story, 4 font, tebal, rata teks, dan warna teks.
+- **Pencarian lebih andal**: kartu hasil memakai kunci stabil dan buang duplikat; sampul kartu genre dimuat bergantian (maks. 2) dan disimpan di perangkat, tidak lagi menyaingi pencarian sungguhan.
+- **Pemilih ikon aplikasi** ditata ulang (pratinjau ikon + nama).
+- Dihapus: fitur "Jeda riwayat dengar" dan lencana VIP.
+
 ## 2.2.3
 
 - Perbaikan build: `addOutline`/`clipPath` pada tema kaca, delegasi state pada pilihan font.

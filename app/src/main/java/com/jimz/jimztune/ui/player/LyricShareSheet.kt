@@ -34,13 +34,16 @@ import com.jimz.jimztune.data.lyrics.Lyrics
 import com.jimz.jimztune.ui.components.JimzBottomSheet
 import com.jimz.jimztune.ui.components.OptionChip
 import com.jimz.jimztune.ui.theme.LocalCoverTheme
+import com.jimz.jimztune.util.LyricCard
 import com.jimz.jimztune.util.ShareImage
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.graphics.asImageBitmap
 
 private const val MAX_LINES = 8
 
 /** Memilih beberapa baris lirik lalu membagikannya sebagai gambar (kotak 1:1 atau story 9:16). */
 @Composable
-fun LyricShareSheet(lyrics: Lyrics, positionMs: Long, title: String, artist: String, onDismiss: () -> Unit) {
+fun LyricShareSheet(lyrics: Lyrics, positionMs: Long, title: String, artist: String, coverUrl: String?, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val accent = LocalCoverTheme.current.accent
     val lines = remember(lyrics) { lyrics.lines.map { it.text }.withIndex().filter { it.value.isNotBlank() } }
@@ -53,6 +56,31 @@ fun LyricShareSheet(lyrics: Lyrics, positionMs: Long, title: String, artist: Str
         (startPos until minOf(startPos + 3, lines.size)).toList().toMutableStateList()
     }
     var story by remember { mutableStateOf(false) }
+    var bg by remember { mutableStateOf(LyricCard.Bg.GLASS) }
+    var align by remember { mutableStateOf(LyricCard.Align.LEFT) }
+    var font by remember { mutableStateOf(LyricCard.Font.DEFAULT) }
+    var bold by remember { mutableStateOf(true) }
+    var ink by remember { mutableStateOf(LyricCard.Ink.AUTO) }
+    var cover by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var preview by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    // Sampul diunduh sekali lewat Coil (bitmap software supaya bisa digambar ke kanvas).
+    androidx.compose.runtime.LaunchedEffect(coverUrl) {
+        if (coverUrl != null) {
+            try {
+                val req = coil.request.ImageRequest.Builder(context).data(coverUrl).allowHardware(false).build()
+                val res = coil.Coil.imageLoader(context).execute(req)
+                cover = (res.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+            } catch (_: Exception) {
+            }
+        }
+    }
+    val options = LyricCard.Options(story, bg, align, font, bold, ink)
+    androidx.compose.runtime.LaunchedEffect(selected.toList(), story, bg, align, font, bold, ink, cover) {
+        val picked = selected.sorted().mapNotNull { lines.getOrNull(it)?.value }
+        preview = if (picked.isEmpty()) null else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            LyricCard.render(options, accent.toArgb(), title, artist, picked, cover)
+        }
+    }
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = (startPos - 1).coerceAtLeast(0))
 
     JimzBottomSheet(onDismiss = onDismiss) {
@@ -84,25 +112,48 @@ fun LyricShareSheet(lyrics: Lyrics, positionMs: Long, title: String, artist: Str
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OptionChip("Kotak", !story, { story = false })
-                OptionChip("Story", story, { story = true })
-                Spacer(Modifier.width(4.dp))
-                OptionChip("Bagikan", false, {
-                    if (selected.isNotEmpty()) {
-                        val picked = selected.sorted().map { lines[it].value }
-                        val bmp = ShareImage.render(
-                            story = story,
-                            accent = accent.toArgb(),
-                            heading = title,
-                            quote = picked,
-                            footer = (if (artist.isNotBlank()) "$artist · " else "") + "Aoto"
-                        )
-                        ShareImage.share(context, bmp, "lirik")
-                    }
-                })
+            preview?.let { bmp ->
+                androidx.compose.foundation.Image(
+                    bitmap = bmp.asImageBitmap(),
+                    contentDescription = "Pratinjau kartu lirik",
+                    modifier = Modifier
+                        .align(androidx.compose.ui.Alignment.CenterHorizontally)
+                        .heightIn(max = 260.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                )
+                Spacer(Modifier.height(12.dp))
             }
+            ChipRow("Latar", LyricCard.Bg.entries, bg, { it.label }) { bg = it }
+            ChipRow("Format", listOf(false, true), story, { if (it) "Story 9:16" else "Kotak" }) { story = it }
+            ChipRow("Font", LyricCard.Font.entries, font, { it.label }) { font = it }
+            ChipRow("Tebal", listOf(false, true), bold, { if (it) "Tebal" else "Biasa" }) { bold = it }
+            ChipRow("Rata", LyricCard.Align.entries, align, { it.label }) { align = it }
+            ChipRow("Warna", LyricCard.Ink.entries, ink, { it.label }) { ink = it }
+            Spacer(Modifier.height(8.dp))
+            androidx.compose.material3.Button(
+                onClick = {
+                    preview?.let { ShareImage.share(context, it, "lirik") }
+                },
+                enabled = preview != null,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Bagikan") }
             Spacer(Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
+private fun <T> ChipRow(label: String, items: List<T>, selected: T, name: (T) -> String, onPick: (T) -> Unit) {
+    Row(
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp)
+            .horizontalScroll(androidx.compose.foundation.rememberScrollState())
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.55f), modifier = Modifier.width(56.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items.forEach { OptionChip(name(it), it == selected, { onPick(it) }) }
         }
     }
 }

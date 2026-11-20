@@ -99,6 +99,7 @@ fun LyricsPane(
     onPickSource: (Int) -> Unit = {},
     songTitle: String = "",
     songArtist: String = "",
+    songCover: String? = null,
     translation: TranslationState = TranslationState.Off,
     onTranslationSettingsChanged: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -138,6 +139,7 @@ fun LyricsPane(
                     positionMs = positionMs,
                     songTitle = songTitle,
                     songArtist = songArtist,
+                    songCover = songCover,
                     onRetry = onRetry,
                     onNextSource = onNextSource,
                     onPickSource = onPickSource,
