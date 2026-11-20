@@ -1,5 +1,9 @@
 # Catatan perubahan
 
+## 2.2.3
+
+- Perbaikan build: `addOutline`/`clipPath` pada tema kaca, delegasi state pada pilihan font.
+
 ## 2.2.2
 
 - **Bluetooth resume diperbaiki**: sebelumnya tidak akan pernah terpicu di Android 12+ karena butuh izin Bluetooth; sekarang memakai deteksi perangkat audio tanpa izin.

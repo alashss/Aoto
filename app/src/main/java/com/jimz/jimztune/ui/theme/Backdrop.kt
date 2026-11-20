@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TileMode
@@ -76,7 +77,14 @@ fun Modifier.glassBackdrop(shape: Shape, blur: Dp = 22.dp): Modifier {
             blurLayer.record(size = IntSize(w, hh)) {
                 translate(dx, dy) { drawLayer(h.raw) }
             }
-            val path = Path().apply { addOutline(shape.createOutline(size, layoutDirection, this@drawBehind)) }
+            val path = outlineToPath(shape.createOutline(size, layoutDirection, this@drawBehind))
             clipPath(path) { drawLayer(blurLayer) }
         }
+}
+
+/** Mengubah Outline (bentuk) menjadi Path supaya bisa dipakai memotong gambar. */
+fun outlineToPath(outline: Outline): Path = when (outline) {
+    is Outline.Rectangle -> Path().apply { addRect(outline.rect) }
+    is Outline.Rounded -> Path().apply { addRoundRect(outline.roundRect) }
+    is Outline.Generic -> outline.path
 }

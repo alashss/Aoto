@@ -17,6 +17,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
@@ -91,11 +92,11 @@ fun Modifier.realGlass(shape: Shape, accent: Color): Modifier = this
     )
     .drawBehind {
         val outline = shape.createOutline(size, layoutDirection, this)
-        val path = androidx.compose.ui.graphics.Path().apply { addOutline(outline) }
+        val path = outlineToPath(outline)
         val w = size.width
         val h = size.height
         val r = maxOf(w, h)
-        androidx.compose.ui.graphics.drawscope.clipPath(path) {
+        clipPath(path) {
             // kilap utama di kiri atas
             drawRect(
                 Brush.radialGradient(

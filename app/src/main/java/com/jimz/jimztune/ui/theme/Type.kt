@@ -1,6 +1,9 @@
 package com.jimz.jimztune.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
@@ -45,7 +48,7 @@ object AppFont {
         Option("cursive", "Tulis", androidx.compose.ui.text.font.FontFamily.Cursive)
     )
 
-    var id by androidx.compose.runtime.mutableStateOf("default")
+    var id: String by mutableStateOf("default")
         private set
 
     fun init(context: android.content.Context) {

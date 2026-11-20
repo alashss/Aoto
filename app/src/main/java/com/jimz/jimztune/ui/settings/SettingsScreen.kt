@@ -427,7 +427,7 @@ fun SettingsScreen(
                 }
             }
             RowDivider()
-            var fontId by remember { mutableStateOf(com.jimz.jimztune.ui.theme.AppFont.id) }
+            var fontId by remember { mutableStateOf<String>(com.jimz.jimztune.ui.theme.AppFont.id) }
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Text("Font", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(10.dp))
