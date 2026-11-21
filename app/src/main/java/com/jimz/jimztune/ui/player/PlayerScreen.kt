@@ -5,7 +5,9 @@ package com.jimz.jimztune.ui.player
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -151,7 +153,7 @@ fun PlayerScreen(
                 .clipToBounds()
                 .pointerInput(Unit) { detectTapGestures { } }
                 .pointerInput(Unit) {
-                    androidx.compose.foundation.gestures.detectVerticalDragGestures(
+                    detectVerticalDragGestures(
                         onDragEnd = {
                             if (dragY.value > closeThreshold) onClose()
                             scope.launch { dragY.animateTo(0f, androidx.compose.animation.core.spring(0.8f, 400f)) }
@@ -234,7 +236,7 @@ fun PlayerScreen(
                         .padding(vertical = 8.dp)
                         // Geser kiri: Cover -> Lirik -> Antrean. Geser kanan: kembali.
                         .pointerInput(Unit) {
-                            androidx.compose.foundation.gestures.detectHorizontalDragGestures(
+                            detectHorizontalDragGestures(
                                 onDragStart = { paneDrag = 0f },
                                 onDragEnd = {
                                     val all = PlayerPane.entries
