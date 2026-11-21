@@ -19,8 +19,16 @@ import android.text.TextUtils
 object LyricCard {
     enum class Bg(val label: String) { GRADIENT("Gradasi"), SOLID("Polos"), BLUR("Buram"), GLASS("Kaca") }
     enum class Align(val label: String) { LEFT("Kiri"), CENTER("Tengah"), RIGHT("Kanan") }
-    enum class Font(val label: String) { DEFAULT("Bawaan"), SERIF("Serif"), MONO("Mono"), ROUNDED("Bulat") }
-    enum class Ink(val label: String) { AUTO("Otomatis"), WHITE("Putih"), BLACK("Hitam") }
+    enum class Font(val label: String) {
+        DEFAULT("Bawaan"), ROUNDED("Bulat"), SERIF("Serif"), MONO("Mono"),
+        CONDENSED("Ramping"), CASUAL("Santai"), CURSIVE("Tulis")
+    }
+    /** Warna teks: Otomatis mengikuti warna sampul, sisanya warna tetap. [rgb] = null berarti otomatis. */
+    enum class Ink(val label: String, val rgb: Int?) {
+        AUTO("Otomatis", null), WHITE("Putih", 0xFFFFFFFF.toInt()), BLACK("Hitam", 0xFF000000.toInt()),
+        CREAM("Krem", 0xFFFFF1D6.toInt()), YELLOW("Kuning", 0xFFFFE066.toInt()), ORANGE("Oranye", 0xFFFFA24C.toInt()),
+        PINK("Pink", 0xFFFF8FB8.toInt()), MINT("Mint", 0xFF8CF0C4.toInt()), SKY("Biru", 0xFF8EC8FF.toInt())
+    }
 
     class Options(
         val story: Boolean = false,
@@ -38,6 +46,9 @@ object LyricCard {
             Font.SERIF -> Typeface.create(Typeface.SERIF, style)
             Font.MONO -> Typeface.create(Typeface.MONOSPACE, style)
             Font.ROUNDED -> Typeface.create("sans-serif-rounded", style)
+            Font.CONDENSED -> Typeface.create("sans-serif-condensed", style)
+            Font.CASUAL -> Typeface.create("casual", style)
+            Font.CURSIVE -> Typeface.create("cursive", style)
         }
     }
 
@@ -109,11 +120,8 @@ object LyricCard {
             p.style = Paint.Style.FILL
         }
 
-        val ink = when (o.ink) {
-            Ink.WHITE -> Color.WHITE
-            Ink.BLACK -> Color.BLACK
-            Ink.AUTO -> Color.WHITE
-        }
+        // Otomatis: putih yang sedikit condong ke warna sampul; pilihan lain memakai warna tetapnya.
+        val ink = o.ink.rgb ?: Color.HSVToColor(floatArrayOf(hsv[0], 0.08f, 1f))
         val pad = if (glass) 56f else 84f
         val left = card.left + pad
         val textW = (card.width() - pad * 2).toInt()

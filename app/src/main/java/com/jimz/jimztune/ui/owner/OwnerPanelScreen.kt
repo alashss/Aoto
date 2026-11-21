@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Coffee
 import androidx.compose.material.icons.rounded.Construction
+import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Sensors
@@ -117,22 +118,29 @@ private fun HubPage(onBack: () -> Unit, onOpen: (OwnerPage) -> Unit) {
             else -> LoadingRow()
         }
 
+        OwnerSection("Pantau")
         GroupCard {
-            OwnerNavRow(Icons.Rounded.Construction, "Kontrol aplikasi", "Maintenance, saklar fitur, matikan aplikasi") { onOpen(OwnerPage.Control) }
-            OwnerDivider()
-            OwnerNavRow(Icons.Rounded.Sensors, "Statistik lengkap", "Waktu dengar, jam ramai, pendengar teratas") { onOpen(OwnerPage.Stats) }
+            OwnerNavRow(Icons.Rounded.Insights, "Statistik lengkap", "Waktu dengar, jam ramai, pendengar teratas") { onOpen(OwnerPage.Stats) }
             OwnerDivider()
             OwnerNavRow(Icons.Rounded.Sensors, "Aktivitas live", "Siapa memutar apa sekarang, lagu terpopuler") { onOpen(OwnerPage.Live) }
             OwnerDivider()
+            OwnerNavRow(Icons.Rounded.People, "Pengguna", "Daftar, aktivitas, suspend & ban") { onOpen(OwnerPage.Users) }
+        }
+
+        OwnerSection("Konten")
+        GroupCard {
             OwnerNavRow(Icons.Rounded.ViewCarousel, "Banner beranda", "Pasang, urutkan, dan hapus banner") { onOpen(OwnerPage.Banners) }
             OwnerDivider()
             OwnerNavRow(Icons.Rounded.Campaign, "Pengumuman", "Kirim realtime ke semua pengguna") { onOpen(OwnerPage.Announcements) }
             OwnerDivider()
             OwnerNavRow(Icons.Rounded.Coffee, "Donasi & popup", "Atur teks, tautan, dan popup realtime") { onOpen(OwnerPage.Donate) }
+        }
+
+        OwnerSection("Sistem")
+        GroupCard {
+            OwnerNavRow(Icons.Rounded.Construction, "Kontrol aplikasi", "Maintenance, saklar fitur, matikan aplikasi") { onOpen(OwnerPage.Control) }
             OwnerDivider()
             OwnerNavRow(Icons.Rounded.SystemUpdate, "Versi & update", "Versi terbaru, wajib update, catatan rilis") { onOpen(OwnerPage.Update) }
-            OwnerDivider()
-            OwnerNavRow(Icons.Rounded.People, "Pengguna", "Daftar, aktivitas, suspend & ban") { onOpen(OwnerPage.Users) }
         }
     }
 }

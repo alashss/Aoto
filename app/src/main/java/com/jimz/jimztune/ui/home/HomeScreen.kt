@@ -6,6 +6,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -92,6 +95,16 @@ fun HomeScreen(
     val overlay = LocalOverlayPadding.current
     val quick = vm.shelves.firstOrNull()
     val online = rememberIsOnline()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    // Speed dial: lagu yang paling sering diputar 30 hari terakhir; kalau belum cukup, dilengkapi dari favorit.
+    val dial = remember(recent) {
+        val today = java.time.LocalDate.now()
+        val top = com.jimz.jimztune.data.stats.PlayLog.topSongs(today.minusDays(30), today, 6).map {
+            SearchItem(it.id, com.jimz.jimztune.data.model.SearchType.SONG, it.title, it.artist, it.art)
+        }
+        (top + AppGraph.library.favorites.filter { it.type == com.jimz.jimztune.data.model.SearchType.SONG })
+            .distinctBy { it.id }.take(6)
+    }
 
     // Saat internet kembali, muat ulang rak yang tadinya kosong/gagal.
     LaunchedEffect(online) { if (online) vm.reloadIfNeeded() }
@@ -144,6 +157,14 @@ fun HomeScreen(
             item { OwnerMaintenanceNotice() }
         }
 
+        item {
+            MoodChips(busy = vm.moodBusy) { label, query ->
+                vm.playMood(label, query, onResult = { onPlay(it, 0) }, onFail = {
+                    android.widget.Toast.makeText(ctx, "Belum bisa memuat lagu. Coba lagi.", android.widget.Toast.LENGTH_SHORT).show()
+                })
+            }
+        }
+
         if (quick != null) {
             item {
                 SectionTitle("Pilihan cepat untukmu")
@@ -155,9 +176,16 @@ fun HomeScreen(
             }
         }
 
+        if (dial.size >= 3) {
+            item {
+                SectionTitle("Speed dial")
+                SpeedDial(dial, currentId, onPlay)
+            }
+        }
+
         if (recent.isNotEmpty()) {
             item {
-                SectionTitle("Terakhir diputar")
+                SectionTitle("Lanjut dengar")
                 SongRow(recent, currentId, onPlay)
             }
         }
@@ -437,6 +465,90 @@ internal fun Header(onOpenSearch: (() -> Unit)?) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Rounded.Search, contentDescription = "Cari", modifier = Modifier.size(24.dp))
+            }
+        }
+    }
+}
+
+private val MOODS = listOf(
+    "Bahagia" to "lagu bahagia ceria playlist",
+    "Santai" to "lagu santai chill playlist",
+    "Perjalanan" to "lagu perjalanan road trip playlist",
+    "Semangat" to "lagu semangat workout energik",
+    "Galau" to "lagu galau sedih indonesia",
+    "Fokus" to "musik fokus belajar instrumental"
+)
+
+/** Chip suasana: ketuk salah satu untuk langsung memutar campuran lagu yang cocok. */
+@Composable
+private fun MoodChips(busy: String?, onPick: (label: String, query: String) -> Unit) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier
+            .padding(top = 14.dp)
+            .horizontalScroll(androidx.compose.foundation.rememberScrollState())
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        MOODS.forEach { (label, query) ->
+            val loading = busy == label
+            Text(
+                if (loading) "$label…" else label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Medium,
+                color = if (loading) JimzBlueSoft else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color.White.copy(alpha = 0.10f))
+                    .clickable(enabled = busy == null) { onPick(label, query) }
+                    .padding(horizontal = 16.dp, vertical = 9.dp)
+            )
+        }
+    }
+}
+
+/** Kisi sampul 3 kolom: akses cepat ke lagu yang paling sering diputar. */
+@Composable
+private fun SpeedDial(songs: List<SearchItem>, currentId: String?, onPlay: (List<SearchItem>, Int) -> Unit) {
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        songs.chunked(3).forEachIndexed { r, rowSongs ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                rowSongs.forEachIndexed { c, song ->
+                    val index = r * 3 + c
+                    val playing = song.id == currentId
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { onPlay(songs, index) }
+                    ) {
+                        AsyncImage(
+                            model = song.thumbnailUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f)), startY = 120f))
+                        )
+                        Text(
+                            song.title,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (playing) JimzBlueSoft else Color.White,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.align(Alignment.BottomStart).padding(8.dp)
+                        )
+                    }
+                }
+                repeat(3 - rowSongs.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }

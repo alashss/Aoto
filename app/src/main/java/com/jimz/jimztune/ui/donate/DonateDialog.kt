@@ -50,6 +50,28 @@ fun DonateDialog(onDismiss: () -> Unit) {
         dismissLabel = "Nanti dulu"
     ) {
         donation?.links.orEmpty().forEachIndexed { i, link ->
+            if (link.url.substringBefore('?').lowercase().let { u -> listOf(".png", ".jpg", ".jpeg", ".webp").any { u.endsWith(it) } }) {
+                // Tautan berupa gambar (mis. kode QRIS): ditampilkan langsung di dialog, bisa dipindai dari HP lain.
+                androidx.compose.foundation.layout.Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    coil.compose.AsyncImage(
+                        model = link.url,
+                        contentDescription = link.label,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                        modifier = Modifier
+                            .size(220.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White)
+                            .padding(10.dp)
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(link.label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.7f))
+                }
+                Spacer(Modifier.height(10.dp))
+                return@forEachIndexed
+            }
             PillTextButton(
                 text = link.label,
                 onClick = { context.openUrl(link.url) },

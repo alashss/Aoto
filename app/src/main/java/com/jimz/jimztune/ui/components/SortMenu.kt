@@ -21,7 +21,7 @@ import java.util.Locale
 
 /** Cara mengurutkan daftar lagu. Hanya mengubah tampilan dan urutan putar; urutan asli tidak diubah. */
 enum class SortMode(val label: String) {
-    ORIGINAL("Urutan ditambahkan"),
+    ORIGINAL("Urutan saya"),
     NEWEST("Terbaru ditambahkan"),
     TITLE_AZ("Judul A–Z"),
     TITLE_ZA("Judul Z–A"),

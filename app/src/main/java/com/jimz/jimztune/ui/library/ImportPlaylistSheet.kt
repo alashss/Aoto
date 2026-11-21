@@ -82,6 +82,31 @@ fun ImportPlaylistSheet(onDismiss: () -> Unit, onCreated: (playlistId: String) -
     var total by remember { mutableIntStateOf(0) }
     var found by remember { mutableIntStateOf(0) }
     var job by remember { mutableStateOf<Job?>(null) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val csvPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val text = ctx.contentResolver.openInputStream(uri)!!.use { ins ->
+                    com.jimz.jimztune.data.backup.BackupManager.readCapped(ins, 5 * 1024 * 1024).toString(Charsets.UTF_8)
+                }
+                val tracks = PlaylistImporter.parseCsv(text)
+                if (tracks.isEmpty()) {
+                    error = "Tidak ada lagu yang terbaca di berkas CSV itu."
+                } else {
+                    error = null
+                    pasted = tracks.joinToString("\n") { if (it.artist.isBlank()) it.title else "${it.artist} - ${it.title}" }
+                    if (textName.isBlank()) {
+                        val n = uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.')?.trim().orEmpty()
+                        if (n.isNotEmpty() && n.length <= 60) textName = n
+                    }
+                }
+            } catch (_: Exception) {
+                error = "Berkas CSV tidak bisa dibaca."
+            }
+        }
+    }
 
     // Impor ratusan lagu bisa makan beberapa menit: layar dijaga tetap menyala selama lembar ini terbuka.
     val view = LocalView.current
@@ -197,6 +222,13 @@ fun ImportPlaylistSheet(onDismiss: () -> Unit, onCreated: (playlistId: String) -
                             minLines = 5,
                             maxLines = 8,
                             colors = jimzFieldColors(accent),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        PillTextButton(
+                            "Pilih berkas CSV",
+                            onClick = { csvPicker.launch(arrayOf("text/*", "application/csv", "application/vnd.ms-excel", "*/*")) },
+                            primary = false,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }

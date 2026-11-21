@@ -418,6 +418,57 @@ object PlaylistImporter {
             }
             .toList()
 
+    /**
+     * Membaca CSV ekspor playlist (Exportify, TuneMyMusic, dsb.). Kolom dikenali dari baris judul
+     * ("Track Name", "Title", "Artist Name(s)", ...); tanpa baris judul dipakai kolom 1 = judul, kolom 2 = artis.
+     * Maksimal 5000 lagu.
+     */
+    fun parseCsv(text: String): List<ImportedTrack> {
+        val rows = csvRows(text.removePrefix("\uFEFF"))
+        if (rows.isEmpty()) return emptyList()
+        val head = rows[0].map { it.trim().lowercase() }
+        val titleKeys = listOf("track name", "track", "title", "song", "song name", "name", "judul", "lagu")
+        val artistKeys = listOf("artist name(s)", "artist name", "artist(s)", "artists", "artist", "artis", "penyanyi")
+        val ti = titleKeys.firstNotNullOfOrNull { k -> head.indexOf(k).takeIf { it >= 0 } }
+        val ai = artistKeys.firstNotNullOfOrNull { k -> head.indexOf(k).takeIf { it >= 0 } }
+        val hasHeader = ti != null
+        val tCol = ti ?: 0
+        val aCol = if (hasHeader) ai ?: -1 else 1
+        return rows.drop(if (hasHeader) 1 else 0).mapNotNull { r ->
+            val title = r.getOrNull(tCol)?.trim().orEmpty()
+            if (title.isEmpty()) return@mapNotNull null
+            // Spotify memisahkan beberapa artis dengan ";": ambil yang pertama supaya pencarian lebih akurat.
+            val artist = r.getOrNull(aCol)?.trim().orEmpty().substringBefore(';').trim()
+            ImportedTrack(title = title, artist = artist)
+        }.take(5000)
+    }
+
+    /** Pemisah baris CSV sederhana: mendukung tanda kutip ganda, koma di dalam kutip, dan "" sebagai kutip. */
+    private fun csvRows(text: String): List<List<String>> {
+        val delim = if (text.lineSequence().firstOrNull().orEmpty().count { it == ';' } > text.lineSequence().firstOrNull().orEmpty().count { it == ',' }) ';' else ','
+        val out = ArrayList<List<String>>()
+        var row = ArrayList<String>()
+        val cell = StringBuilder()
+        var quoted = false
+        var i = 0
+        fun endCell() { row.add(cell.toString()); cell.setLength(0) }
+        fun endRow() { endCell(); if (row.any { it.isNotBlank() }) out.add(row); row = ArrayList() }
+        while (i < text.length && out.size <= 20000) {
+            val ch = text[i]
+            when {
+                quoted && ch == '"' && text.getOrNull(i + 1) == '"' -> { cell.append('"'); i++ }
+                ch == '"' -> quoted = !quoted
+                !quoted && ch == delim -> endCell()
+                !quoted && ch == '\n' -> endRow()
+                !quoted && ch == '\r' -> {}
+                else -> cell.append(ch)
+            }
+            i++
+        }
+        if (cell.isNotEmpty() || row.isNotEmpty()) endRow()
+        return out
+    }
+
     // ---------------------------------------------------------------- pencocokan ke YouTube Music
 
     /**

@@ -189,6 +189,14 @@ fun SearchScreen(
             } else {
                 when (val s = vm.state) {
                     SearchUiState.Idle -> GenreGrid(
+                        recent = remember { com.jimz.jimztune.AppGraph.history.items.take(12) },
+                        top = remember {
+                            val today = java.time.LocalDate.now()
+                            com.jimz.jimztune.data.stats.PlayLog.topSongs(today.minusDays(30), today, 12).map {
+                                SearchItem(it.id, SearchType.SONG, it.title, it.artist, it.art)
+                            }
+                        },
+                        onPlaySong = onPlay,
                         covers = vm.genreCovers,
                         onNeedCover = vm::loadGenreCover,
                         history = vm.history.take(6),

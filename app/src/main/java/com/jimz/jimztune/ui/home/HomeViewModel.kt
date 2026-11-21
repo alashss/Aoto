@@ -39,6 +39,21 @@ class HomeViewModel : ViewModel() {
     var shelves by mutableStateOf(DEFAULT_SHELVES.map { Shelf(it.first) })
         private set
 
+    /** Nama chip mood yang sedang dimuat (null = tidak ada). */
+    var moodBusy by mutableStateOf<String?>(null)
+        private set
+
+    /** Cari lagu sesuai suasana lalu serahkan ke [onResult] untuk diputar. */
+    fun playMood(label: String, query: String, onResult: (List<SearchItem>) -> Unit, onFail: () -> Unit) {
+        if (moodBusy != null) return
+        moodBusy = label
+        viewModelScope.launch {
+            val songs = try { fetchWithRetry(query) } catch (e: CancellationException) { moodBusy = null; throw e }
+            moodBusy = null
+            if (songs.isEmpty()) onFail() else onResult(songs.shuffled())
+        }
+    }
+
     init {
         val snapshot = cache.read()
         shelves = DEFAULT_SHELVES.map { (title, _) ->

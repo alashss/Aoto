@@ -244,13 +244,27 @@ fun SettingsScreen(
             }
         }
 
+        Spacer(Modifier.height(12.dp))
+        // Kontrol suara: sama dengan tombol "Suara" di layar pemutar.
+        var showAudioFx by remember { mutableStateOf(false) }
+        GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+            SettingRow(
+                icon = Icons.Rounded.GraphicEq,
+                title = "Kontrol suara",
+                subtitle = "Gaya suara, kecepatan, equalizer, crossfade",
+                onClick = { showAudioFx = true }
+            )
+        }
+        if (showAudioFx) com.jimz.jimztune.ui.player.AudioFxSheet(onDismiss = { showAudioFx = false })
+
         var showAppearance by remember { mutableStateOf(false) }
         var showStreak by remember { mutableStateOf(false) }
         var showRecap by remember { mutableStateOf(false) }
         var showIsland by remember { mutableStateOf(false) }
         var showStorage by remember { mutableStateOf(false) }
         var showLyricsWidget by remember { mutableStateOf(false) }
-        GroupCard(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+        Section("Tampilan & fitur")
+        GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
             SettingRow(
                 icon = Icons.Rounded.Palette,
                 title = "Tampilan & tema",
@@ -284,13 +298,6 @@ fun SettingsScreen(
                     onClick = { showIsland = true }
                 )
             }
-            RowDivider()
-            SettingRow(
-                icon = Icons.Rounded.Storage,
-                title = "Penyimpanan",
-                subtitle = "Rincian pemakaian dan bersihkan cache",
-                onClick = { showStorage = true }
-            )
         }
         if (showAppearance) AppearanceSheet(onDismiss = { showAppearance = false })
         if (showStreak) com.jimz.jimztune.ui.stats.StreakSheet(onDismiss = { showStreak = false })
@@ -298,89 +305,6 @@ fun SettingsScreen(
         if (showIsland) IslandSheet(onDismiss = { showIsland = false })
         if (showStorage) StorageSheet(onDismiss = { showStorage = false })
         if (showLyricsWidget) LyricsWidgetSheet(onDismiss = { showLyricsWidget = false })
-
-        // Kontrol suara: sama dengan tombol "Suara" di layar pemutar.
-        var showAudioFx by remember { mutableStateOf(false) }
-        GroupCard(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-            SettingRow(
-                icon = Icons.Rounded.GraphicEq,
-                title = "Kontrol suara",
-                subtitle = "Gaya suara, kecepatan, equalizer, crossfade",
-                onClick = { showAudioFx = true }
-            )
-        }
-        if (showAudioFx) com.jimz.jimztune.ui.player.AudioFxSheet(onDismiss = { showAudioFx = false })
-
-        // ---- Pemutaran (log hanya untuk owner; user biasa tidak melihatnya) ----
-        if (AppGraph.account.isOwner) {
-        Section("Pemutaran")
-        GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
-            var showPlayerLog by remember { mutableStateOf(false) }
-            SettingRow(
-                icon = Icons.Rounded.Description,
-                title = "Log pemutar",
-                subtitle = "Catatan pencarian & pengunduhan lagu terakhir. Salin lalu kirim kalau lagu bermasalah",
-                onClick = { showPlayerLog = true }
-            )
-            if (showPlayerLog) {
-                val logText = (PlaybackDiagnostics.dump() + "\n" + com.jimz.jimztune.util.UserError.dump()).trim().ifBlank { "Belum ada catatan. Putar sebuah lagu dulu." }
-                JimzDialog(
-                    onDismiss = { showPlayerLog = false },
-                    icon = Icons.Rounded.Description,
-                    title = "Log pemutar",
-                    confirmLabel = "Salin",
-                    dismissLabel = "Tutup",
-                    onConfirm = {
-                        try {
-                            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            cm.setPrimaryClip(ClipData.newPlainText("Log pemutar", logText))
-                        } catch (_: Exception) {
-                        }
-                        showPlayerLog = false
-                    },
-                    content = {
-                        Column(modifier = Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
-                            Text(
-                                logText,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace,
-                                color = Color.White.copy(alpha = 0.85f)
-                            )
-                        }
-                    }
-                )
-            }
-        }
-
-        }
-
-        // ---- Penyimpanan ----
-        Section("Penyimpanan")
-        GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
-            SettingRow(
-                icon = Icons.Rounded.DeleteSweep,
-                title = "Hapus semua unduhan",
-                subtitle = "${downloads.songs.size} lagu tersimpan offline",
-                onClick = {
-                    if (downloads.songs.isEmpty()) {
-                        Toast.makeText(context, "Belum ada unduhan", Toast.LENGTH_SHORT).show()
-                    } else confirmClearDownloads = true
-                }
-            )
-            if (remote.featureOn("widget")) {
-                RowDivider()
-                SettingRow(
-                    icon = Icons.Rounded.Subtitles,
-                    title = "Hapus cache lirik",
-                    subtitle = "Lirik akan diunduh ulang saat dibutuhkan",
-                    onClick = {
-                        val files: List<File> = listOf("lyrics_v3", "lyrics_tr_v3").flatMap { File(context.filesDir, it).listFiles()?.toList().orEmpty() }
-                        files.forEach { it.delete() }
-                        Toast.makeText(context, "${files.size} lirik dihapus dari cache", Toast.LENGTH_SHORT).show()
-                    }
-                )
-            }
-        }
 
         // ---- Personalisasi ----
         Section("Personalisasi")
@@ -483,6 +407,84 @@ fun SettingsScreen(
                         )
                     }
                 }
+            }
+        }
+
+        // ---- Pemutaran (log hanya untuk owner; user biasa tidak melihatnya) ----
+        if (AppGraph.account.isOwner) {
+        Section("Pemutaran")
+        GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+            var showPlayerLog by remember { mutableStateOf(false) }
+            SettingRow(
+                icon = Icons.Rounded.Description,
+                title = "Log pemutar",
+                subtitle = "Catatan pencarian & pengunduhan lagu terakhir. Salin lalu kirim kalau lagu bermasalah",
+                onClick = { showPlayerLog = true }
+            )
+            if (showPlayerLog) {
+                val logText = (PlaybackDiagnostics.dump() + "\n" + com.jimz.jimztune.util.UserError.dump()).trim().ifBlank { "Belum ada catatan. Putar sebuah lagu dulu." }
+                JimzDialog(
+                    onDismiss = { showPlayerLog = false },
+                    icon = Icons.Rounded.Description,
+                    title = "Log pemutar",
+                    confirmLabel = "Salin",
+                    dismissLabel = "Tutup",
+                    onConfirm = {
+                        try {
+                            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            cm.setPrimaryClip(ClipData.newPlainText("Log pemutar", logText))
+                        } catch (_: Exception) {
+                        }
+                        showPlayerLog = false
+                    },
+                    content = {
+                        Column(modifier = Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+                            Text(
+                                logText,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = Color.White.copy(alpha = 0.85f)
+                            )
+                        }
+                    }
+                )
+            }
+        }
+
+        }
+
+        // ---- Penyimpanan ----
+        Section("Penyimpanan")
+        GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+            SettingRow(
+                icon = Icons.Rounded.Storage,
+                title = "Rincian penyimpanan",
+                subtitle = "Pemakaian unduhan dan cache, bisa dibersihkan",
+                onClick = { showStorage = true }
+            )
+            RowDivider()
+            SettingRow(
+                icon = Icons.Rounded.DeleteSweep,
+                title = "Hapus semua unduhan",
+                subtitle = "${downloads.songs.size} lagu tersimpan offline",
+                onClick = {
+                    if (downloads.songs.isEmpty()) {
+                        Toast.makeText(context, "Belum ada unduhan", Toast.LENGTH_SHORT).show()
+                    } else confirmClearDownloads = true
+                }
+            )
+            if (remote.featureOn("widget")) {
+                RowDivider()
+                SettingRow(
+                    icon = Icons.Rounded.Subtitles,
+                    title = "Hapus cache lirik",
+                    subtitle = "Lirik akan diunduh ulang saat dibutuhkan",
+                    onClick = {
+                        val files: List<File> = listOf("lyrics_v3", "lyrics_tr_v3").flatMap { File(context.filesDir, it).listFiles()?.toList().orEmpty() }
+                        files.forEach { it.delete() }
+                        Toast.makeText(context, "${files.size} lirik dihapus dari cache", Toast.LENGTH_SHORT).show()
+                    }
+                )
             }
         }
 

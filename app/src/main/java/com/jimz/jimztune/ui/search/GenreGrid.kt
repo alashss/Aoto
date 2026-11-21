@@ -41,8 +41,47 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jimz.jimztune.data.model.SearchItem
 import com.jimz.jimztune.ui.components.LocalOverlayPadding
 import com.jimz.jimztune.ui.theme.LocalCoverTheme
+
+/** Rak lagu mendatar (sampul kecil + judul) untuk "Terakhir diputar" dan "Paling sering". */
+@Composable
+private fun SongShelf(title: String, songs: List<SearchItem>, onPlay: (List<SearchItem>, Int) -> Unit) {
+    androidx.compose.foundation.layout.Column(Modifier.padding(top = 6.dp)) {
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(10.dp))
+        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(songs.size, key = { songs[it].id }) { i ->
+                val song = songs[i]
+                androidx.compose.foundation.layout.Column(
+                    Modifier
+                        .width(112.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable { onPlay(songs, i) }
+                ) {
+                    AsyncImage(
+                        model = song.thumbnailUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(112.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(alpha = 0.08f))
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(song.title, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        song.subtitle.substringBefore(" • "),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.55f), maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+    }
+}
 
 private data class Genre(val label: String, val query: String, val from: Color, val to: Color)
 
@@ -73,7 +112,10 @@ fun GenreGrid(
     history: List<String>,
     onPick: (String) -> Unit,
     onRemoveHistory: (String) -> Unit,
-    onClearHistory: () -> Unit
+    onClearHistory: () -> Unit,
+    recent: List<SearchItem> = emptyList(),
+    top: List<SearchItem> = emptyList(),
+    onPlaySong: (List<SearchItem>, Int) -> Unit = { _, _ -> }
 ) {
     val overlay = LocalOverlayPadding.current
     val accent = LocalCoverTheme.current.accent
@@ -83,6 +125,16 @@ fun GenreGrid(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        if (recent.isNotEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }, key = "shelf:recent") {
+                SongShelf("Terakhir diputar", recent, onPlaySong)
+            }
+        }
+        if (top.isNotEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }, key = "shelf:top") {
+                SongShelf("Paling sering", top, onPlaySong)
+            }
+        }
         if (history.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {

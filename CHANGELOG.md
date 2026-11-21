@@ -1,5 +1,21 @@
 # Catatan perubahan
 
+## 2.5.0
+
+- **Atur urutan playlist**: tombol ⇅ di playlist membuka layar seret-untuk-memindah (plus tombol "ke paling atas"). Urutan tersimpan sebagai "Urutan saya".
+- **Impor playlist dari CSV** (Exportify, TuneMyMusic, dll.) lewat "Tempel daftar" > "Pilih berkas CSV"; kolom judul/artis dikenali otomatis.
+- **Halaman Cari** menampilkan rak "Terakhir diputar" dan "Paling sering".
+- **Beranda**: chip suasana (Bahagia, Santai, Perjalanan, Semangat, Galau, Fokus) yang langsung memutar, kisi "Speed dial" 3 kolom dari lagu paling sering diputar (dilengkapi favorit), dan "Terakhir diputar" jadi "Lanjut dengar".
+- **Poster lirik**: 7 font (tambah Ramping, Santai, Tulis) dan 9 warna teks; "Otomatis" kini condong ke warna sampul.
+- **Dialog donasi** menampilkan tautan berupa gambar (mis. kode QRIS) langsung di dalam dialog.
+
+## 2.4.0
+
+- **Navbar melipat saat scroll ke bawah** dan muncul lagi saat scroll ke atas; mini player ikut turun dan menempel di dasar layar.
+- **Setelan ditata ulang**: urutan baru Akun, Audio (kualitas + kontrol suara), Tampilan & fitur, Personalisasi, Pemutaran, Penyimpanan, Privasi & cadangan, Aplikasi. Baris "Penyimpanan" yang dobel digabung.
+- **Panel Owner dikelompokkan**: Pantau, Konten, Sistem; ikon dobel diganti.
+- **Koleksi**: label "Playlist saya" selalu tampil.
+
 ## 2.3.0
 
 - **Pemutar**: geser kiri untuk Lirik, geser lagi untuk Antrean (kanan untuk kembali), dengan animasi antar halaman. Tarik ke bawah untuk menutup: halaman ikut turun dan mengecil, lalu kembali ke beranda. Animasi buka/tutup dari mini player juga ikut membesar/mengecil.

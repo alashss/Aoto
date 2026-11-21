@@ -23,6 +23,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -167,6 +170,37 @@ fun JimzTuneApp() {
     )
     val overlay = BarHeight + 12.dp + navInset + miniSpace + 24.dp
 
+    // Scroll ke bawah: navbar melipat (turun & memudar), mini player ikut turun dan menempel di dasar.
+    // Scroll ke atas: navbar muncul lagi.
+    var barHidden by remember { mutableStateOf(false) }
+    val scrollConn = remember {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPreScroll(
+                available: androidx.compose.ui.geometry.Offset,
+                source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
+            ): androidx.compose.ui.geometry.Offset {
+                if (available.y < -14f) barHidden = true else if (available.y > 14f) barHidden = false
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+        }
+    }
+    LaunchedEffect(currentRoute) { barHidden = false }
+    val miniDrop by animateDpAsState(
+        targetValue = if (barHidden) BarHeight + 4.dp else 0.dp,
+        animationSpec = tween(320, easing = FastOutSlowInEasing),
+        label = "miniDrop"
+    )
+    val barExtra by animateDpAsState(
+        targetValue = if (barHidden) 90.dp else 0.dp,
+        animationSpec = tween(320, easing = FastOutSlowInEasing),
+        label = "barExtra"
+    )
+    val barAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (barHidden) 0f else 1f,
+        animationSpec = tween(240),
+        label = "barAlpha"
+    )
+
     // Warna teks bawaan ditentukan di akar, agar komponen di luar Scaffold tidak jadi hitam.
     val backdrop = com.jimz.jimztune.ui.theme.rememberBackdropHolder()
     CompositionLocalProvider(
@@ -184,7 +218,7 @@ fun JimzTuneApp() {
                 LocalOpenDetail provides openDetail,
                 LocalQueueActions provides queueActions
             ) {
-              Box(modifier = Modifier.fillMaxSize().backdropSource(backdrop).appBackground(cover)) {
+              Box(modifier = Modifier.fillMaxSize().nestedScroll(scrollConn).backdropSource(backdrop).appBackground(cover)) {
                 NavHost(
                     navController = nav,
                     startDestination = Dest.Home.route,
@@ -293,6 +327,7 @@ fun JimzTuneApp() {
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
                     .padding(bottom = 12.dp)
+                    .offset { androidx.compose.ui.unit.IntOffset(0, miniDrop.roundToPx()) }
             ) {
                 // Mini player muncul meluncur dari bawah, dan lebarnya sama persis dengan navbar.
                 AnimatedVisibility(
@@ -313,7 +348,10 @@ fun JimzTuneApp() {
                     items = Dest.all,
                     selectedIndex = tabIndex(currentRoute),
                     onSelect = { goTo(Dest.all[it]) },
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .offset { androidx.compose.ui.unit.IntOffset(0, barExtra.roundToPx()) }
+                        .graphicsLayer { alpha = barAlpha }
                 )
             }
 

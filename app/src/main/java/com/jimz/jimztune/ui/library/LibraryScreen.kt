@@ -32,6 +32,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -290,6 +291,7 @@ private fun PlaylistTab(
     var showImport by remember { mutableStateOf(false) }
     var showAddSongs by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
+    var reordering by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     val open = library.playlist(openId)
 
@@ -317,7 +319,7 @@ private fun PlaylistTab(
                     )
                 }
             }
-            if (library.playlists.isNotEmpty() && library.likedPlaylists.isNotEmpty()) {
+            if (library.playlists.isNotEmpty()) {
                 item { ListLabel("Playlist saya") }
             }
             items(library.playlists, key = { it.id }) { p ->
@@ -398,6 +400,7 @@ private fun PlaylistTab(
                     emptyBody = "Simpan lagu lewat menu ⋮ di hasil pencarian atau pemutar.",
                     barTrailing = {
                         DownloadAllIconButton(open.songs)
+                        if (open.songs.size > 1) CompactIconButton(Icons.Rounded.SwapVert, "Atur urutan", onClick = { reordering = true })
                         CompactIconButton(Icons.Rounded.Add, "Tambah lagu", onClick = { showAddSongs = true })
                         if (com.jimz.jimztune.AppConfig.SHARE_ENABLED) CompactIconButton(
                             Icons.Rounded.Share,
@@ -417,6 +420,9 @@ private fun PlaylistTab(
         }
     }
 
+    if (reordering && open != null) {
+        ReorderPlaylistDialog(open.id) { reordering = false }
+    }
     if (showAddSongs && open != null) {
         AddSongsDialog(open.id) { showAddSongs = false }
     }

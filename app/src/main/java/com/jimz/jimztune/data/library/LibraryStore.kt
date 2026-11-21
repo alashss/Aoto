@@ -152,6 +152,16 @@ class LibraryStore(context: Context) {
         return true
     }
 
+    /** Menyimpan urutan baru lagu di playlist. Lagu yang tidak ada di [ordered] (mis. baru ditambah) tetap dipertahankan di akhir. */
+    fun reorderPlaylist(id: String, ordered: List<SearchItem>) {
+        val cur = playlist(id) ?: return
+        val ids = cur.songs.map { it.id }.toSet()
+        val kept = ordered.filter { it.id in ids }.distinctBy { it.id }
+        val rest = cur.songs.filter { s -> kept.none { it.id == s.id } }
+        playlists = playlists.map { if (it.id == id) it.copy(songs = kept + rest) else it }
+        save()
+    }
+
     fun removeFromPlaylist(id: String, songId: String) {
         playlists = playlists.map { if (it.id == id) it.copy(songs = it.songs.filter { s -> s.id != songId }) else it }
         save()
