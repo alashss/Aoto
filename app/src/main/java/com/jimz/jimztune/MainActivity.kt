@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
         com.jimz.jimztune.util.ScreenGuard.apply(this)
         com.jimz.jimztune.util.PrivacyPrefs.applyRefresh(this)
         com.jimz.jimztune.ui.theme.AppFont.init(this)
+        com.jimz.jimztune.util.FailedSongs.init(this)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
@@ -158,6 +159,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        com.jimz.jimztune.ui.theme.AppTheme.refreshNight()
         // Status ban / suspend / owner dicek tiap aplikasi dibuka, tanpa menunggu jeda sinkronisasi.
         if (AppGraph.auth.isLoggedIn) lifecycleScope.launch { AppGraph.account.refresh() }
         AppGraph.cloud.syncIfDue()

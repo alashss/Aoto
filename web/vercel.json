@@ -7,6 +7,10 @@
     {
       "source": "/p/:code",
       "destination": "/index.html"
+    },
+    {
+      "source": "/u/:username",
+      "destination": "/index.html"
     }
   ],
   "headers": [

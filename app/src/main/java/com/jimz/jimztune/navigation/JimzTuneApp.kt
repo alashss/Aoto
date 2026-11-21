@@ -206,7 +206,7 @@ fun JimzTuneApp() {
     val backdrop = com.jimz.jimztune.ui.theme.rememberBackdropHolder()
     // Merekam seluruh layar tiap frame itu mahal: dimatikan saat pemutar penuh menutupi layar atau gayanya bukan kaca.
     androidx.compose.runtime.SideEffect {
-        backdrop.active = com.jimz.jimztune.ui.theme.AppTheme.liveBlur &&
+        backdrop.active = com.jimz.jimztune.ui.theme.AppTheme.liveBlur && !com.jimz.jimztune.ui.theme.AppTheme.saver &&
             com.jimz.jimztune.ui.theme.AppTheme.uiStyle.isGlassy && !playerOpen
     }
     CompositionLocalProvider(

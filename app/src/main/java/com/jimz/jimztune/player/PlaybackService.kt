@@ -222,6 +222,7 @@ class PlaybackService : MediaSessionService() {
                 val id = player.currentMediaItem?.mediaId ?: return
                 val title = player.currentMediaItem?.mediaMetadata?.title?.toString() ?: id
                 UserError.log("Pemutar", "$title: ${error.errorCodeName}")
+                com.jimz.jimztune.util.FailedSongs.record(id, title, error.errorCodeName)
                 StreamResolver.invalidate(id)
                 // Error baca/parsing file sering berarti data di cache rusak: buang supaya percobaan ulang mengunduh bersih.
                 if (error.errorCode in PARSING_ERRORS) purgeCache(id)

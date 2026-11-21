@@ -55,7 +55,7 @@ object LyricCard {
     }
 
     /** Buram murah tapi halus: perkecil sangat jauh lalu perbesar dengan filter (dua kali). */
-    private fun blurred(src: Bitmap, w: Int, h: Int): Bitmap {
+    internal fun blurred(src: Bitmap, w: Int, h: Int): Bitmap {
         val small = Bitmap.createScaledBitmap(src, 24, 24, true)
         val mid = Bitmap.createScaledBitmap(small, 96, 96, true)
         // isi penuh (crop tengah)

@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.jimz.jimztune.util.BackgroundPlayback
+import com.jimz.jimztune.util.shareText
 import android.widget.Toast
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.horizontalScroll
@@ -55,6 +56,8 @@ import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.Person
 import com.jimz.jimztune.data.cloud.SyncStatus
 import com.jimz.jimztune.ui.auth.ProfileAvatar
+import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Coffee
@@ -322,6 +325,35 @@ fun SettingsScreen(
                     })
                 }
             )
+            RowDivider()
+            var autoNight by remember { mutableStateOf(com.jimz.jimztune.ui.theme.AppTheme.autoNight) }
+            SettingRow(
+                icon = Icons.Rounded.Bedtime,
+                title = "Tema ikut jam",
+                subtitle = "Pukul 22.00 sampai 05.00 latar jadi hitam pekat dan aksen lebih lembut",
+                onClick = null,
+                trailing = {
+                    Switch(checked = autoNight, onCheckedChange = {
+                        autoNight = it
+                        com.jimz.jimztune.ui.theme.AppTheme.updateAutoNight(it)
+                    })
+                }
+            )
+            RowDivider()
+            var saver by remember { mutableStateOf(com.jimz.jimztune.ui.theme.AppTheme.saver) }
+            SettingRow(
+                icon = Icons.Rounded.BatterySaver,
+                title = "Mode hemat baterai",
+                subtitle = "Matikan blur latar, aurora, dan refresh rate tinggi sekaligus",
+                onClick = null,
+                trailing = {
+                    Switch(checked = saver, onCheckedChange = {
+                        saver = it
+                        com.jimz.jimztune.ui.theme.AppTheme.updateSaver(it)
+                        (context as? android.app.Activity)?.let { a -> com.jimz.jimztune.util.PrivacyPrefs.applyRefresh(a) }
+                    })
+                }
+            )
             if (com.jimz.jimztune.ui.theme.backdropSupported) {
                 RowDivider()
                 var liveBlur by remember { mutableStateOf(com.jimz.jimztune.ui.theme.AppTheme.liveBlur) }
@@ -583,6 +615,41 @@ fun SettingsScreen(
                     })
                 }
             )
+            if (com.jimz.jimztune.data.cloud.CloudApi.configured && AppGraph.auth.isLoggedIn) {
+                var pubOn by remember { mutableStateOf(false) }
+                var pubReady by remember { mutableStateOf(false) }
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    com.jimz.jimztune.data.profile.PublicProfile.isOn()?.let { pubOn = it; pubReady = true }
+                }
+                val togglePub: (Boolean) -> Unit = { want ->
+                    scope.launch {
+                        val r = com.jimz.jimztune.data.profile.PublicProfile.set(want)
+                        if (r == null) Toast.makeText(context, "Gagal mengubah. Coba lagi.", Toast.LENGTH_SHORT).show()
+                        else pubOn = r
+                    }
+                }
+                RowDivider()
+                SettingRow(
+                    icon = Icons.Rounded.Link,
+                    title = "Halaman profil publik",
+                    subtitle = "Siapa pun yang punya link bisa melihat level, total dengar, dan 5 lagu teratasmu",
+                    onClick = { if (pubReady) togglePub(!pubOn) },
+                    trailing = { Switch(checked = pubOn, enabled = pubReady, onCheckedChange = { togglePub(it) }) }
+                )
+                if (pubOn) {
+                    val link = com.jimz.jimztune.data.profile.PublicProfile.link()
+                    RowDivider()
+                    SettingRow(
+                        icon = Icons.Rounded.Link,
+                        title = "Bagikan link profil",
+                        subtitle = link ?: "Alamat web belum diatur di build ini",
+                        onClick = {
+                            if (link != null) context.shareText("Profil Aoto", link)
+                            else Toast.makeText(context, "SHARE_BASE_URL belum diisi", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+            }
             RowDivider()
             SettingRow(
                 icon = Icons.Rounded.Link,

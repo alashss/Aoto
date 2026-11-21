@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DownloadDone
@@ -80,6 +81,7 @@ fun SongMenuButton(
     var picker by remember { mutableStateOf(false) }
     var fxSheet by remember { mutableStateOf(false) }
     var sleepSheet by remember { mutableStateOf(false) }
+    var cardSheet by remember { mutableStateOf(false) }
     val library = AppGraph.library
     val downloads = AppGraph.downloads
     val context = LocalContext.current
@@ -90,6 +92,8 @@ fun SongMenuButton(
     IconButton(onClick = { open = true }, modifier = modifier) {
         Icon(Icons.Rounded.MoreVert, contentDescription = "Menu lagu", tint = tint)
     }
+
+    if (cardSheet) SongCardSheet(song, onDismiss = { cardSheet = false })
 
     if (open) {
         val artistName = song.subtitle.substringBefore(" • ").trim()
@@ -187,6 +191,16 @@ fun SongMenuButton(
                             open = false
                             queueActions.playNext(song)
                             Toast.makeText(context, "Diputar setelah lagu ini", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                    MenuDivider()
+                    MenuRow(
+                        icon = Icons.Rounded.Image,
+                        label = "Bagikan kartu lagu",
+                        subtitle = "Gambar sampul + judul, simpan atau kirim",
+                        onClick = {
+                            open = false
+                            cardSheet = true
                         }
                     )
                     MenuDivider()

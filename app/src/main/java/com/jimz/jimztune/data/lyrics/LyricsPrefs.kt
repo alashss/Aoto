@@ -32,6 +32,14 @@ class LyricsPrefs(context: Context) {
     var animStyle by mutableIntStateOf(prefs.getInt("anim", 0))
         private set
 
+    /** Mode tampilan: 0 Daftar (menggulir), 1 Fokus (satu baris besar di tengah). */
+    var mode by mutableIntStateOf(prefs.getInt("mode", 0))
+        private set
+
+    /** Warna isian baris aktif: 0 Putih, 1 Aksen, 2 Kuning, 3 Mint, 4 Pink. */
+    var highlight by mutableIntStateOf(prefs.getInt("hl", 0))
+        private set
+
     /** Baris yang bukan sedang dinyanyikan diburamkan. */
     var blurOthers by mutableStateOf(prefs.getBoolean("blur", true))
         private set
@@ -51,6 +59,16 @@ class LyricsPrefs(context: Context) {
     fun updateAnimStyle(v: Int) {
         animStyle = v.coerceIn(0, ANIM_NAMES.lastIndex)
         prefs.edit().putInt("anim", animStyle).apply()
+    }
+
+    fun updateMode(v: Int) {
+        mode = v.coerceIn(0, MODE_NAMES.lastIndex)
+        prefs.edit().putInt("mode", mode).apply()
+    }
+
+    fun updateHighlight(v: Int) {
+        highlight = v.coerceIn(0, HIGHLIGHT_NAMES.lastIndex)
+        prefs.edit().putInt("hl", highlight).apply()
     }
 
     fun updateBlurOthers(v: Boolean) {
@@ -109,5 +127,7 @@ class LyricsPrefs(context: Context) {
         val SIZES = floatArrayOf(0.85f, 1f, 1.15f, 1.3f)
         val ANIM_NAMES = listOf("Karaoke", "Fade", "Glow", "Slide")
         val PREVIEW_NAMES = listOf("Mati", "Satu baris", "Dua baris")
+        val MODE_NAMES = listOf("Daftar", "Fokus")
+        val HIGHLIGHT_NAMES = listOf("Putih", "Aksen", "Kuning", "Mint", "Pink")
     }
 }

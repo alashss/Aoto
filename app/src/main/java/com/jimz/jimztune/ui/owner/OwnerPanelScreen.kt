@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Coffee
 import androidx.compose.material.icons.rounded.Construction
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.SystemUpdate
@@ -43,7 +44,7 @@ import com.jimz.jimztune.ui.theme.LocalCoverTheme
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-private enum class OwnerPage { Hub, Control, Live, Banners, Announcements, Donate, Update, Users, Stats }
+private enum class OwnerPage { Hub, Control, Live, Banners, Announcements, Donate, Update, Users, Stats, Failed }
 
 /**
  * Panel Owner. Hanya bisa dibuka akun yang didaftarkan di tabel `owners` server.
@@ -63,6 +64,7 @@ fun OwnerPanelScreen(onBack: () -> Unit) {
         OwnerPage.Donate -> DonatePage(onBack = back)
         OwnerPage.Users -> UsersPage(onBack = back)
         OwnerPage.Stats -> StatsPage(onBack = back)
+        OwnerPage.Failed -> FailedPage(onBack = back)
     }
 }
 
@@ -139,6 +141,8 @@ private fun HubPage(onBack: () -> Unit, onOpen: (OwnerPage) -> Unit) {
         OwnerSection("Sistem")
         GroupCard {
             OwnerNavRow(Icons.Rounded.Construction, "Kontrol aplikasi", "Maintenance, saklar fitur, matikan aplikasi") { onOpen(OwnerPage.Control) }
+            OwnerDivider()
+            OwnerNavRow(Icons.Rounded.ErrorOutline, "Lagu gagal diputar", "Catatan error pemutaran di perangkat ini") { onOpen(OwnerPage.Failed) }
             OwnerDivider()
             OwnerNavRow(Icons.Rounded.SystemUpdate, "Versi & update", "Versi terbaru, wajib update, catatan rilis") { onOpen(OwnerPage.Update) }
         }

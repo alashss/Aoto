@@ -18,7 +18,7 @@ object PrivacyPrefs {
     /** Meminta layar memakai refresh rate tertinggi (atau mengembalikan ke bawaan sistem). */
     fun applyRefresh(a: Activity) {
         val lp: WindowManager.LayoutParams = a.window.attributes
-        lp.preferredRefreshRate = if (highRefresh(a)) 120f else 0f
+        lp.preferredRefreshRate = if (highRefresh(a) && !com.jimz.jimztune.ui.theme.AppTheme.saver) 120f else 0f
         a.window.attributes = lp
     }
 }

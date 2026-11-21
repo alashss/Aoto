@@ -122,6 +122,10 @@ class RealtimeHub {
                 changes.put(JSONObject().put("event", "*").put("schema", "public").put("table", table))
             }
             val uid = AppGraph.auth.session?.userId
+            // Donasi masuk: hanya owner yang berlangganan (RLS di server juga hanya mengirim ke owner).
+            if (uid != null && AppGraph.account.isOwner) {
+                changes.put(JSONObject().put("event", "INSERT").put("schema", "public").put("table", "donations"))
+            }
             if (uid != null && !skipModeration) {
                 changes.put(
                     JSONObject().put("event", "*").put("schema", "public").put("table", "user_moderation")
@@ -170,8 +174,9 @@ class RealtimeHub {
                         ) failJoin()
                     }
                     "postgres_changes" -> {
-                        val table = o.optJSONObject("payload")?.optJSONObject("data")?.optString("table").orEmpty()
-                        onChange(table)
+                        val data = o.optJSONObject("payload")?.optJSONObject("data")
+                        val table = data?.optString("table").orEmpty()
+                        if (table == "donations") onDonation(data?.optJSONObject("record")) else onChange(table)
                     }
                     "phx_error", "phx_close" -> if (o.optString("topic") == topic) closed.complete(joined)
                 }
@@ -197,6 +202,16 @@ class RealtimeHub {
             heartbeat?.cancel()
             closed.complete(joined)
         }
+    }
+
+    private fun onDonation(rec: JSONObject?) {
+        if (rec == null || !AppGraph.account.isOwner) return
+        val id = rec.opt("id")?.toString() ?: return
+        if (!notified.add("don:$id")) return
+        val name = rec.optString("donor_name").ifBlank { "Anonim" }
+        val amount = rec.optLong("amount")
+        val note = rec.optString("note")
+        Notifier.donation(AppGraph.appContext, id, name, amount, note)
     }
 
     private fun onChange(table: String) {

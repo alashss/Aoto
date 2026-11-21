@@ -258,7 +258,14 @@ fun Modifier.appBackground(cover: CoverTheme): Modifier {
             )
         )
 
-        BgFx.AURORA -> this.background(c.background).aurora(c.accent, c.accentSoft)
+        BgFx.AURORA ->
+            if (AppTheme.saver) this.background(
+                Brush.verticalGradient(
+                    0f to lerp(c.background, c.accent, 0.20f),
+                    0.45f to lerp(c.background, c.accent, 0.06f),
+                    1f to c.background
+                )
+            ) else this.background(c.background).aurora(c.accent, c.accentSoft)
     }
 }
 

@@ -1,5 +1,25 @@
 # Catatan perubahan
 
+## 2.9.0
+
+- **Donasi masuk otomatis (owner)**: webhook Trakteer, Saweria, atau umum mencatat donasi ke server, dan HP owner langsung menerima notifikasi "Donasi masuk" lewat koneksi realtime. Donasi ganda dicegah, dan pesan berisi `@username` otomatis menautkan donasi ke akun Aoto itu.
+- **Profil publik**: Setelan > Privasi > "Halaman profil publik" (mati secara bawaan). Level, total dengar, dan 5 lagu teratas bisa dibuka lewat link web tanpa aplikasi.
+
+## 2.8.0
+
+- **Playlist cerdas** di Koleksi: "Baru kamu dengar", "Favorit bulan ini", dan "Lama nggak diputar" (favorit/isi playlist yang belum diputar 45 hari). Dibuat otomatis dari riwayat putar.
+- **Hapus lagu kembar** dan **Gabungkan playlist** di halaman playlist.
+- **Cari lewat lirik**: chip di halaman Cari. Ketik potongan lirik, hasilnya dicocokkan ke lagu yang bisa diputar.
+- **Kartu "Sedang kuputar"**: menu lagu > Bagikan kartu lagu. Format Kotak atau Story, simpan ke galeri atau bagikan.
+- **Tema ikut jam** dan **Mode hemat baterai** di Setelan > Personalisasi.
+- **Getaran halus** saat pindah halaman pemutar dan saat menutupnya.
+- **Panel Owner**: halaman "Lagu gagal diputar" (dicatat lokal, dengan ringkasan penyebab terbanyak).
+
+## 2.7.0
+
+- **Mode lirik**: pilih Daftar (menggulir seperti biasa) atau **Fokus** (satu baris besar di tengah, satu baris sebelumnya dan dua sesudahnya meredup, berganti dengan geser halus). Karaoke per kata, terjemahan, dan romanisasi tetap jalan di mode Fokus. Lirik tanpa waktu otomatis memakai Daftar.
+- **Warna isian lirik**: Putih, Aksen (mengikuti sampul), Kuning, Mint, atau Pink untuk baris yang sedang dinyanyikan.
+
 ## 2.6.0
 
 - **Tema baru: Liquid Glass** (Setelan > Tampilan > Gaya). Lebih bening dari Kaca: lekuk cahaya tebal, bayangan dalam, tepi berpendar sian/magenta. Bar bawah ikut memburamkan isi di belakangnya.

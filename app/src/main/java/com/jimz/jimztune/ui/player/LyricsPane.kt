@@ -1,6 +1,7 @@
 package com.jimz.jimztune.ui.player
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -247,6 +248,56 @@ private fun LyricsList(
         }
     }
 
+    val highlight = when (prefs.highlight) {
+        1 -> androidx.compose.ui.graphics.lerp(com.jimz.jimztune.ui.theme.LocalCoverTheme.current.accent, Color.White, 0.35f)
+        2 -> Color(0xFFFFE066)
+        3 -> Color(0xFF8CF0C4)
+        4 -> Color(0xFFFF8FB8)
+        else -> Color.White
+    }
+
+    // Satu baris lirik lengkap (karaoke, terjemahan, romanisasi). Dipakai oleh mode Daftar dan mode Fokus.
+    @Composable
+    fun LineRow(index: Int, line: LyricLine, distance: Int, boost: Float) {
+        val endMs = lines.getOrNull(index + 1)?.timeMs ?: (line.timeMs + GAP_DOTS_MS)
+        val seek = {
+            if (tapSync && lyrics.synced && line.text.isNotBlank()) {
+                // Baris ini sedang terdengar sekarang: geseran = waktu baris - posisi sekarang.
+                val newOffset = (line.timeMs - smoothPos - LEAD_MS).coerceIn(-15_000L, 15_000L)
+                prefs.setOffsetMs(state.songId, newOffset)
+                offset = newOffset
+                onTapSyncDone()
+            } else if (lyrics.synced) {
+                onSeek((line.timeMs - offset).coerceAtLeast(0L))
+                lastTouch = 0L
+            }
+        }
+        // Lama sapuan ditentukan dari jumlah suku kata baris ini (bukan sekadar jumlah huruf),
+        // dan tidak melewati baris berikutnya. Pembagian per kata ada di LyricRow.
+        val sweepMs = remember(line, endMs) {
+            if (line.words.isNotEmpty()) LyricTiming.wordSweepMs(line)
+            else LyricTiming.sweepMs(line.text, endMs - line.timeMs)
+        }
+        LyricRow(
+            text = line.text,
+            words = line.words,
+            lineStartMs = line.timeMs,
+            synced = lyrics.synced,
+            distance = distance,
+            center = center,
+            sizeScale = sizeScale * boost,
+            translation = translated?.getOrNull(index - shift),
+            roman = roman?.getOrNull(index - shift),
+            animStyle = prefs.animStyle,
+            blurOthers = prefs.blurOthers,
+            highlight = highlight,
+            progress = {
+                (((smoothPos + LEAD_MS + offset) - line.timeMs).toFloat() / sweepMs).coerceIn(0f, 1f)
+            },
+            onClick = seek
+        )
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         if (tapSync) {
             Text(
@@ -259,7 +310,55 @@ private fun LyricsList(
                     .padding(top = 8.dp, start = 48.dp, end = 48.dp)
             )
         }
-        LazyColumn(
+        if (prefs.mode == 1 && lyrics.synced) {
+            // Mode Fokus: hanya baris sekarang yang besar di tengah, satu baris sebelumnya dan dua sesudahnya meredup.
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, bottom = 24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.animation.AnimatedContent(
+                    targetState = activeIndex,
+                    transitionSpec = {
+                        (androidx.compose.animation.slideInVertically(tween(420, easing = FastOutSlowInEasing)) { it / 8 } +
+                            androidx.compose.animation.fadeIn(tween(320))) togetherWith
+                            (androidx.compose.animation.slideOutVertically(tween(320)) { -it / 8 } +
+                                androidx.compose.animation.fadeOut(tween(220)))
+                    },
+                    label = "lyricFocus"
+                ) { a ->
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalAlignment = if (center) Alignment.CenterHorizontally else Alignment.Start
+                    ) {
+                        val prev = (a - 1 downTo 0).firstOrNull { lines[it].text.isNotBlank() }
+                        if (prev != null) LineRow(prev, lines[prev], 1, 0.85f)
+                        val cur = lines.getOrNull(a)
+                        if (cur != null) {
+                            if (cur.text.isBlank()) {
+                                val endMs = lines.getOrNull(a + 1)?.timeMs ?: (cur.timeMs + GAP_DOTS_MS)
+                                GapRow(
+                                    gapMs = endMs - cur.timeMs,
+                                    distance = 0,
+                                    center = center,
+                                    progress = {
+                                        val gap = (endMs - cur.timeMs).coerceAtLeast(1L)
+                                        (((smoothPos + LEAD_MS + offset) - cur.timeMs).toFloat() / gap).coerceIn(0f, 1f)
+                                    }
+                                )
+                            } else {
+                                LineRow(a, cur, 0, 1.3f)
+                            }
+                        }
+                        (a + 1..lines.lastIndex).asSequence().filter { lines[it].text.isNotBlank() }.take(2)
+                            .forEachIndexed { k, i -> LineRow(i, lines[i], k + 1, 0.9f) }
+                    }
+                }
+            }
+        } else LazyColumn(
             state = listState,
             modifier = Modifier
                 .weight(1f)
@@ -324,31 +423,7 @@ private fun LyricsList(
                         }
                     )
 
-                    else -> {
-                        // Lama sapuan ditentukan dari jumlah suku kata baris ini (bukan sekadar jumlah huruf),
-                        // dan tidak melewati baris berikutnya. Pembagian per kata ada di LyricRow.
-                        val sweepMs = remember(line, endMs) {
-                            if (line.words.isNotEmpty()) LyricTiming.wordSweepMs(line)
-                            else LyricTiming.sweepMs(line.text, endMs - line.timeMs)
-                        }
-                        LyricRow(
-                            text = line.text,
-                            words = line.words,
-                            lineStartMs = line.timeMs,
-                            synced = lyrics.synced,
-                            distance = distance,
-                            center = center,
-                            sizeScale = sizeScale,
-                            translation = translated?.getOrNull(index - shift),
-                            roman = roman?.getOrNull(index - shift),
-                            animStyle = prefs.animStyle,
-                            blurOthers = prefs.blurOthers,
-                            progress = {
-                                (((smoothPos + LEAD_MS + offset) - line.timeMs).toFloat() / sweepMs).coerceIn(0f, 1f)
-                            },
-                            onClick = seek
-                        )
-                    }
+                    else -> LineRow(index, line, distance, 1f)
                 }
             }
         }
@@ -373,7 +448,8 @@ private fun LyricRow(
     animStyle: Int,
     blurOthers: Boolean,
     progress: () -> Float,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    highlight: Color = Color.White
 ) {
     val active = synced && distance == 0
     val targetAlpha = when {
@@ -436,7 +512,7 @@ private fun LyricRow(
             style = if (active && animStyle != 1) {
                 val glowAlpha = when (animStyle) { 2 -> 0.8f; 3 -> 0.2f; else -> 0.30f }
                 val glowRadius = when (animStyle) { 2 -> 48f; 3 -> 20f; else -> 26f }
-                TextStyle(shadow = Shadow(Color.White.copy(alpha = glowAlpha), Offset.Zero, glowRadius))
+                TextStyle(shadow = Shadow(highlight.copy(alpha = glowAlpha), Offset.Zero, glowRadius))
             } else {
                 TextStyle.Default
             },
@@ -455,7 +531,7 @@ private fun LyricRow(
                     val edge = map.xAt(p)
                     // Karaoke: tepi lembut sedang. Fade: sangat lembut. Glow: lembut. Slide: tegas.
                     val feather = when (animStyle) { 1 -> 64.dp; 2 -> 24.dp; 3 -> 3.dp; else -> 14.dp }.toPx()
-                    val fillColor = Color.White.copy(alpha = sweepAlpha)
+                    val fillColor = highlight.copy(alpha = sweepAlpha)
 
                     // Isi putih mengalir baris demi baris (kalau teks terbungkus jadi dua baris).
                     var cum = 0f

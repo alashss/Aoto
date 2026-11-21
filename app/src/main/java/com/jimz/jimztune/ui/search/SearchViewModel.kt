@@ -8,8 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.jimz.jimztune.AppGraph
 import com.jimz.jimztune.data.model.SearchItem
 import com.jimz.jimztune.data.model.SearchType
+import com.jimz.jimztune.data.model.isLongVersion
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -37,6 +39,9 @@ class SearchViewModel : ViewModel() {
     var type by mutableStateOf(SearchType.SONG)
         private set
     var state by mutableStateOf<SearchUiState>(SearchUiState.Idle)
+        private set
+    /** Mode "Cari lewat lirik": ketikan dianggap potongan lirik, bukan judul. */
+    var lyricMode by mutableStateOf(false)
         private set
     var suggestions by mutableStateOf<List<String>>(emptyList())
         private set
@@ -159,6 +164,13 @@ class SearchViewModel : ViewModel() {
         }
     }
 
+    fun toggleLyricMode() {
+        lyricMode = !lyricMode
+        if (state !is SearchUiState.Idle) {
+            query.trim().takeIf { it.isNotEmpty() }?.let { runSearch(it) }
+        }
+    }
+
     fun retry() {
         query.trim().takeIf { it.isNotEmpty() }?.let { runSearch(it) }
     }
@@ -177,13 +189,52 @@ class SearchViewModel : ViewModel() {
         state = SearchUiState.Loading
         searchJob = viewModelScope.launch {
             state = try {
-                val result = repo.search(q, type)
-                SearchUiState.Success(result.items, result.source)
+                if (lyricMode) {
+                    SearchUiState.Success(lyricResults(q), "Lirik")
+                } else {
+                    val result = repo.search(q, type)
+                    SearchUiState.Success(result.items, result.source)
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 SearchUiState.Error("Semua sumber sedang bermasalah. Coba lagi sebentar lagi.")
             }
         }
+    }
+
+    /** Lagu yang liriknya mengandung [q]: cari di NetEase, cocokkan ke lagu yang bisa diputar, lalu lengkapi dengan pencarian biasa. */
+    private suspend fun lyricResults(q: String): List<SearchItem> = kotlinx.coroutines.coroutineScope {
+        val hits = try {
+            com.jimz.jimztune.data.search.LyricSearch.find(q)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            emptyList()
+        }
+        val gate = kotlinx.coroutines.sync.Semaphore(3)
+        val resolved = hits.map { h ->
+            async {
+                gate.acquire()
+                try {
+                    repo.search("${h.artist} ${h.title}".trim(), SearchType.SONG, quick = true).items
+                        .firstOrNull { it.type == SearchType.SONG && !it.isLongVersion }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    null
+                } finally {
+                    gate.release()
+                }
+            }
+        }.map { it.await() }.filterNotNull()
+        val extra = if (resolved.size >= 3) emptyList() else try {
+            repo.search("$q lirik", SearchType.SONG).items.filter { it.type == SearchType.SONG && !it.isLongVersion }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            emptyList()
+        }
+        (resolved + extra).distinctBy { it.id }
     }
 }

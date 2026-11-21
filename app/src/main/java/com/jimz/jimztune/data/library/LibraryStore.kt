@@ -162,6 +162,32 @@ class LibraryStore(context: Context) {
         save()
     }
 
+    /** Membuang lagu kembar (id sama) di playlist. Mengembalikan jumlah yang dibuang. */
+    fun dedupePlaylist(id: String): Int {
+        val p = playlist(id) ?: return 0
+        val unique = p.songs.distinctBy { it.id }
+        val removed = p.songs.size - unique.size
+        if (removed > 0) {
+            playlists = playlists.map { if (it.id == id) it.copy(songs = unique) else it }
+            save()
+        }
+        return removed
+    }
+
+    /** Menambahkan lagu dari [sourceId] yang belum ada ke [targetId]; [sourceId] tidak diubah. Mengembalikan jumlah yang ditambah. */
+    fun mergeInto(targetId: String, sourceId: String): Int {
+        val t = playlist(targetId) ?: return 0
+        val s = playlist(sourceId) ?: return 0
+        if (targetId == sourceId) return 0
+        val have = t.songs.map { it.id }.toSet()
+        val add = s.songs.filter { it.id !in have }.distinctBy { it.id }
+        if (add.isNotEmpty()) {
+            playlists = playlists.map { if (it.id == targetId) it.copy(songs = it.songs + add) else it }
+            save()
+        }
+        return add.size
+    }
+
     fun removeFromPlaylist(id: String, songId: String) {
         playlists = playlists.map { if (it.id == id) it.copy(songs = it.songs.filter { s -> s.id != songId }) else it }
         save()

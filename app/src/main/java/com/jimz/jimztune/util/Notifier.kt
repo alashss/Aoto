@@ -48,4 +48,41 @@ object Notifier {
         } catch (_: Exception) {
         }
     }
+
+    private const val DONATION_CHANNEL = "donations"
+
+    /** Notifikasi untuk owner: ada donasi masuk (dari webhook Trakteer / Saweria / dll). */
+    fun donation(context: Context, id: String, name: String, amount: Long, note: String) {
+        val app = context.applicationContext
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) return
+        try {
+            if (Build.VERSION.SDK_INT >= 26) {
+                val nm = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                nm.createNotificationChannel(
+                    NotificationChannel(DONATION_CHANNEL, "Donasi masuk", NotificationManager.IMPORTANCE_HIGH)
+                )
+            }
+            val open = PendingIntent.getActivity(
+                app, 1,
+                Intent(app, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val rp = java.text.NumberFormat.getInstance(java.util.Locale("id", "ID")).format(amount)
+            val text = if (note.isBlank()) "$name berdonasi Rp $rp" else "$name berdonasi Rp $rp\n\"$note\""
+            val n = NotificationCompat.Builder(app, DONATION_CHANNEL)
+                .setSmallIcon(android.R.drawable.stat_notify_chat)
+                .setContentTitle("Donasi masuk")
+                .setContentText("$name • Rp $rp")
+                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(open)
+                .build()
+            NotificationManagerCompat.from(app).notify(("don" + id).hashCode(), n)
+        } catch (_: SecurityException) {
+        } catch (_: Exception) {
+        }
+    }
 }

@@ -32,6 +32,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AutoFixHigh
+import androidx.compose.material.icons.rounded.CallMerge
+import androidx.compose.material.icons.rounded.TrendingUp
+import androidx.compose.material.icons.rounded.Replay
+import com.jimz.jimztune.ui.components.JimzBottomSheet
+import com.jimz.jimztune.ui.components.SheetAction
 import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.ArrowBack
@@ -294,8 +300,44 @@ private fun PlaylistTab(
     var reordering by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     val open = library.playlist(openId)
+    var showMerge by remember { mutableStateOf(false) }
+
+    if (openId != null && openId.startsWith("smart:")) {
+        val smart = remember(openId) { SmartLists.build().firstOrNull { "smart:" + it.id == openId } }
+        if (smart != null) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CompactIconButton(Icons.Rounded.ArrowBack, "Kembali", onClick = { onOpen(null) })
+                }
+                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
+                    Text(smart.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        "${smart.songs.size} lagu · ${smart.hint}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    SongList(
+                        songs = smart.songs,
+                        sortKey = null,
+                        currentId = currentId,
+                        onPlay = onPlay,
+                        emptyIcon = Icons.Rounded.LibraryMusic,
+                        emptyTitle = "Belum ada isinya",
+                        emptyBody = "Putar beberapa lagu dulu, daftar ini terisi otomatis."
+                    )
+                }
+            }
+            return
+        }
+    }
 
     if (open == null) {
+        val smartLists = remember { SmartLists.build() }
         LazyColumn(contentPadding = PaddingValues(bottom = LocalOverlayPadding.current)) {
             item {
                 NewPlaylistButton(
@@ -318,6 +360,10 @@ private fun PlaylistTab(
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                     )
                 }
+            }
+            item { ListLabel("Playlist cerdas") }
+            items(smartLists, key = { "smart_" + it.id }) { sm ->
+                SmartRow(sm, Modifier.animateItem()) { onOpen("smart:" + sm.id) }
             }
             if (library.playlists.isNotEmpty()) {
                 item { ListLabel("Playlist saya") }
@@ -348,6 +394,15 @@ private fun PlaylistTab(
             ) {
                 CompactIconButton(Icons.Rounded.ArrowBack, "Kembali", onClick = { onOpen(null) })
                 Spacer(Modifier.weight(1f))
+                CompactIconButton(Icons.Rounded.AutoFixHigh, "Hapus lagu kembar", onClick = {
+                    val n = library.dedupePlaylist(open.id)
+                    android.widget.Toast.makeText(
+                        context,
+                        if (n > 0) "$n lagu kembar dibuang" else "Tidak ada lagu kembar",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                })
+                if (library.playlists.size > 1) CompactIconButton(Icons.Rounded.CallMerge, "Gabungkan playlist", onClick = { showMerge = true })
                 CompactIconButton(Icons.Rounded.Edit, "Edit playlist", onClick = { editing = true })
                 CompactIconButton(
                     Icons.Rounded.Delete,
@@ -420,6 +475,38 @@ private fun PlaylistTab(
         }
     }
 
+    if (showMerge && open != null) {
+        JimzBottomSheet(onDismiss = { showMerge = false }) {
+            Text(
+                "Gabungkan ke \"${open.name}\"",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+            )
+            Text(
+                "Lagu dari playlist yang dipilih ditambahkan ke sini. Lagu yang sudah ada dilewati; playlist asal tidak berubah.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+            )
+            library.playlists.filter { it.id != open.id }.forEach { other ->
+                SheetAction(
+                    icon = Icons.Rounded.LibraryMusic,
+                    label = other.name,
+                    subtitle = "${other.songs.size} lagu",
+                    onClick = {
+                        val n = library.mergeInto(open.id, other.id)
+                        showMerge = false
+                        android.widget.Toast.makeText(
+                            context,
+                            if (n > 0) "$n lagu ditambahkan" else "Tidak ada lagu baru",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                )
+            }
+        }
+    }
     if (reordering && open != null) {
         ReorderPlaylistDialog(open.id) { reordering = false }
     }
@@ -515,6 +602,49 @@ private fun PlaylistRow(playlist: Playlist, modifier: Modifier = Modifier, onCli
                 "${playlist.songs.size} lagu",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = accent.copy(alpha = 0.8f))
+    }
+}
+
+@Composable
+private fun SmartRow(smart: SmartLists.Smart, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val accent = LocalCoverTheme.current.accent
+    val cardShape = RoundedCornerShape(18.dp)
+    val icon = when (smart.id) {
+        "month" -> Icons.Rounded.TrendingUp
+        "old" -> Icons.Rounded.Replay
+        else -> Icons.Rounded.History
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 5.dp)
+            .clip(cardShape)
+            .cardSurface(cardShape)
+            .clickable(onClick = onClick)
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(accent.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(28.dp))
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(smart.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                "${smart.songs.size} lagu · ${smart.hint}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
         Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = accent.copy(alpha = 0.8f))

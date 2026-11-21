@@ -126,7 +126,7 @@ fun SearchScreen(
                 .onFocusChanged { vm.onFocusChange(it.isFocused) },
             placeholder = {
                 Text(
-                    "Cari lagu, album, atau artis",
+                    if (vm.lyricMode) "Ketik potongan lirik yang kamu ingat" else "Cari lagu, album, atau artis",
                     maxLines = 1,
                     softWrap = false,
                     overflow = TextOverflow.Ellipsis
@@ -153,13 +153,22 @@ fun SearchScreen(
             keyboardActions = KeyboardActions(onSearch = { doSearch(vm.query) })
         )
 
-        if (vm.state !is SearchUiState.Idle) {
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = vm.lyricMode,
+                onClick = vm::toggleLyricMode,
+                label = { Text("Cari lewat lirik") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Color.White.copy(alpha = 0.16f),
+                    selectedLabelColor = JimzIce
+                )
+            )
+            if (vm.state !is SearchUiState.Idle && !vm.lyricMode) {
                 SearchType.entries.forEach { t ->
                     FilterChip(
                         selected = vm.type == t,
@@ -172,8 +181,6 @@ fun SearchScreen(
                     )
                 }
             }
-        } else {
-            Spacer(Modifier.height(8.dp))
         }
 
         Box(modifier = Modifier.weight(1f)) {

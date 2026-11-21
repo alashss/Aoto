@@ -121,6 +121,12 @@ fun LyricsSettingsButton(
                     while (prefs.sizeLevel < target && guard++ < 6) prefs.sizeUp()
                     while (prefs.sizeLevel > target && guard++ < 12) prefs.sizeDown()
                 }
+                ChoiceRow("Mode lirik", com.jimz.jimztune.data.lyrics.LyricsPrefs.MODE_NAMES.indices.toList(), prefs.mode, { com.jimz.jimztune.data.lyrics.LyricsPrefs.MODE_NAMES.getOrElse(it) { "Daftar" } }) {
+                    prefs.updateMode(it)
+                }
+                ChoiceRow("Warna isian", com.jimz.jimztune.data.lyrics.LyricsPrefs.HIGHLIGHT_NAMES.indices.toList(), prefs.highlight, { com.jimz.jimztune.data.lyrics.LyricsPrefs.HIGHLIGHT_NAMES.getOrElse(it) { "Putih" } }) {
+                    prefs.updateHighlight(it)
+                }
                 ChoiceRow("Rata teks", listOf(0, 1), prefs.align, { if (it == 1) "Tengah" else "Kiri" }) { target ->
                     if (prefs.align != target) prefs.toggleAlign()
                 }

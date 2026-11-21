@@ -136,6 +136,15 @@ object AppTheme {
     var miniBg by mutableStateOf(MiniBg.COVER); private set
     /** Blur latar sungguhan di bar bawah (bisa dimatikan kalau HP terasa berat). */
     var liveBlur by mutableStateOf(true); private set
+
+    /** Tema ikut jam: malam hari (22.00 sampai 05.00) latar jadi hitam pekat dan aksen sedikit meredup. */
+    var autoNight by mutableStateOf(false); private set
+
+    /** Mode hemat baterai: tanpa blur latar, tanpa aurora, refresh rate bawaan. */
+    var saver by mutableStateOf(false); private set
+
+    /** Malam atau bukan (dihitung ulang tiap [refreshNight] dipanggil, mis. saat app dibuka). */
+    var isNight by mutableStateOf(false); private set
     var colors by mutableStateOf(compute()); private set
 
     fun init(context: Context) {
@@ -153,7 +162,37 @@ object AppTheme {
         playerBg = pick("player_bg", PlayerBg.COVER)
         miniBg = pick("mini_bg", MiniBg.COVER)
         liveBlur = prefs.getBoolean("live_blur", true)
+        autoNight = prefs.getBoolean("auto_night", false)
+        saver = prefs.getBoolean("saver", false)
+        isNight = nightNow()
         colors = compute()
+    }
+
+    private fun nightNow(): Boolean {
+        val h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        return h >= 22 || h < 5
+    }
+
+    /** Dipanggil saat app dibuka/dilanjutkan supaya tema malam ikut jam. */
+    fun refreshNight() {
+        if (!::prefs.isInitialized) return
+        val n = nightNow()
+        if (n != isNight) {
+            isNight = n
+            if (autoNight) colors = compute()
+        }
+    }
+
+    fun updateAutoNight(v: Boolean) {
+        autoNight = v
+        prefs.edit().putBoolean("auto_night", v).apply()
+        isNight = nightNow()
+        colors = compute()
+    }
+
+    fun updateSaver(v: Boolean) {
+        saver = v
+        prefs.edit().putBoolean("saver", v).apply()
     }
 
     fun updateLiveBlur(v: Boolean) { liveBlur = v; prefs.edit().putBoolean("live_blur", v).apply() }
@@ -259,7 +298,13 @@ object AppTheme {
             }
         }
         val base = if (customOn) fromHue(customHue, customSat) else fromPreset(preset, black = false)
-        return if (mode == ThemeMode.BLACK) blackOf(base) else base
+        if (mode == ThemeMode.BLACK) return blackOf(base)
+        // Tema ikut jam: malam hari hitam pekat dengan aksen sedikit lebih lembut (nyaman untuk mata dan hemat di AMOLED).
+        if (autoNight && isNight) {
+            val b = blackOf(base)
+            return ThemeColors(b.background, b.surface, b.surfaceHigh, lerp(b.accent, Color.Black, 0.12f), b.accentSoft)
+        }
+        return base
     }
 
     private fun fromPreset(p: ThemePreset, black: Boolean): ThemeColors {

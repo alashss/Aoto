@@ -50,7 +50,41 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 const safeImg = u => /^https:\/\//i.test(String(u || "")) ? String(u) : "";
 const artist = s => String(s || "").split(" • ")[0];
 
+const uname = (location.pathname.match(/\/u\/([A-Za-z0-9_.]{3,20})/) || [])[1] || "";
+
+async function loadProfile() {
+  try {
+    const r = await fetch(CLOUD_URL + "/rest/v1/rpc/get_public_profile", {
+      method: "POST",
+      headers: {apikey: CLOUD_KEY, Authorization: "Bearer " + CLOUD_KEY, "Content-Type": "application/json"},
+      body: JSON.stringify({p_username: uname})
+    });
+    const d = r.ok ? await r.json() : null;
+    if (!d) return fail("Profil ini tidak ditemukan atau tidak dibuat publik.");
+    renderProfile(d);
+  } catch (e) { fail("Tidak bisa menghubungi server."); }
+}
+function hours(sec) { const h = sec / 3600; return h >= 10 ? Math.round(h) + " jam" : h.toFixed(1).replace(".", ",") + " jam"; }
+function renderProfile(d) {
+  const name = d.name || d.username;
+  document.title = name + " · Aoto";
+  if (/^#[0-9A-Fa-f]{6}$/.test(d.accent || "")) document.documentElement.style.setProperty("--ac", d.accent);
+  const av = safeImg(d.avatar) ? '<img class="avatar" style="width:72px;height:72px" src="' + esc(safeImg(d.avatar)) + '" alt="">'
+                               : '<div class="avatar" style="width:72px;height:72px;font-size:28px">' + esc(name.slice(0,1).toUpperCase()) + '</div>';
+  const stat = (v, l) => '<div style="flex:1;text-align:center;padding:12px 4px;border-radius:16px;background:var(--card);border:1px solid var(--line)"><div class="lvl" style="font-size:20px">' + esc(v) + '</div><div class="muted" style="font-size:11px">' + l + '</div></div>';
+  const top = d.top || [];
+  app.innerHTML =
+    '<div class="hero">' + av + '<div><h1>' + esc(name) + '</h1><div class="muted">@' + esc(d.username) + '</div></div></div>' +
+    (d.bio ? '<p class="muted" style="margin:14px 0 0">' + esc(d.bio) + '</p>' : '') +
+    '<div style="display:flex;gap:10px;margin:20px 0">' + stat("Lvl. " + (d.level || 1), "Level") + stat(hours(d.seconds || 0), "Total dengar") + stat(d.days || 0, "Hari aktif") + '</div>' +
+    (DOWNLOAD_URL ? '<div class="btns"><a class="btn" href="' + esc(DOWNLOAD_URL) + '">Unduh Aoto</a></div>' : '') +
+    (top.length ? '<div class="muted" style="margin:6px 0">Paling sering didengar (90 hari)</div><ol>' + top.map((s, i) =>
+      '<li><span class="n">' + (i + 1) + '</span><img src="' + esc(safeImg(s.cover)) + '" alt="">' +
+      '<div class="grow"><div class="t">' + esc(s.title) + '</div><div class="muted" style="font-size:12px">' + esc(artist(s.artist)) + '</div></div></li>').join("") + '</ol>' : '');
+}
+
 async function load() {
+  if (uname) return loadProfile();
   if (!/^[A-Za-z0-9]{4,16}$/.test(code)) return fail("Tautan tidak valid.");
   try {
     const r = await fetch(CLOUD_URL + "/rest/v1/rpc/get_shared_playlist", {

@@ -123,6 +123,13 @@ fun PlayerScreen(
     val density = androidx.compose.ui.platform.LocalDensity.current
     val closeThreshold = with(density) { 140.dp.toPx() }
     var paneDrag by remember { mutableStateOf(0f) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    // Getaran halus saat pindah halaman (sampul, lirik, antrean); tidak saat pertama kali dibuka.
+    var firstPane by remember { mutableStateOf(true) }
+    androidx.compose.runtime.LaunchedEffect(pane) {
+        if (firstPane) firstPane = false
+        else haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+    }
 
     // Terjemahan hanya diminta ke internet saat halaman lirik penuh terbuka (hemat permintaan).
     DisposableEffect(pane) {
@@ -155,7 +162,10 @@ fun PlayerScreen(
                 .pointerInput(Unit) {
                     detectVerticalDragGestures(
                         onDragEnd = {
-                            if (dragY.value > closeThreshold) onClose()
+                            if (dragY.value > closeThreshold) {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                onClose()
+                            }
                             scope.launch { dragY.animateTo(0f, androidx.compose.animation.core.spring(0.8f, 400f)) }
                         },
                         onDragCancel = { scope.launch { dragY.animateTo(0f) } },
