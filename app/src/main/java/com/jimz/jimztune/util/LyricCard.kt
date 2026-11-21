@@ -36,7 +36,9 @@ object LyricCard {
         val align: Align = Align.LEFT,
         val font: Font = Font.DEFAULT,
         val bold: Boolean = true,
-        val ink: Ink = Ink.AUTO
+        val ink: Ink = Ink.AUTO,
+        val showCover: Boolean = true,
+        val watermark: Boolean = true
     )
 
     private fun faceOf(f: Font, bold: Boolean): Typeface {
@@ -73,12 +75,15 @@ object LyricCard {
         title: String,
         artist: String,
         lines: List<String>,
-        cover: Bitmap?
+        cover: Bitmap?,
+        scale: Float = 1f
     ): Bitmap {
         val w = 1080
         val h = if (o.story) 1920 else 1080
-        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        // [scale] < 1 dipakai untuk pratinjau (jauh lebih ringan); ekspor memakai 1f.
+        val bmp = Bitmap.createBitmap((w * scale).toInt(), (h * scale).toInt(), Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
+        c.scale(scale, scale)
         val p = Paint(Paint.ANTI_ALIAS_FLAG)
         val hsv = FloatArray(3)
         Color.colorToHSV(accent, hsv)
@@ -128,16 +133,17 @@ object LyricCard {
         var y = card.top + if (glass) 56f else (if (o.story) 150f else 84f)
 
         // ---- sampul + judul ----
+        val tile = if (o.showCover) cover else null
         val cs = if (o.story) 190f else 150f
-        if (cover != null) {
+        if (tile != null) {
             val rect = RectF(left, y, left + cs, y + cs)
             val path = Path().apply { addRoundRect(rect, 28f, 28f, Path.Direction.CW) }
             c.save()
             c.clipPath(path)
-            c.drawBitmap(cover, null, rect, Paint(Paint.FILTER_BITMAP_FLAG))
+            c.drawBitmap(tile, null, rect, Paint(Paint.FILTER_BITMAP_FLAG))
             c.restore()
         }
-        val tx = left + if (cover != null) cs + 32f else 0f
+        val tx = left + if (tile != null) cs + 32f else 0f
         val tw = (card.right - pad - tx).toInt().coerceAtLeast(200)
         fun block(text: String, size: Float, bold: Boolean, alpha: Int, maxLines: Int, at: Float, x: Float, width: Int): Float {
             if (text.isBlank()) return 0f
@@ -181,7 +187,7 @@ object LyricCard {
 
         // ---- kaki ----
         val fp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 32f; color = ink; alpha = 170; typeface = Typeface.DEFAULT_BOLD }
-        c.drawText("Aoto", left, card.bottom - pad * 0.7f, fp)
+        if (o.watermark) c.drawText("Aoto", left, card.bottom - pad * 0.7f, fp)
         return bmp
     }
 }

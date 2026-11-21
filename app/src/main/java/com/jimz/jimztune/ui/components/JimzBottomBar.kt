@@ -56,6 +56,7 @@ import com.jimz.jimztune.navigation.Dest
 import com.jimz.jimztune.ui.theme.LocalCoverTheme
 import com.jimz.jimztune.ui.theme.cardSurface
 import com.jimz.jimztune.ui.theme.glassBackdrop
+import com.jimz.jimztune.ui.theme.isGlassy
 
 val BarHeight = 64.dp
 
@@ -95,7 +96,7 @@ fun JimzBottomBar(
         label = "borderTop"
     )
 
-    val glassy = com.jimz.jimztune.ui.theme.AppTheme.uiStyle == com.jimz.jimztune.ui.theme.UiStyle.GLASS &&
+    val glassy = com.jimz.jimztune.ui.theme.AppTheme.uiStyle.isGlassy &&
         com.jimz.jimztune.ui.theme.backdropSupported && com.jimz.jimztune.ui.theme.LocalBackdrop.current != null
 
     // Gestur: tekan lalu geser kiri/kanan. Indikator mengikuti jari (membesar sedikit), tab berpindah saat jari melewatinya,
@@ -112,7 +113,7 @@ fun JimzBottomBar(
             .fillMaxWidth()
             .height(BarHeight)
             // Mode Kaca: blur dari konten di belakang bar. Gaya lain: alas solid supaya isi layar tidak tembus.
-            .then(if (glassy) Modifier.glassBackdrop(shape) else Modifier)
+            .then(if (glassy) Modifier.glassBackdrop(shape, if (com.jimz.jimztune.ui.theme.AppTheme.uiStyle == com.jimz.jimztune.ui.theme.UiStyle.LIQUID) 14.dp else 22.dp) else Modifier)
             .background(
                 Brush.verticalGradient(
                     listOf(

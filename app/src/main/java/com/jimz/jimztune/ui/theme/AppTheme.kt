@@ -75,6 +75,7 @@ enum class ThemePreset(
  */
 enum class UiStyle(val label: String, val hint: String) {
     GLASS("Kaca", "Kaca bening: kilap, pantulan cahaya, dan tepi bercahaya"),
+    LIQUID("Liquid Glass", "Kaca cair ala iOS: sangat bening, tepi berpendar warna, lekuk cahaya tebal"),
     FROSTED("Kaca es", "Kaca lebih terang dengan kilau di tepi atas"),
     FLAT("Flat", "Warna solid tanpa bingkai"),
     SOFT("Timbul", "Solid dengan bayangan lembut"),
@@ -83,6 +84,9 @@ enum class UiStyle(val label: String, val hint: String) {
     TINT("Warna", "Berlatar gradasi aksen"),
     MINIMAL("Minimal", "Nyaris tanpa kartu")
 }
+
+/** Gaya yang memakai blur latar sungguhan di bar navigasi. */
+val UiStyle.isGlassy: Boolean get() = this == UiStyle.GLASS || this == UiStyle.LIQUID
 
 /** Kebulatan sudut kartu dan sheet. */
 enum class Corner(val label: String, val scale: Float) {
@@ -130,6 +134,8 @@ object AppTheme {
     var bgFx by mutableStateOf(BgFx.COVER); private set
     var playerBg by mutableStateOf(PlayerBg.COVER); private set
     var miniBg by mutableStateOf(MiniBg.COVER); private set
+    /** Blur latar sungguhan di bar bawah (bisa dimatikan kalau HP terasa berat). */
+    var liveBlur by mutableStateOf(true); private set
     var colors by mutableStateOf(compute()); private set
 
     fun init(context: Context) {
@@ -146,8 +152,11 @@ object AppTheme {
         bgFx = pick("bg_fx", BgFx.COVER)
         playerBg = pick("player_bg", PlayerBg.COVER)
         miniBg = pick("mini_bg", MiniBg.COVER)
+        liveBlur = prefs.getBoolean("live_blur", true)
         colors = compute()
     }
+
+    fun updateLiveBlur(v: Boolean) { liveBlur = v; prefs.edit().putBoolean("live_blur", v).apply() }
 
     /** Skala sudut untuk ukuran dasar [base]. */
     fun round(base: Dp): Dp = base * corner.scale

@@ -18,6 +18,80 @@ object WidgetArt {
     const val DEFAULT_COLOR = 0xFF1B2A6B.toInt()
     private const val COVER_PX = 200
 
+    const val CTRL_PREV = 0
+    const val CTRL_PLAY = 1
+    const val CTRL_PAUSE = 2
+    const val CTRL_NEXT = 3
+    private val ctrlCache = HashMap<String, Bitmap>()
+
+    /** Ukuran tombol kontrol dalam dp (ikut layout widget). */
+    fun controlDp(kind: Int): Int = if (kind == CTRL_PLAY || kind == CTRL_PAUSE) 44 else 34
+
+    /**
+     * Tombol kontrol widget digambar sendiri: lingkaran kaca tipis untuk sebelumnya/berikutnya, dan lingkaran penuh
+     * (warna teks tema) untuk putar/jeda, dengan ikon bersudut membulat. Jauh lebih rapi daripada ikon bawaan Android.
+     */
+    @Synchronized
+    fun control(context: Context, kind: Int, theme: WidgetTheme): Bitmap {
+        val px = (controlDp(kind) * context.resources.displayMetrics.density).toInt().coerceAtLeast(48)
+        val key = "$kind:${theme.id}:$px"
+        ctrlCache[key]?.let { return it }
+        val bmp = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        val f = px.toFloat()
+        val cx = f / 2f
+        val r = f / 2f - 1f
+        val main = kind == CTRL_PLAY || kind == CTRL_PAUSE
+        val glyph: Int
+        if (main) {
+            p.color = theme.main
+            c.drawCircle(cx, cx, r, p)
+            glyph = if (theme.light) Color.WHITE else 0xFF14172B.toInt()
+        } else {
+            p.color = if (theme.light) 0x1A14172B else 0x26FFFFFF
+            c.drawCircle(cx, cx, r, p)
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = f * 0.025f
+            p.color = if (theme.light) 0x2214172B else 0x33FFFFFF
+            c.drawCircle(cx, cx, r - p.strokeWidth / 2f, p)
+            glyph = theme.main
+        }
+        p.style = Paint.Style.FILL_AND_STROKE
+        p.strokeJoin = Paint.Join.ROUND
+        p.strokeCap = Paint.Cap.ROUND
+        p.color = glyph
+        val s = f * (if (main) 0.20f else 0.19f)
+        p.strokeWidth = s * 0.34f
+        val path = android.graphics.Path()
+        fun tri(x1: Float, y1: Float, x2: Float, y2: Float, x3: Float, y3: Float) {
+            path.reset(); path.moveTo(x1, y1); path.lineTo(x2, y2); path.lineTo(x3, y3); path.close()
+            c.drawPath(path, p)
+        }
+        when (kind) {
+            CTRL_PLAY -> tri(cx - s * 0.62f, cx - s * 0.95f, cx + s * 0.98f, cx, cx - s * 0.62f, cx + s * 0.95f)
+            CTRL_PAUSE -> {
+                p.strokeWidth = 0f
+                p.style = Paint.Style.FILL
+                val bw = s * 0.62f
+                val rr = bw / 2f
+                c.drawRoundRect(RectF(cx - s * 0.86f, cx - s * 0.95f, cx - s * 0.86f + bw, cx + s * 0.95f), rr, rr, p)
+                c.drawRoundRect(RectF(cx + s * 0.86f - bw, cx - s * 0.95f, cx + s * 0.86f, cx + s * 0.95f), rr, rr, p)
+            }
+            CTRL_NEXT -> {
+                tri(cx - s * 0.95f, cx - s * 0.82f, cx + s * 0.45f, cx, cx - s * 0.95f, cx + s * 0.82f)
+                c.drawLine(cx + s * 0.98f, cx - s * 0.82f, cx + s * 0.98f, cx + s * 0.82f, p)
+            }
+            CTRL_PREV -> {
+                tri(cx + s * 0.95f, cx - s * 0.82f, cx - s * 0.45f, cx, cx + s * 0.95f, cx + s * 0.82f)
+                c.drawLine(cx - s * 0.98f, cx - s * 0.82f, cx - s * 0.98f, cx + s * 0.82f, p)
+            }
+        }
+        if (ctrlCache.size > 40) ctrlCache.clear()
+        ctrlCache[key] = bmp
+        return bmp
+    }
+
     private fun coverFile(context: Context) = File(context.filesDir, "widget_cover.png")
 
     /** Memotong persegi dari tengah, memperkecil, dan membulatkan sudutnya. */

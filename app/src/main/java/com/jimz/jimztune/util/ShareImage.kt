@@ -110,6 +110,30 @@ object ShareImage {
     }
 
     /** Menyimpan [bmp] sementara lalu membuka lembar bagikan Android. */
+    /** Menyimpan gambar ke galeri (Pictures/Aoto). Android 10 ke atas tanpa izin tambahan; di bawahnya tidak didukung. */
+    fun saveToGallery(context: Context, bmp: Bitmap, name: String = "aoto"): Boolean {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) return false
+        return try {
+            val resolver = context.contentResolver
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "${name}_${System.currentTimeMillis()}.png")
+                put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/Aoto")
+                put(android.provider.MediaStore.Images.Media.IS_PENDING, 1)
+            }
+            val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return false
+            val out = resolver.openOutputStream(uri)
+            if (out == null) { resolver.delete(uri, null, null); return false }
+            out.use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            values.clear()
+            values.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun share(context: Context, bmp: Bitmap, name: String = "aoto") {
         try {
             val dir = File(context.cacheDir, "shared").apply { mkdirs() }

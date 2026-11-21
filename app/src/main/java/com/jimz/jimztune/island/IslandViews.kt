@@ -5,11 +5,14 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Shader
+import android.graphics.LinearGradient
 import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.LinearInterpolator
 import kotlin.math.PI
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
@@ -127,6 +130,7 @@ class IslandGlyphView(context: Context, initialKind: Int) : View(context) {
         isClickable = true
     }
 
+    /** Segitiga bersudut membulat (diisi + garis tepi bersambung bulat). */
     private fun tri(x1: Float, y1: Float, x2: Float, y2: Float, x3: Float, y3: Float, canvas: Canvas) {
         path.reset()
         path.moveTo(x1, y1)
@@ -141,31 +145,49 @@ class IslandGlyphView(context: Context, initialKind: Int) : View(context) {
         val h = height.toFloat()
         val cx = w / 2f
         val cy = h / 2f
+        val r = min(w, h) / 2f
+        paint.style = Paint.Style.FILL
+        paint.shader = null
         if (circleColor != 0) {
             paint.color = circleColor
-            canvas.drawCircle(cx, cy, min(w, h) / 2f, paint)
+            canvas.drawCircle(cx, cy, r, paint)
+            // kilau lembut di separuh atas, lalu cincin tipis: kesan tombol kaca
+            paint.shader = LinearGradient(0f, cy - r, 0f, cy + r, 0x38FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP)
+            canvas.drawCircle(cx, cy, r, paint)
+            paint.shader = null
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = max(1f, r * 0.05f)
+            paint.color = 0x30FFFFFF
+            canvas.drawCircle(cx, cy, r - paint.strokeWidth / 2f, paint)
         }
         paint.color = tint
-        val s = min(w, h) * (if (circleColor != 0) 0.30f else 0.30f)
+        paint.style = Paint.Style.FILL_AND_STROKE
+        paint.strokeJoin = Paint.Join.ROUND
+        paint.strokeCap = Paint.Cap.ROUND
+        val s = min(w, h) * 0.25f
+        paint.strokeWidth = s * 0.34f
         when (kind) {
-            PLAY -> tri(cx - s * 0.7f, cy - s, cx + s * 0.95f, cy, cx - s * 0.7f, cy + s, canvas)
+            PLAY -> tri(cx - s * 0.62f, cy - s * 0.95f, cx + s * 0.98f, cy, cx - s * 0.62f, cy + s * 0.95f, canvas)
             PAUSE -> {
-                val bw = s * 0.55f
-                val r = bw * 0.25f
-                rect.set(cx - s * 0.8f, cy - s, cx - s * 0.8f + bw, cy + s)
-                canvas.drawRoundRect(rect, r, r, paint)
-                rect.set(cx + s * 0.8f - bw, cy - s, cx + s * 0.8f, cy + s)
-                canvas.drawRoundRect(rect, r, r, paint)
+                val bw = s * 0.62f
+                val rr = bw * 0.5f
+                paint.strokeWidth = 0f
+                paint.style = Paint.Style.FILL
+                rect.set(cx - s * 0.86f, cy - s * 0.95f, cx - s * 0.86f + bw, cy + s * 0.95f)
+                canvas.drawRoundRect(rect, rr, rr, paint)
+                rect.set(cx + s * 0.86f - bw, cy - s * 0.95f, cx + s * 0.86f, cy + s * 0.95f)
+                canvas.drawRoundRect(rect, rr, rr, paint)
             }
             NEXT -> {
-                tri(cx - s, cy - s * 0.78f, cx, cy, cx - s, cy + s * 0.78f, canvas)
-                tri(cx, cy - s * 0.78f, cx + s, cy, cx, cy + s * 0.78f, canvas)
+                tri(cx - s * 0.95f, cy - s * 0.82f, cx + s * 0.45f, cy, cx - s * 0.95f, cy + s * 0.82f, canvas)
+                canvas.drawLine(cx + s * 0.98f, cy - s * 0.82f, cx + s * 0.98f, cy + s * 0.82f, paint)
             }
             PREV -> {
-                tri(cx + s, cy - s * 0.78f, cx, cy, cx + s, cy + s * 0.78f, canvas)
-                tri(cx, cy - s * 0.78f, cx - s, cy, cx, cy + s * 0.78f, canvas)
+                tri(cx + s * 0.95f, cy - s * 0.82f, cx - s * 0.45f, cy, cx + s * 0.95f, cy + s * 0.82f, canvas)
+                canvas.drawLine(cx - s * 0.98f, cy - s * 0.82f, cx - s * 0.98f, cy + s * 0.82f, paint)
             }
         }
+        paint.style = Paint.Style.FILL
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

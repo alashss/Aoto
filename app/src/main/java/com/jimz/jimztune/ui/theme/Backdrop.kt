@@ -37,6 +37,9 @@ import androidx.compose.ui.unit.dp
 @Stable
 class BackdropHolder(val raw: GraphicsLayer) {
     var origin by mutableStateOf(Offset.Zero)
+
+    /** Kalau false, isi layar tidak direkam dan blur tidak digambar (hemat tenaga, mis. saat pemutar penuh terbuka). */
+    var active by mutableStateOf(true)
 }
 
 val LocalBackdrop = compositionLocalOf<BackdropHolder?> { null }
@@ -53,8 +56,12 @@ fun rememberBackdropHolder(): BackdropHolder {
 fun Modifier.backdropSource(h: BackdropHolder): Modifier = this
     .onGloballyPositioned { h.origin = it.positionInRoot() }
     .drawWithContent {
-        h.raw.record { this@drawWithContent.drawContent() }
-        drawLayer(h.raw)
+        if (h.active) {
+            h.raw.record { this@drawWithContent.drawContent() }
+            drawLayer(h.raw)
+        } else {
+            drawContent()
+        }
     }
 
 /** Gambar latar yang diburamkan di belakang elemen ini (dipotong mengikuti [shape]). */
@@ -70,7 +77,7 @@ fun Modifier.glassBackdrop(shape: Shape, blur: Dp = 22.dp): Modifier {
         .drawBehind {
             val w = size.width.toInt()
             val hh = size.height.toInt()
-            if (w <= 0 || hh <= 0) return@drawBehind
+            if (w <= 0 || hh <= 0 || !h.active) return@drawBehind
             blurLayer.renderEffect = BlurEffect(blurPx, blurPx, TileMode.Clamp)
             val dx = h.origin.x - pos.x
             val dy = h.origin.y - pos.y

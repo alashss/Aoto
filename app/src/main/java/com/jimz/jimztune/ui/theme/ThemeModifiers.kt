@@ -36,6 +36,8 @@ fun Modifier.cardSurface(shape: Shape, style: UiStyle = AppTheme.uiStyle): Modif
     return when (style) {
         UiStyle.GLASS -> this.realGlass(shape, accent)
 
+        UiStyle.LIQUID -> this.liquidGlass(shape, accent)
+
         UiStyle.FROSTED -> this
             .background(
                 Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.15f), Color.White.copy(alpha = 0.05f))),
@@ -144,6 +146,80 @@ fun Modifier.realGlass(shape: Shape, accent: Color): Modifier = this
             0.35f to Color.White.copy(alpha = 0.14f),
             0.65f to Color.White.copy(alpha = 0.06f),
             1f to Color.White.copy(alpha = 0.50f),
+            start = Offset.Zero,
+            end = Offset.Infinite
+        ),
+        shape
+    )
+
+/**
+ * Liquid Glass: lebih bening daripada [realGlass], seperti tetesan kaca yang tebal.
+ *  - badan hampir tak berwarna (isi di belakangnya tetap kelihatan),
+ *  - lekuk cahaya tebal di separuh atas dan bayangan dalam yang halus di dasar (kesan cembung),
+ *  - tepi berpendar: putih di sisi yang kena cahaya, sedikit sian di kanan atas dan magenta di kiri bawah
+ *    (pecahan warna seperti kaca sungguhan), plus garis dalam tipis.
+ */
+fun Modifier.liquidGlass(shape: Shape, accent: Color): Modifier = this
+    .background(
+        Brush.verticalGradient(
+            0f to Color.White.copy(alpha = 0.14f),
+            0.5f to Color.White.copy(alpha = 0.04f),
+            1f to lerp(Color.White, accent, 0.35f).copy(alpha = 0.09f)
+        ),
+        shape
+    )
+    .drawBehind {
+        val path = outlineToPath(shape.createOutline(size, layoutDirection, this))
+        val w = size.width
+        val h = size.height
+        clipPath(path) {
+            // lekuk cahaya atas
+            drawRect(
+                Brush.verticalGradient(
+                    0f to Color.White.copy(alpha = 0.34f),
+                    0.28f to Color.White.copy(alpha = 0.08f),
+                    0.5f to Color.Transparent,
+                    startY = 0f,
+                    endY = h
+                )
+            )
+            // bayangan dalam di dasar (kedalaman)
+            drawRect(
+                Brush.verticalGradient(
+                    0.6f to Color.Transparent,
+                    1f to Color.Black.copy(alpha = 0.16f),
+                    startY = 0f,
+                    endY = h
+                )
+            )
+            // kilau titik di kiri atas
+            drawRect(
+                Brush.radialGradient(
+                    listOf(Color.White.copy(alpha = 0.40f), Color.Transparent),
+                    center = Offset(w * 0.10f, h * 0.02f),
+                    radius = maxOf(w, h) * 0.45f
+                )
+            )
+            // garis dalam
+            drawPath(
+                path,
+                Brush.linearGradient(
+                    listOf(Color.White.copy(alpha = 0.30f), Color.Transparent, Color.White.copy(alpha = 0.14f)),
+                    start = Offset(0f, 0f),
+                    end = Offset(w, h)
+                ),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.dp.toPx())
+            )
+        }
+    }
+    .border(
+        1.4.dp,
+        Brush.linearGradient(
+            0f to Color.White.copy(alpha = 0.95f),
+            0.30f to Color(0xFF9FE9FF).copy(alpha = 0.40f),
+            0.55f to Color.White.copy(alpha = 0.10f),
+            0.80f to Color(0xFFFFA6F2).copy(alpha = 0.42f),
+            1f to Color.White.copy(alpha = 0.70f),
             start = Offset.Zero,
             end = Offset.Infinite
         ),

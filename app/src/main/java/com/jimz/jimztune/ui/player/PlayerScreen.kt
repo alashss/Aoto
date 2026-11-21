@@ -234,14 +234,15 @@ fun PlayerScreen(
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
-                        // Geser kiri: Cover -> Lirik -> Antrean. Geser kanan: kembali.
+                        // Geser kiri: Sampul -> Lirik (berhenti di sini, supaya mudah kembali). Geser kanan: mundur satu halaman.
+                        // Antrean dibuka lewat tab, bukan geser.
                         .pointerInput(Unit) {
                             detectHorizontalDragGestures(
                                 onDragStart = { paneDrag = 0f },
                                 onDragEnd = {
                                     val all = PlayerPane.entries
                                     val i = all.indexOf(pane)
-                                    if (paneDrag < -90f && i < all.lastIndex) pane = all[i + 1]
+                                    if (paneDrag < -90f && pane == PlayerPane.Cover) pane = PlayerPane.Lyrics
                                     else if (paneDrag > 90f && i > 0) pane = all[i - 1]
                                     paneDrag = 0f
                                 },

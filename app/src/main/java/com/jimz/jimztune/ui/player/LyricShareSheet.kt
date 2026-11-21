@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -61,6 +63,10 @@ fun LyricShareSheet(lyrics: Lyrics, positionMs: Long, title: String, artist: Str
     var font by remember { mutableStateOf(LyricCard.Font.DEFAULT) }
     var bold by remember { mutableStateOf(true) }
     var ink by remember { mutableStateOf(LyricCard.Ink.AUTO) }
+    var showCover by remember { mutableStateOf(true) }
+    var watermark by remember { mutableStateOf(true) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
     var cover by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var preview by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     // Sampul diunduh sekali lewat Coil (bitmap software supaya bisa digambar ke kanvas).
@@ -74,17 +80,38 @@ fun LyricShareSheet(lyrics: Lyrics, positionMs: Long, title: String, artist: Str
             }
         }
     }
-    val options = LyricCard.Options(story, bg, align, font, bold, ink)
-    androidx.compose.runtime.LaunchedEffect(selected.toList(), story, bg, align, font, bold, ink, cover) {
+    val options = LyricCard.Options(story, bg, align, font, bold, ink, showCover, watermark)
+    // Pratinjau dirender kecil (0,4x) dan ditunda sebentar supaya mengutak-atik opsi tidak membuat layar patah-patah.
+    androidx.compose.runtime.LaunchedEffect(selected.toList(), story, bg, align, font, bold, ink, showCover, watermark, cover) {
         val picked = selected.sorted().mapNotNull { lines.getOrNull(it)?.value }
-        preview = if (picked.isEmpty()) null else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-            LyricCard.render(options, accent.toArgb(), title, artist, picked, cover)
+        if (picked.isEmpty()) { preview = null; return@LaunchedEffect }
+        kotlinx.coroutines.delay(120)
+        preview = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            LyricCard.render(options, accent.toArgb(), title, artist, picked, cover, scale = 0.4f)
+        }
+    }
+    // Ekspor memakai ukuran penuh, dirender di thread latar saat tombol ditekan.
+    fun export(action: (android.graphics.Bitmap) -> Unit) {
+        val picked = selected.sorted().mapNotNull { lines.getOrNull(it)?.value }
+        if (picked.isEmpty() || busy) return
+        busy = true
+        scope.launch {
+            val full = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                LyricCard.render(options, accent.toArgb(), title, artist, picked, cover)
+            }
+            busy = false
+            action(full)
         }
     }
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = (startPos - 1).coerceAtLeast(0))
 
     JimzBottomSheet(onDismiss = onDismiss) {
-        Column(Modifier.padding(horizontal = 24.dp)) {
+        Column(
+            Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(horizontal = 24.dp)
+        ) {
             Text("Bagikan lirik", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
                 "Pilih sampai $MAX_LINES baris (${selected.size} dipilih)",
@@ -129,14 +156,30 @@ fun LyricShareSheet(lyrics: Lyrics, positionMs: Long, title: String, artist: Str
             ChipRow("Tebal", listOf(false, true), bold, { if (it) "Tebal" else "Biasa" }) { bold = it }
             ChipRow("Rata", LyricCard.Align.entries, align, { it.label }) { align = it }
             ChipRow("Warna", LyricCard.Ink.entries, ink, { it.label }) { ink = it }
-            Spacer(Modifier.height(8.dp))
-            androidx.compose.material3.Button(
-                onClick = {
-                    preview?.let { ShareImage.share(context, it, "lirik") }
-                },
-                enabled = preview != null,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Bagikan") }
+            ChipRow("Sampul", listOf(true, false), showCover, { if (it) "Tampil" else "Sembunyi" }) { showCover = it }
+            ChipRow("Tanda", listOf(true, false), watermark, { if (it) "Logo Aoto" else "Tanpa" }) { watermark = it }
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        export { bmp ->
+                            val ok = ShareImage.saveToGallery(context, bmp, "lirik")
+                            android.widget.Toast.makeText(
+                                context,
+                                if (ok) "Tersimpan di galeri (Pictures/Aoto)" else "Gagal menyimpan. Coba Bagikan.",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    enabled = preview != null && !busy,
+                    modifier = Modifier.weight(1f)
+                ) { Text(if (busy) "Memproses…" else "Simpan") }
+                androidx.compose.material3.Button(
+                    onClick = { export { bmp -> ShareImage.share(context, bmp, "lirik") } },
+                    enabled = preview != null && !busy,
+                    modifier = Modifier.weight(1f)
+                ) { Text("Bagikan") }
+            }
             Spacer(Modifier.height(20.dp))
         }
     }

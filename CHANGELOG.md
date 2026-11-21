@@ -1,5 +1,14 @@
 # Catatan perubahan
 
+## 2.6.0
+
+- **Tema baru: Liquid Glass** (Setelan > Tampilan > Gaya). Lebih bening dari Kaca: lekuk cahaya tebal, bayangan dalam, tepi berpendar sian/magenta. Bar bawah ikut memburamkan isi di belakangnya.
+- **Lebih mulus**: blur latar sungguhan tidak lagi merekam layar saat pemutar penuh terbuka, dan bisa dimatikan di Setelan > Personalisasi.
+- **Bagikan lirik**: sheet kini bisa digulir (opsi bawah tidak lagi terpotong), ada tombol **Simpan** ke galeri (Pictures/Aoto), opsi Sampul tampil/sembunyi dan Tanda logo Aoto; pratinjau dirender ringan, hasil ekspor tetap ukuran penuh.
+- **Pemutar**: geser kiri hanya sampai Lirik; Antrean dibuka lewat tab, jadi mudah kembali.
+- **Widget dan Dynamic Island**: tombol sebelumnya/putar-jeda/berikutnya dirombak (lingkaran kaca, ikon bersudut membulat).
+- **Setelan**: Audio digabung satu kartu, tinggi baris seragam, saklar blur latar, subjudul baru.
+
 ## 2.5.0
 
 - **Atur urutan playlist**: tombol ⇅ di playlist membuka layar seret-untuk-memindah (plus tombol "ke paling atas"). Urutan tersimpan sebagai "Urutan saya".

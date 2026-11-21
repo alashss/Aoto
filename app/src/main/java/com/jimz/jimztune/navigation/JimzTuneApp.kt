@@ -64,6 +64,7 @@ import com.jimz.jimztune.ui.detail.ArtistScreen
 import com.jimz.jimztune.ui.components.BarHeight
 import com.jimz.jimztune.ui.components.JimzBottomBar
 import com.jimz.jimztune.ui.theme.backdropSource
+import com.jimz.jimztune.ui.theme.isGlassy
 import com.jimz.jimztune.ui.components.LocalOverlayPadding
 import com.jimz.jimztune.ui.home.HomeScreen
 import com.jimz.jimztune.ui.library.LibraryScreen
@@ -203,6 +204,11 @@ fun JimzTuneApp() {
 
     // Warna teks bawaan ditentukan di akar, agar komponen di luar Scaffold tidak jadi hitam.
     val backdrop = com.jimz.jimztune.ui.theme.rememberBackdropHolder()
+    // Merekam seluruh layar tiap frame itu mahal: dimatikan saat pemutar penuh menutupi layar atau gayanya bukan kaca.
+    androidx.compose.runtime.SideEffect {
+        backdrop.active = com.jimz.jimztune.ui.theme.AppTheme.liveBlur &&
+            com.jimz.jimztune.ui.theme.AppTheme.uiStyle.isGlassy && !playerOpen
+    }
     CompositionLocalProvider(
         LocalContentColor provides MaterialTheme.colorScheme.onBackground,
         LocalCoverTheme provides cover,
@@ -319,7 +325,7 @@ fun JimzTuneApp() {
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .height(overlay)
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, JimzBackground.copy(alpha = if (com.jimz.jimztune.ui.theme.AppTheme.uiStyle == com.jimz.jimztune.ui.theme.UiStyle.GLASS && com.jimz.jimztune.ui.theme.backdropSupported) 0.30f else 0.92f))))
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, JimzBackground.copy(alpha = if (com.jimz.jimztune.ui.theme.AppTheme.uiStyle.isGlassy && com.jimz.jimztune.ui.theme.backdropSupported) 0.30f else 0.92f))))
             )
 
             Column(

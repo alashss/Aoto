@@ -66,33 +66,32 @@
 
             <ImageButton
                 android:id="@+id/widget_prev"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
                 android:background="@null"
                 android:contentDescription="Sebelumnya"
-                android:padding="7dp"
-                android:scaleType="fitCenter"
-                android:src="@android:drawable/ic_media_previous" />
+                android:padding="0dp"
+                android:scaleType="fitCenter" />
 
             <ImageButton
                 android:id="@+id/widget_play"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
                 android:background="@null"
                 android:contentDescription="Putar atau jeda"
-                android:padding="5dp"
-                android:scaleType="fitCenter"
-                android:src="@android:drawable/ic_media_play" />
+                android:padding="0dp"
+                android:scaleType="fitCenter" />
 
             <ImageButton
                 android:id="@+id/widget_next"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
                 android:background="@null"
                 android:contentDescription="Berikutnya"
-                android:padding="7dp"
-                android:scaleType="fitCenter"
-                android:src="@android:drawable/ic_media_next" />
+                android:padding="0dp"
+                android:scaleType="fitCenter" />
         </LinearLayout>
 
         <!--

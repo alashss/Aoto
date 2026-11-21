@@ -430,9 +430,8 @@ class LyricsWidgetProvider : AppWidgetProvider() {
             views.setImageViewBitmap(R.id.widget_bg_image, background(snap.color, size, theme, LyricsWidgetStore.opacity(context)))
             views.setTextColor(R.id.widget_title, main)
             views.setTextColor(R.id.widget_artist, soft)
-            for (id in intArrayOf(R.id.widget_prev, R.id.widget_play, R.id.widget_next)) {
-                views.setInt(id, "setColorFilter", main)
-            }
+            views.setImageViewBitmap(R.id.widget_prev, WidgetArt.control(context, WidgetArt.CTRL_PREV, theme))
+            views.setImageViewBitmap(R.id.widget_next, WidgetArt.control(context, WidgetArt.CTRL_NEXT, theme))
             // Pilihan tampilan: sampul, baris berikutnya, progres.
             val showCover = LyricsWidgetStore.showCover(context)
             val showNext = LyricsWidgetStore.showNext(context)
@@ -444,9 +443,9 @@ class LyricsWidgetProvider : AppWidgetProvider() {
             val cover = coverBitmap(context, snap.coverVersion)
             if (cover != null) views.setImageViewBitmap(R.id.widget_cover, cover)
             else views.setImageViewResource(R.id.widget_cover, R.drawable.widget_cover_placeholder)
-            views.setImageViewResource(
+            views.setImageViewBitmap(
                 R.id.widget_play,
-                if (snap.playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+                WidgetArt.control(context, if (snap.playing) WidgetArt.CTRL_PAUSE else WidgetArt.CTRL_PLAY, theme)
             )
             views.setOnClickPendingIntent(R.id.widget_prev, broadcast(context, ACTION_PREV, 1))
             views.setOnClickPendingIntent(R.id.widget_play, broadcast(context, ACTION_PLAY_PAUSE, 2))
@@ -497,9 +496,9 @@ class LyricsWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_artist, snap.artist)
             // Gambar lirik selalu ikut dikirim (dari simpanan, murah): kalau satu pembaruan dibuang peluncur, yang berikutnya memulihkannya.
             if (withLyric) views.setImageViewBitmap(R.id.widget_lyric_img, lyricBitmap(context, snap, size, theme))
-            views.setImageViewResource(
+            views.setImageViewBitmap(
                 R.id.widget_play,
-                if (snap.playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+                WidgetArt.control(context, if (snap.playing) WidgetArt.CTRL_PAUSE else WidgetArt.CTRL_PLAY, theme)
             )
             if (snap.progress != prev.progress || snap.durationMs != prev.durationMs) applyProgress(views, snap, theme)
             return views

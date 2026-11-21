@@ -55,6 +55,7 @@ import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.Person
 import com.jimz.jimztune.data.cloud.SyncStatus
 import com.jimz.jimztune.ui.auth.ProfileAvatar
+import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Coffee
 import androidx.compose.material.icons.rounded.DeleteSweep
@@ -135,7 +136,7 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(bottom = overlay)
     ) {
-        ScreenHeader("Setelan", "Atur audio dan penyimpanan")
+        ScreenHeader("Setelan", "Akun, audio, tampilan, dan privasi")
 
         // ---- Akun ----
         if (com.jimz.jimztune.data.cloud.CloudApi.configured) {
@@ -212,6 +213,7 @@ fun SettingsScreen(
         }
 
         // ---- Audio ----
+        var showAudioFx by remember { mutableStateOf(false) }
         Section("Audio")
         GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -242,12 +244,7 @@ fun SettingsScreen(
                     )
                 }
             }
-        }
-
-        Spacer(Modifier.height(12.dp))
-        // Kontrol suara: sama dengan tombol "Suara" di layar pemutar.
-        var showAudioFx by remember { mutableStateOf(false) }
-        GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+            RowDivider()
             SettingRow(
                 icon = Icons.Rounded.GraphicEq,
                 title = "Kontrol suara",
@@ -255,6 +252,7 @@ fun SettingsScreen(
                 onClick = { showAudioFx = true }
             )
         }
+
         if (showAudioFx) com.jimz.jimztune.ui.player.AudioFxSheet(onDismiss = { showAudioFx = false })
 
         var showAppearance by remember { mutableStateOf(false) }
@@ -324,6 +322,22 @@ fun SettingsScreen(
                     })
                 }
             )
+            if (com.jimz.jimztune.ui.theme.backdropSupported) {
+                RowDivider()
+                var liveBlur by remember { mutableStateOf(com.jimz.jimztune.ui.theme.AppTheme.liveBlur) }
+                SettingRow(
+                    icon = Icons.Rounded.BlurOn,
+                    title = "Blur latar sungguhan",
+                    subtitle = "Bar bawah memburamkan isi di belakangnya (gaya Kaca/Liquid Glass). Matikan kalau terasa berat.",
+                    onClick = null,
+                    trailing = {
+                        Switch(checked = liveBlur, onCheckedChange = {
+                            liveBlur = it
+                            com.jimz.jimztune.ui.theme.AppTheme.updateLiveBlur(it)
+                        })
+                    }
+                )
+            }
             RowDivider()
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Text("Ikon aplikasi", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
@@ -766,7 +780,8 @@ private fun SettingRow(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .heightIn(min = 64.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconBadge(icon)
