@@ -4,7 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.jimz.jimztune",
-      "sha256_cert_fingerprints": ["GANTI_SHA256_SIDIK_JARI_KEYSTORE"]
+      "sha256_cert_fingerprints": ["B7:C3:9B:2D:7A:69:E6:A7:18:54:BE:D6:46:43:F3:DB:B9:FD:89:66:E5:34:8F:91:C0:80:6C:77:B0:E3:D5:15"]
     }
   }
 ]
