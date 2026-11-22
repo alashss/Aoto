@@ -1,5 +1,7 @@
 package com.jimz.jimztune.ui.detail
 
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -217,16 +219,30 @@ private fun AlbumContent(
                                 tint = if (liked) LikeColor else Color.White,
                                 active = liked
                             )
-                            CompactIconButton(
-                                Icons.Rounded.LibraryAdd,
-                                "Simpan ke koleksi",
-                                onClick = { saveSearchPlaylist(scope, context, ref) }
-                            )
-                            if (com.jimz.jimztune.AppConfig.SHARE_ENABLED) CompactIconButton(
-                                Icons.Rounded.Share,
-                                "Bagikan",
-                                onClick = { sharePlaylistRef(context, likeItem) }
-                            )
+                            // Simpan & bagikan digabung ke satu menu supaya deretan tombol tidak penuh.
+                            val moreOpen = remember { mutableStateOf(false) }
+                            Box {
+                                CompactIconButton(
+                                    Icons.Rounded.MoreVert,
+                                    "Lainnya",
+                                    onClick = { moreOpen.value = true }
+                                )
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = moreOpen.value,
+                                    onDismissRequest = { moreOpen.value = false }
+                                ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Simpan ke koleksi") },
+                                        leadingIcon = { Icon(Icons.Rounded.LibraryAdd, null) },
+                                        onClick = { moreOpen.value = false; saveSearchPlaylist(scope, context, ref) }
+                                    )
+                                    if (com.jimz.jimztune.AppConfig.SHARE_ENABLED) androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Bagikan") },
+                                        leadingIcon = { Icon(Icons.Rounded.Share, null) },
+                                        onClick = { moreOpen.value = false; sharePlaylistRef(context, likeItem) }
+                                    )
+                                }
+                            }
                         } else {
                             if (com.jimz.jimztune.AppConfig.SHARE_ENABLED) CompactIconButton(
                                 Icons.Rounded.Share,
@@ -274,11 +290,11 @@ private fun TrackRow(number: Int, song: SearchItem, playing: Boolean, accent: Co
         if (showThumb) {
             // Playlist: tiap lagu punya gambar sendiri (album: semua lagu satu sampul, jadi cukup nomor).
             Box(Modifier.size(52.dp).clip(RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                AsyncImage(
-                    model = song.thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.08f))
+                com.jimz.jimztune.ui.components.SongImage(
+                    url = song.thumbnailUrl,
+                    videoId = song.id,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxSize()
                 )
                 if (playing) {
                     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {

@@ -60,14 +60,11 @@ private fun SongShelf(title: String, songs: List<SearchItem>, onPlay: (List<Sear
                         .clip(RoundedCornerShape(14.dp))
                         .clickable { onPlay(songs, i) }
                 ) {
-                    AsyncImage(
-                        model = song.thumbnailUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(112.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White.copy(alpha = 0.08f))
+                    com.jimz.jimztune.ui.components.SongImage(
+                        url = song.thumbnailUrl,
+                        videoId = song.id,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.size(112.dp)
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(song.title, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)

@@ -406,14 +406,11 @@ private fun ResultRow(item: SearchItem, playing: Boolean, onClick: () -> Unit) {
             ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AsyncImage(
-            model = item.thumbnailUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(56.dp)
-                .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+        com.jimz.jimztune.ui.components.SongImage(
+            url = item.thumbnailUrl,
+            videoId = if (item.type == SearchType.SONG) item.id else null,
+            shape = shape,
+            modifier = Modifier.size(56.dp)
         )
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {

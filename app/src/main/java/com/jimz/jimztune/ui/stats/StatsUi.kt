@@ -1,5 +1,7 @@
 package com.jimz.jimztune.ui.stats
 
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.animation.core.animateFloat
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -328,9 +330,36 @@ private fun StreakHero(info: StreakInfo, tone: Color) {
             .padding(horizontal = 20.dp, vertical = 22.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        FlameIcon(info.tier.level, 104.dp)
-        Spacer(Modifier.height(4.dp))
-        Text("${info.current}", fontSize = 60.sp, fontWeight = FontWeight.Black, lineHeight = 62.sp)
+        // Cahaya berdenyut di belakang api (makin kuat kalau streak aktif) + angka yang menghitung naik.
+        val pulse = androidx.compose.animation.core.rememberInfiniteTransition(label = "flamePulse")
+        val glow by pulse.animateFloat(
+            initialValue = 0.55f, targetValue = 1f,
+            animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                androidx.compose.animation.core.tween(1600, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                androidx.compose.animation.core.RepeatMode.Reverse
+            ),
+            label = "glow"
+        )
+        val shownDays by androidx.compose.animation.core.animateIntAsState(
+            targetValue = info.current,
+            animationSpec = androidx.compose.animation.core.tween(900, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            label = "shownDays"
+        )
+        Box(
+            modifier = Modifier
+                .size(150.dp)
+                .drawBehind {
+                    val a = if (info.current > 0) 0.42f * glow else 0.10f
+                    drawCircle(
+                        Brush.radialGradient(listOf(tone.copy(alpha = a), Color.Transparent), radius = size.minDimension / 2f)
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            FlameIcon(info.tier.level, 104.dp)
+        }
+        Spacer(Modifier.height(2.dp))
+        Text("$shownDays", fontSize = 60.sp, fontWeight = FontWeight.Black, lineHeight = 62.sp)
         Text(
             "hari berturut-turut",
             style = MaterialTheme.typography.bodyMedium,
@@ -352,7 +381,12 @@ private fun StreakHero(info: StreakInfo, tone: Color) {
         Spacer(Modifier.height(16.dp))
         if (next != null) {
             val from = Streak.currentMilestone(info.current)
-            val frac = ((info.current - from).toFloat() / (next - from).toFloat()).coerceIn(0f, 1f)
+            val fracTarget = ((info.current - from).toFloat() / (next - from).toFloat()).coerceIn(0f, 1f)
+            val frac by androidx.compose.animation.core.animateFloatAsState(
+                targetValue = fracTarget,
+                animationSpec = androidx.compose.animation.core.tween(900, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                label = "frac"
+            )
             Box(
                 Modifier
                     .fillMaxWidth()

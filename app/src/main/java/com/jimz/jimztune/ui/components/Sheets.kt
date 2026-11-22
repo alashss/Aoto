@@ -120,13 +120,25 @@ fun GlassIconButton(
     modifier: Modifier = Modifier,
     tint: Color = Color.White
 ) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.88f else 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessMedium),
+        label = "glassIconScale"
+    )
+    val accent = LocalCoverTheme.current.accent
     Box(
         modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .size(42.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.09f))
-            .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape)
-            .clickable(role = Role.Button, onClick = onClick),
+            .background(if (pressed) accent.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.09f))
+            .border(1.dp, if (pressed) accent.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.12f), CircleShape)
+            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(20.dp))

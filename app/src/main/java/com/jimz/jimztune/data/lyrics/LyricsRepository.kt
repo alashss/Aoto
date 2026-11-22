@@ -22,12 +22,12 @@ import java.io.File
  * Daftar hasil (satu per sumber) disimpan di perangkat; user bisa berganti sumber kalau yang pertama kurang pas.
  */
 class LyricsRepository(context: Context) {
-    private val dir = File(context.filesDir, "lyrics_v3").apply { mkdirs() }
+    private val dir = File(context.filesDir, "lyrics_v4").apply { mkdirs() }
 
     init {
         // Cache lama tidak membedakan "Nak" dan "Nak..." (dan versi v1 tidak diperiksa sama sekali), jadi bisa
         // berisi lirik lagu yang salah: buang semuanya supaya dicari ulang dengan pemeriksaan yang baru.
-        listOf("lyrics", "lyrics_v2").forEach { File(context.filesDir, it).takeIf { f -> f.exists() }?.deleteRecursively() }
+        listOf("lyrics", "lyrics_v2", "lyrics_v3").forEach { File(context.filesDir, it).takeIf { f -> f.exists() }?.deleteRecursively() }
     }
 
     private val providers: List<LyricsProvider> = listOf(
@@ -39,6 +39,8 @@ class LyricsRepository(context: Context) {
         YouTubeMusicLyricsProvider(),
         LyricsOvhProvider()
     )
+
+    private val aiProvider = AiLyricsProvider()
 
     private class Scored(val candidate: LyricsCandidate, val score: Double)
 
@@ -104,7 +106,16 @@ class LyricsRepository(context: Context) {
             coroutineContext.cancelChildren()
         }
 
-        val options = rank(all, query).map { it.candidate.lyrics }
+        var options = rank(all, query).map { it.candidate.lyrics }
+        // Pilihan terakhir: semua sumber kosong, minta perkiraan dari AI (diberi label sumber "AI").
+        if (options.isEmpty()) {
+            try {
+                withTimeoutOrNull(AI_TIMEOUT_MS) { aiProvider.fetch(query) }?.let { options = listOf(it) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+            }
+        }
         if (options.isNotEmpty()) writeCache(song.id, options)
         return options
     }
@@ -189,5 +200,6 @@ class LyricsRepository(context: Context) {
         const val HARD_LIMIT_MS = 12_000L
         const val MAX_OPTIONS = 5
         const val PRIMARY = "LrcLib"
+        const val AI_TIMEOUT_MS = 25_000L
     }
 }

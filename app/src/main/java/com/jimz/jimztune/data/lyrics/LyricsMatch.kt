@@ -147,7 +147,8 @@ object LyricsMatch {
         candidateDurationSec: Int,
         trust: Trust = Trust.BY_METADATA
     ): Double? {
-        if (trust == Trust.BLIND) return 70.0
+        // Sumber yang mencari sendiri tanpa metadata dikembalikan: tidak bisa diverifikasi, jadi skornya di bawah semua hasil terverifikasi.
+        if (trust == Trust.BLIND) return 38.0
 
         val variants = titleVariants(q.title)
         if (trust == Trust.EXACT_ID) {
@@ -158,7 +159,7 @@ object LyricsMatch {
         }
         if (variants.isEmpty()) return null
         val tSim = variants.maxOf { similarity(it, title) }
-        if (tSim < 0.75) return null
+        if (tSim < 0.82) return null
 
         // "Song" tidak boleh mengambil lirik "Song (Live)" atau sebaliknya. Hanya varian judul yang memang
         // mirip dengan kandidat yang dihitung (bukan nama artis dari "Artis - Judul").
@@ -170,7 +171,9 @@ object LyricsMatch {
 
         if (dd > 15) return null
         if (dd > 6 && !(tSim >= 0.9 && aSim >= 0.6)) return null
-        if (aSim in 0.0..0.3 && tSim < 0.95) return null
+        if (aSim in 0.0..0.45 && tSim < 0.97) return null
+        // Tanpa durasi pembanding dan tanpa artis yang meyakinkan, hanya judul yang nyaris identik yang diterima.
+        if (dd < 0 && aSim < 0.6 && tSim < 0.95) return null
         // Judul pendek/umum ("Home", "Intro") terlalu gampang kembar: wajib artis yang cocok.
         if (normalize(q.title).length <= 6 && aSim in 0.0..0.5) return null
 

@@ -238,6 +238,16 @@ class PlaybackService : MediaSessionService() {
                     retryId = id
                     retries = 0
                 }
+                // IO_UNSPECIFIED / koneksi putus / timeout: biasanya URL klien langsung sudah mati atau dibatasi
+                // (throttle) atau potongan cache setengah jadi. Percobaan ulang ke-2 dst: buang cache lagu itu dan
+                // pindah ke NewPipe, yang URL-nya jauh lebih jarang ditolak.
+                if (error.errorCode in IO_SOFT_ERRORS) {
+                    if (retries >= 1) {
+                        StreamResolver.skipDirectClients(id)
+                        purgeCache(id)
+                        PlaybackDiagnostics.add("Error IO berulang: cache dibuang, pindah ke NewPipe")
+                    }
+                }
                 if (retries < MAX_RETRIES) {
                     // Coba lagi dengan sumber audio berikutnya, dengan jeda yang makin lama (backoff).
                     val wait = BACKOFF_MS[retries.coerceAtMost(BACKOFF_MS.lastIndex)]
@@ -478,6 +488,13 @@ class PlaybackService : MediaSessionService() {
             "com.google.android.googlequicksearchbox", "com.google.android.wearable.app",
             "com.google.android.apps.wear.companion", "com.google.android.gms", "android"
         )
+        val IO_SOFT_ERRORS = setOf(
+            PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
+            PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
+            PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE
+        )
         val PARSING_ERRORS = setOf(
             PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
             PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED,
@@ -500,11 +517,11 @@ class PlaybackService : MediaSessionService() {
         }
 
         /** Berapa kali mencoba ulang satu lagu (tiap percobaan memakai sumber audio berbeda). */
-        const val MAX_RETRIES = 4
+        const val MAX_RETRIES = 5
         const val MAX_SKIPS_IN_ROW = 5
 
         /** Jeda sebelum percobaan ulang ke-1..4. Pertama langsung (sumber sudah dirotasi), lalu makin lama. */
-        val BACKOFF_MS = longArrayOf(0L, 800L, 2_000L, 4_000L)
+        val BACKOFF_MS = longArrayOf(0L, 800L, 2_000L, 4_000L, 7_000L)
 
         /** Error yang berarti file unduhan lokal rusak atau hilang. */
         val LOCAL_FILE_ERRORS = setOf(

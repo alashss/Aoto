@@ -1,5 +1,14 @@
 # Catatan perubahan
 
+## 2.12.0
+- Gambar di halaman Cari dan daftar lagu selalu tampil: cadangan thumbnail otomatis + placeholder, bukan kotak kosong.
+- Playback: error IO berulang kini membuang cache lagu itu dan pindah ke NewPipe; percobaan ulang ditambah.
+- Lirik: pencocokan lebih ketat (sumber tanpa verifikasi diberi skor rendah), cache lirik lama dibuang.
+- Lirik AI sebagai pilihan terakhir (butuh Edge Function ai-lyrics).
+- Streak: api berdenyut, angka menghitung naik, progres beranimasi.
+- Peringkat: latar animasi berbeda untuk Mendengar dan Donasi.
+- Detail playlist: simpan & bagikan digabung ke satu menu; tombol ikon punya animasi tekan.
+
 ## 2.11.0
 - Sosial: ketuk nama di peringkat untuk membuka profil orang lain (status online, lagu yang sedang didengar, statistik, lagu favorit).
 - Teman: permintaan teman, daftar teman, cari pengguna, blokir.
