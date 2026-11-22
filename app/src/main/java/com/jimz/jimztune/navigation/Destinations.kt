@@ -1,6 +1,7 @@
 package com.jimz.jimztune.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Search
@@ -12,6 +13,8 @@ sealed class Dest(val route: String, val label: String, val icon: ImageVector) {
     data object Search : Dest("search", "Cari", Icons.Rounded.Search)
     data object Library : Dest("library", "Koleksi", Icons.Rounded.LibraryMusic)
     data object Settings : Dest("settings", "Setelan", Icons.Rounded.Settings)
+    /** Bukan halaman: tab ini membuka menu Chat (pesan, teman, chat global). Tidak ikut Dest.all. */
+    data object Chat : Dest("chat", "Chat", Icons.Rounded.Forum)
 
     companion object {
         // Harus lazy: kalau dibuat langsung, Dest.Home yang tersentuh lebih dulu (mis. startDestination di NavHost)
