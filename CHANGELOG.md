@@ -1,5 +1,19 @@
 # Catatan perubahan
 
+## 2.11.0
+- Sosial: ketuk nama di peringkat untuk membuka profil orang lain (status online, lagu yang sedang didengar, statistik, lagu favorit).
+- Teman: permintaan teman, daftar teman, cari pengguna, blokir.
+- Pesan: chat pribadi gaya Instagram dengan catatan 24 jam; chat global.
+- Privasi profil: pilih siapa yang bisa melihat & bagian yang disembunyikan.
+- Navbar baru: tombol tiga garis, menu terbuka ke atas (ada mini player) atau ke samping.
+- Setelan dipecah jadi menu dan sub-halaman.
+- Panel owner: moderasi chat global, kata terlarang, mode lambat, bisu.
+- Halaman profil web dipercantik.
+
+## 2.10.0
+
+- **Panel Owner**: pengumuman terjadwal (pilih hari, jam mulai/selesai, tanggal mulai, dan "muncul lagi tiap hari"), pesan ke satu pengguna lewat username, tombol "Kirim tes ke akunku", salin pengumuman lama ke formulir, dan ringkasan donasi (hari ini, bulan ini, total).
+
 ## 2.9.2
 
 - **Bagikan lagu & playlist diaktifkan kembali.** Tautan `aoto://p/KODE` dan `https://domainmu/p/KODE` kini benar-benar membuka Aoto (sebelumnya manifest tidak punya filter tautan, jadi tombol "Buka di Aoto" tidak berfungsi).

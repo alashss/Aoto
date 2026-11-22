@@ -134,6 +134,11 @@ class RealtimeHub {
                     JSONObject().put("event", "*").put("schema", "public").put("table", "user_moderation")
                         .put("filter", "user_id=eq.$uid")
                 )
+                // Pesan pribadi dari owner (khusus akun ini; RLS server juga hanya mengirim ke pemiliknya).
+                changes.put(
+                    JSONObject().put("event", "INSERT").put("schema", "public").put("table", "user_messages")
+                        .put("filter", "user_id=eq.$uid")
+                )
             }
             val config = JSONObject()
                 .put("broadcast", JSONObject().put("self", false))

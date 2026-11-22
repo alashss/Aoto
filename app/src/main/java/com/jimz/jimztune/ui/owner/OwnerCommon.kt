@@ -235,6 +235,35 @@ internal fun ChipRow(options: List<String>, selected: Int, onSelect: (Int) -> Un
     }
 }
 
+/** Pilihan beberapa hari sekaligus (1 = Senin ... 7 = Minggu). Kosong = tiap hari. */
+@Composable
+internal fun DayChips(selected: Set<Int>, onChange: (Set<Int>) -> Unit) {
+    val accent = LocalCoverTheme.current.accent
+    val names = listOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min")
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        names.forEachIndexed { i, label ->
+            val day = i + 1
+            val on = day in selected
+            val shape = RoundedCornerShape(50)
+            Box(
+                modifier = Modifier
+                    .clip(shape)
+                    .background(if (on) accent.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.07f))
+                    .border(1.dp, if (on) accent else Color.White.copy(alpha = 0.14f), shape)
+                    .clickable { onChange(if (on) selected - day else selected + day) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Text(label, style = MaterialTheme.typography.labelLarge, color = if (on) Color.White else Color.White.copy(alpha = 0.75f))
+            }
+        }
+    }
+}
+
 /** Label kecil berwarna (status akun, "online", dll.). */
 @Composable
 internal fun StatusPill(text: String, color: Color) {

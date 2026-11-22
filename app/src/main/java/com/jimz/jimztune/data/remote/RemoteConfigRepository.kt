@@ -8,6 +8,9 @@ import androidx.core.content.pm.PackageInfoCompat
 import com.jimz.jimztune.AppConfig
 import com.jimz.jimztune.data.search.Http
 import kotlinx.coroutines.CancellationException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 sealed class Gate {
     data object Open : Gate()
@@ -67,17 +70,60 @@ class RemoteConfigRepository(context: Context) {
         prefs.edit().putLong("dismissed_update", latestCode).apply()
     }
 
-    fun activeAnnouncements(): List<Announcement> = config?.announcements.orEmpty().filter { it.isActive() }
+    /** Pesan khusus untuk akun ini (dikirim owner ke satu pengguna). Disimpan supaya tetap ada saat offline. */
+    var personal by mutableStateOf<List<Announcement>>(loadPersonal())
+        private set
 
-    fun isSeen(id: String): Boolean = id in seen
+    fun activeAnnouncements(): List<Announcement> =
+        (config?.announcements.orEmpty() + personal).filter { it.isActive() }
 
-    fun unreadCount(): Int = activeAnnouncements().count { it.id !in seen }
+    private fun seenKey(a: Announcement): String =
+        if (a.repeatDaily) a.id + "@" + SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) else a.id
 
-    fun pendingAnnouncement(): Announcement? = activeAnnouncements().firstOrNull { it.id !in seen }
+    fun isSeen(id: String): Boolean {
+        val a = activeAnnouncements().firstOrNull { it.id == id } ?: return id in seen
+        return seenKey(a) in seen
+    }
+
+    fun unreadCount(): Int = activeAnnouncements().count { seenKey(it) !in seen }
+
+    fun pendingAnnouncement(): Announcement? = activeAnnouncements().firstOrNull { seenKey(it) !in seen }
 
     fun markSeen(id: String) {
-        seen = seen + id
+        val a = activeAnnouncements().firstOrNull { it.id == id }
+        val key = if (a != null) seenKey(a) else id
+        // Buang catatan "sudah dibaca" harian yang sudah lewat supaya tidak menumpuk.
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+        seen = seen.filter { !it.contains("@") || it.endsWith("@$today") }.toSet() + key
         prefs.edit().putStringSet("seen", seen).apply()
+    }
+
+    /** Mengambil pesan pribadi milik akun yang sedang masuk. Tanpa login: kosong. */
+    suspend fun refreshPersonal() {
+        if (!configured) return
+        val token = com.jimz.jimztune.AppGraph.auth.validToken()
+        if (token == null) {
+            if (personal.isNotEmpty()) { personal = emptyList(); prefs.edit().remove("personal").apply() }
+            return
+        }
+        try {
+            val text = Http.postJson(
+                AppConfig.CLOUD_URL.trimEnd('/') + "/rest/v1/rpc/my_messages", "{}",
+                mapOf("apikey" to AppConfig.CLOUD_KEY, "Authorization" to "Bearer $token")
+            )
+            personal = parseAnnouncements(text)
+            prefs.edit().putString("personal", text).apply()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Biarkan pesan tersimpan; coba lagi pada pengambilan berikutnya.
+        }
+    }
+
+    private fun loadPersonal(): List<Announcement> = try {
+        prefs.getString("personal", null)?.let { parseAnnouncements(it) }.orEmpty()
+    } catch (_: Exception) {
+        emptyList()
     }
 
     val donationAvailable: Boolean
@@ -130,6 +176,7 @@ class RemoteConfigRepository(context: Context) {
             config = parsed
             lastFetch = now
             lastError = null
+            refreshPersonal()
             return true
         } catch (e: CancellationException) {
             throw e

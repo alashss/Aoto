@@ -1,5 +1,10 @@
 package com.jimz.jimztune.ui.settings
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.AdminPanelSettings
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.Bolt
@@ -130,6 +135,15 @@ fun SettingsScreen(
     val accent = LocalCoverTheme.current.accent
 
     var confirmClearDownloads by remember { mutableStateOf(false) }
+    var page by rememberSaveable { mutableStateOf("hub") }
+    BackHandler(enabled = page != "hub") { page = "hub" }
+    var showAudioFx by remember { mutableStateOf(false) }
+    var showAppearance by remember { mutableStateOf(false) }
+    var showStreak by remember { mutableStateOf(false) }
+    var showRecap by remember { mutableStateOf(false) }
+    var showIsland by remember { mutableStateOf(false) }
+    var showStorage by remember { mutableStateOf(false) }
+    var showLyricsWidget by remember { mutableStateOf(false) }
     var updateToShow by remember { mutableStateOf<com.jimz.jimztune.data.remote.RemoteConfig?>(null) }
 
     Column(
@@ -139,8 +153,46 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(bottom = overlay)
     ) {
-        ScreenHeader("Setelan", "Akun, audio, tampilan, dan privasi")
+        if (page == "hub") {
+            ScreenHeader("Setelan", "Akun, audio, tampilan, dan privasi")
+        } else {
+            Row(
+                modifier = Modifier.padding(start = 16.dp, end = 20.dp, top = 14.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                com.jimz.jimztune.ui.components.GlassIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Kembali", onClick = { page = "hub" })
+                Spacer(Modifier.width(14.dp))
+                Text(
+                    when (page) {
+                        "akun" -> "Akun"; "privasi" -> "Privasi"; "tampilan" -> "Tampilan"; "audio" -> "Audio"
+                        "pemutaran" -> "Pemutaran"; "data" -> "Penyimpanan"; else -> "Tentang & bantuan"
+                    },
+                    style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        if (page == "hub") {
+            GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                SettingRow(Icons.Rounded.Person, "Akun", "Profil, login, profil publik", { page = "akun" }, trailing = { HubChevron() })
+                RowDivider()
+                SettingRow(Icons.Rounded.Lock, "Privasi", "Siapa yang bisa melihat profilmu, daftar blokir, cadangan", { page = "privasi" }, trailing = { HubChevron() })
+                RowDivider()
+                SettingRow(Icons.Rounded.Palette, "Tampilan", "Tema, gaya, animasi, personalisasi", { page = "tampilan" }, trailing = { HubChevron() })
+                RowDivider()
+                SettingRow(Icons.Rounded.GraphicEq, "Audio", "Equalizer, efek suara, kualitas", { page = "audio" }, trailing = { HubChevron() })
+                if (AppGraph.account.isOwner) {
+                    RowDivider()
+                    SettingRow(Icons.Rounded.PlayCircle, "Pemutaran", "Catatan pemutar (khusus owner)", { page = "pemutaran" }, trailing = { HubChevron() })
+                }
+                RowDivider()
+                SettingRow(Icons.Rounded.Storage, "Penyimpanan", "Unduhan dan cache", { page = "data" }, trailing = { HubChevron() })
+                RowDivider()
+                SettingRow(Icons.Rounded.Info, "Tentang & bantuan", "Pengumuman, widget, donasi, versi", { page = "aplikasi" }, trailing = { HubChevron() })
+            }
+        }
 
+
+        if (page == "akun") {
         // ---- Akun ----
         if (com.jimz.jimztune.data.cloud.CloudApi.configured) {
             Section("Akun")
@@ -249,8 +301,9 @@ fun SettingsScreen(
             )
         }
 
+        }
+        if (page == "audio") {
         // ---- Audio ----
-        var showAudioFx by remember { mutableStateOf(false) }
         Section("Audio")
         GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -291,13 +344,9 @@ fun SettingsScreen(
         }
 
         if (showAudioFx) com.jimz.jimztune.ui.player.AudioFxSheet(onDismiss = { showAudioFx = false })
+        }
+        if (page == "tampilan") {
 
-        var showAppearance by remember { mutableStateOf(false) }
-        var showStreak by remember { mutableStateOf(false) }
-        var showRecap by remember { mutableStateOf(false) }
-        var showIsland by remember { mutableStateOf(false) }
-        var showStorage by remember { mutableStateOf(false) }
-        var showLyricsWidget by remember { mutableStateOf(false) }
         Section("Tampilan & fitur")
         GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
             SettingRow(
@@ -334,12 +383,6 @@ fun SettingsScreen(
                 )
             }
         }
-        if (showAppearance) AppearanceSheet(onDismiss = { showAppearance = false })
-        if (showStreak) com.jimz.jimztune.ui.stats.StreakSheet(onDismiss = { showStreak = false })
-        if (showRecap) com.jimz.jimztune.ui.stats.RecapSheet(onDismiss = { showRecap = false })
-        if (showIsland) IslandSheet(onDismiss = { showIsland = false })
-        if (showStorage) StorageSheet(onDismiss = { showStorage = false })
-        if (showLyricsWidget) LyricsWidgetSheet(onDismiss = { showLyricsWidget = false })
 
         // ---- Personalisasi ----
         Section("Personalisasi")
@@ -405,6 +448,8 @@ fun SettingsScreen(
             }
         }
 
+        }
+        if (page == "pemutaran") {
         // ---- Pemutaran (log hanya untuk owner; user biasa tidak melihatnya) ----
         if (AppGraph.account.isOwner) {
         Section("Pemutaran")
@@ -448,6 +493,8 @@ fun SettingsScreen(
 
         }
 
+        }
+        if (page == "data") {
         // ---- Penyimpanan ----
         Section("Penyimpanan")
         GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
@@ -483,6 +530,19 @@ fun SettingsScreen(
             }
         }
 
+        }
+        if (page == "privasi") {
+            if (AppGraph.auth.isLoggedIn) {
+                Section("Profil sosial")
+                GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    SettingRow(
+                        Icons.Rounded.Lock, "Privasi profil",
+                        "Atur siapa yang bisa melihat profilmu, bagian yang disembunyikan, dan daftar blokir",
+                        { com.jimz.jimztune.data.social.SocialNav.open(com.jimz.jimztune.data.social.SocialPage.Privacy) },
+                        trailing = { HubChevron() }
+                    )
+                }
+            }
         // ---- Privasi & cadangan ----
         Section("Privasi & cadangan")
         var blockShots by remember { mutableStateOf(com.jimz.jimztune.util.ScreenGuard.enabled(context)) }
@@ -594,6 +654,8 @@ fun SettingsScreen(
             )
         }
 
+        }
+        if (page == "aplikasi") {
         // ---- Aplikasi ----
         Section("Aplikasi")
         val announcements = remote.activeAnnouncements()
@@ -687,6 +749,13 @@ fun SettingsScreen(
             }
         }
 
+        }
+        if (showAppearance) AppearanceSheet(onDismiss = { showAppearance = false })
+        if (showStreak) com.jimz.jimztune.ui.stats.StreakSheet(onDismiss = { showStreak = false })
+        if (showRecap) com.jimz.jimztune.ui.stats.RecapSheet(onDismiss = { showRecap = false })
+        if (showIsland) IslandSheet(onDismiss = { showIsland = false })
+        if (showStorage) StorageSheet(onDismiss = { showStorage = false })
+        if (showLyricsWidget) LyricsWidgetSheet(onDismiss = { showLyricsWidget = false })
         // ---- Footer ----
         Column(
             modifier = Modifier
@@ -789,4 +858,10 @@ private fun SettingRow(
             )
         }
     }
+}
+
+
+@Composable
+private fun HubChevron() {
+    Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Color.White.copy(alpha = 0.35f))
 }

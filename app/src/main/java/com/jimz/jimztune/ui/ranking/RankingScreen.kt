@@ -275,7 +275,8 @@ private fun PodiumSlot(row: RankRow?, place: Int, kind: RankKind, modifier: Modi
     val medal = RankColors.medal(place)
     val avatar = if (place == 1) 74.dp else 56.dp
     val block = when (place) { 1 -> 78.dp; 2 -> 54.dp; else -> 42.dp }
-    Column(modifier = modifier.padding(horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    val tap = if (row?.userId != null) Modifier.clip(RoundedCornerShape(14.dp)).clickable { com.jimz.jimztune.data.social.SocialNav.openProfile(row.userId) } else Modifier
+    Column(modifier = modifier.then(tap).padding(horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (place == 1) Text("👑", fontSize = 22.sp)
         if (row != null) {
             RankAvatar(row.avatarUrl, row.name, avatar, ring = medal)
@@ -339,6 +340,7 @@ private fun RankListRow(row: RankRow, kind: RankKind, mine: Boolean) {
             .clip(shape)
             .background(if (mine) accent.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.04f))
             .then(if (mine) Modifier.border(1.dp, accent.copy(alpha = 0.6f), shape) else Modifier)
+            .clickable(enabled = row.userId != null) { com.jimz.jimztune.data.social.SocialNav.openProfile(row.userId) }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

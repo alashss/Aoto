@@ -46,8 +46,18 @@ data class UserActivity(val plays: List<PlayEvent>, val sessions: List<SessionRo
 
 data class AdminAnnouncement(
     val id: Long, val title: String, val message: String, val url: String?,
-    val active: Boolean, val interrupt: Boolean, val createdAt: String
+    val active: Boolean, val interrupt: Boolean, val createdAt: String,
+    val urlLabel: String? = null, val expires: String? = null, val starts: String? = null,
+    val days: List<Int> = emptyList(), val startTime: String? = null, val endTime: String? = null,
+    val repeatDaily: Boolean = false
 )
+
+data class AdminMessage(
+    val id: Long, val username: String, val name: String, val title: String, val message: String,
+    val active: Boolean, val createdAt: String
+)
+
+data class DonationSummary(val today: Long, val month: Long, val total: Long, val count: Int)
 
 data class AdminBanner(
     val id: Long, val imageUrl: String, val title: String?, val linkUrl: String?,
@@ -323,19 +333,31 @@ object OwnerApi {
                 AdminAnnouncement(
                     id = it.optLong("id"), title = it.optString("title"), message = it.optString("message"),
                     url = it.s("url"), active = it.optBoolean("active", true),
-                    interrupt = it.optBoolean("interrupt_playback", true), createdAt = it.optString("created_at")
+                    interrupt = it.optBoolean("interrupt_playback", true), createdAt = it.optString("created_at"),
+                    urlLabel = it.s("url_label"), expires = it.s("expires_at"), starts = it.s("starts_at"),
+                    days = it.optJSONArray("days")?.let { d -> (0 until d.length()).map { i -> d.optInt(i) } }.orEmpty(),
+                    startTime = it.s("start_time"), endTime = it.s("end_time"), repeatDaily = it.optBoolean("repeat_daily", false)
                 )
             }
         }
 
     /** Mengirim pengumuman. Mengembalikan id pengumuman baru, atau error. */
-    suspend fun sendAnnouncement(title: String, message: String, url: String?, urlLabel: String?, interrupt: Boolean, expiresDate: String? = null): Res<String> {
+    suspend fun sendAnnouncement(
+        title: String, message: String, url: String?, urlLabel: String?, interrupt: Boolean, expiresDate: String? = null,
+        startsDate: String? = null, days: Set<Int> = emptySet(), startTime: String? = null, endTime: String? = null,
+        repeatDaily: Boolean = false
+    ): Res<String> {
         val body = JSONObject()
             .put("title", title).put("message", message)
             .put("url", if (url.isNullOrBlank()) JSONObject.NULL else url)
             .put("url_label", if (url.isNullOrBlank() || urlLabel.isNullOrBlank()) JSONObject.NULL else urlLabel)
             .put("interrupt_playback", interrupt)
             .put("expires_at", if (expiresDate.isNullOrBlank()) JSONObject.NULL else expiresDate)
+            .put("starts_at", if (startsDate.isNullOrBlank()) JSONObject.NULL else startsDate)
+            .put("days", JSONArray(days.sorted()))
+            .put("start_time", if (startTime.isNullOrBlank()) JSONObject.NULL else startTime)
+            .put("end_time", if (endTime.isNullOrBlank()) JSONObject.NULL else endTime)
+            .put("repeat_daily", repeatDaily)
             .put("active", true)
         val t = token() ?: return Res(null, "Sesi habis, masuk lagi ya")
         val r = CloudApi.json("POST", "/rest/v1/announcements", body.toString(), t, mapOf("Prefer" to "return=representation"))
@@ -345,6 +367,41 @@ object OwnerApi {
         } catch (_: Exception) {
             Res("")
         }
+    }
+
+    // ------------------------------------------------------------------ pesan ke satu pengguna
+
+    suspend fun messages(): Res<List<AdminMessage>> =
+        read("/rest/v1/rpc/owner_list_messages", "POST", JSONObject().put("p_limit", 30).toString()) { text ->
+            val a = JSONArray(text)
+            (0 until a.length()).mapNotNull { a.optJSONObject(it) }.map {
+                AdminMessage(
+                    it.optLong("id"), it.optString("username"), it.optString("name"), it.optString("title"),
+                    it.optString("message"), it.optBoolean("active", true), it.optString("created_at")
+                )
+            }
+        }
+
+    /** Mengirim pesan ke satu username. Mengembalikan pesan error, atau null kalau berhasil. */
+    suspend fun sendMessage(username: String, title: String, message: String, url: String?, urlLabel: String?, interrupt: Boolean, expiresDate: String?): String? =
+        write(
+            "POST", "/rest/v1/rpc/owner_send_message",
+            JSONObject()
+                .put("p_username", username).put("p_title", title).put("p_message", message)
+                .put("p_url", if (url.isNullOrBlank()) JSONObject.NULL else url)
+                .put("p_url_label", if (url.isNullOrBlank() || urlLabel.isNullOrBlank()) JSONObject.NULL else urlLabel)
+                .put("p_interrupt", interrupt)
+                .put("p_expires", if (expiresDate.isNullOrBlank()) JSONObject.NULL else expiresDate)
+                .toString()
+        )
+
+    suspend fun deleteMessage(id: Long): String? = write("DELETE", "/rest/v1/user_messages?id=eq.$id")
+
+    // ------------------------------------------------------------------ ringkasan donasi
+
+    suspend fun donationSummary(): Res<DonationSummary> = read("/rest/v1/rpc/owner_donation_summary", "POST", "{}") {
+        val o = JSONObject(it)
+        DonationSummary(o.optLong("today"), o.optLong("month"), o.optLong("total"), o.optInt("count"))
     }
 
     suspend fun setAnnouncementActive(id: Long, active: Boolean): String? =

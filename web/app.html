@@ -29,6 +29,17 @@
   li .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   li .n{width:22px;color:rgba(255,255,255,.4);font-size:13px;flex:none}
   .err{padding:40px 10px;text-align:center}
+  .pbanner{height:150px;margin:-28px -18px 0;background:linear-gradient(135deg,var(--ac),#12163a);background-size:cover;background-position:center;position:relative}
+  .pbanner:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(11,16,48,.9))}
+  .pav{margin-top:-46px;position:relative;z-index:1;display:flex;align-items:flex-end;gap:14px}
+  .pav .avatar{width:92px;height:92px;font-size:34px;border:3px solid var(--ac);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:50px;background:var(--card);border:1px solid var(--line);font-size:13px;margin:10px 8px 0 0}
+  .badge{display:inline-block;padding:4px 10px;margin:8px 6px 0 0;border-radius:50px;border:1px solid var(--ac);color:var(--ac);font-size:12px;font-weight:700}
+  .stats{display:flex;gap:10px;margin:22px 0}
+  .stat{flex:1;text-align:center;padding:14px 4px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.04));border:1px solid var(--line)}
+  .stat .v{font-weight:800;font-size:20px;color:var(--ac)}
+  .sect{font-weight:700;font-size:15px;margin:26px 0 8px}
+  .priv{margin:30px 0;padding:26px;border-radius:20px;text-align:center;background:var(--card);border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -69,17 +80,25 @@ function renderProfile(d) {
   const name = d.name || d.username;
   document.title = name + " · Aoto";
   if (/^#[0-9A-Fa-f]{6}$/.test(d.accent || "")) document.documentElement.style.setProperty("--ac", d.accent);
-  const av = safeImg(d.avatar) ? '<img class="avatar" style="width:72px;height:72px" src="' + esc(safeImg(d.avatar)) + '" alt="">'
-                               : '<div class="avatar" style="width:72px;height:72px;font-size:28px">' + esc(name.slice(0,1).toUpperCase()) + '</div>';
-  const stat = (v, l) => '<div style="flex:1;text-align:center;padding:12px 4px;border-radius:16px;background:var(--card);border:1px solid var(--line)"><div class="lvl" style="font-size:20px">' + esc(v) + '</div><div class="muted" style="font-size:11px">' + l + '</div></div>';
+  const av = safeImg(d.avatar) ? '<img class="avatar" src="' + esc(safeImg(d.avatar)) + '" alt="">'
+                               : '<div class="avatar">' + esc(name.slice(0,1).toUpperCase()) + '</div>';
+  const bn = safeImg(d.banner);
+  const stat = (v, l) => '<div class="stat"><div class="v">' + esc(v) + '</div><div class="muted" style="font-size:11px">' + l + '</div></div>';
   const top = d.top || [];
+  const badges = (d.badges || []).slice(0, 5).map(b => '<span class="badge">' + esc(b) + '</span>').join("");
+  const status = (d.status || "").trim();
+  const joined = d.joined ? new Date(d.joined).toLocaleDateString("id-ID", {month: "long", year: "numeric"}) : "";
   app.innerHTML =
-    '<div class="hero">' + av + '<div><h1>' + esc(name) + '</h1><div class="muted">@' + esc(d.username) + '</div></div></div>' +
-    (d.bio ? '<p class="muted" style="margin:14px 0 0">' + esc(d.bio) + '</p>' : '') +
-    '<div style="display:flex;gap:10px;margin:20px 0">' + stat("Lvl. " + (d.level || 1), "Level") + stat(hours(d.seconds || 0), "Total dengar") + stat(d.days || 0, "Hari aktif") + '</div>' +
+    '<div class="pbanner"' + (bn ? ' style="background-image:url(\'' + esc(bn) + '\')"' : '') + '></div>' +
+    '<div class="pav">' + av + '<div style="padding-bottom:6px;min-width:0"><h1 style="margin:0">' + esc(name) + '</h1><div class="muted">@' + esc(d.username) + '</div></div></div>' +
+    (status ? '<span class="pill">' + esc(status) + '</span>' : '') +
+    (joined ? '<span class="pill">Bergabung ' + esc(joined) + '</span>' : '') +
+    (badges ? '<div>' + badges + '</div>' : '') +
+    (d.bio ? '<p style="margin:16px 0 0;line-height:1.5;color:rgba(255,255,255,.88)">' + esc(d.bio) + '</p>' : '') +
+    '<div class="stats">' + stat("Lvl. " + (d.level || 1), "Level") + stat(hours(d.seconds || 0), "Total dengar") + stat(d.days || 0, "Hari aktif") + '</div>' +
     (DOWNLOAD_URL ? '<div class="btns"><a class="btn" href="' + esc(DOWNLOAD_URL) + '">Unduh Aoto</a></div>' : '') +
-    (top.length ? '<div class="muted" style="margin:6px 0">Paling sering didengar (90 hari)</div><ol>' + top.map((s, i) =>
-      '<li><span class="n">' + (i + 1) + '</span><img src="' + esc(safeImg(s.cover)) + '" alt="">' +
+    (top.length ? '<div class="sect">Paling sering didengar <span class="muted" style="font-weight:400">· 90 hari</span></div><ol>' + top.map((s, i) =>
+      '<li><span class="n" style="color:var(--ac);font-weight:800">' + (i + 1) + '</span><img src="' + esc(safeImg(s.cover)) + '" alt="">' +
       '<div class="grow"><div class="t">' + esc(s.title) + '</div><div class="muted" style="font-size:12px">' + esc(artist(s.artist)) + '</div></div></li>').join("") + '</ol>' : '');
 }
 

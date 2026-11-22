@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Coffee
 import androidx.compose.material.icons.rounded.Construction
+import androidx.compose.material.icons.rounded.Forum
+import androidx.compose.material.icons.rounded.Gavel
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.People
@@ -44,7 +46,7 @@ import com.jimz.jimztune.ui.theme.LocalCoverTheme
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-private enum class OwnerPage { Hub, Control, Live, Banners, Announcements, Donate, Update, Users, Stats, Failed }
+private enum class OwnerPage { Hub, Control, Live, Banners, Announcements, Donate, Update, Users, Stats, Failed, ChatMod, ChatRules }
 
 /**
  * Panel Owner. Hanya bisa dibuka akun yang didaftarkan di tabel `owners` server.
@@ -65,6 +67,8 @@ fun OwnerPanelScreen(onBack: () -> Unit) {
         OwnerPage.Users -> UsersPage(onBack = back)
         OwnerPage.Stats -> StatsPage(onBack = back)
         OwnerPage.Failed -> FailedPage(onBack = back)
+        OwnerPage.ChatMod -> ChatModerationPage(onBack = back)
+        OwnerPage.ChatRules -> ChatRulesPage(onBack = back)
     }
 }
 
@@ -83,7 +87,10 @@ private val FeatureGroups: List<Pair<String, List<Triple<String, String, String>
         Triple("top_listeners", "Top pendengar", "Kartu dan tab peringkat waktu mendengar"),
         Triple("top_donors", "Top donatur", "Kartu dan tab peringkat donasi"),
         Triple("profile", "Profil pengguna", "Halaman profil dan ubah profil"),
-        Triple("profile_stats", "Statistik di profil", "Statistik mendengar dan riwayat putar di profil")
+        Triple("profile_stats", "Statistik di profil", "Statistik mendengar dan riwayat putar di profil"),
+        Triple("profile_view", "Lihat profil orang lain", "Ketuk nama di peringkat/chat untuk membuka profil"),
+        Triple("friends", "Teman & pesan", "Daftar teman, permintaan, dan chat pribadi"),
+        Triple("chat", "Chat global", "Ruang obrolan semua pengguna")
     ),
     "Statistik pribadi" to listOf(
         Triple("streak", "Streak", "Kartu streak di Beranda dan menu Streak di Setelan"),
@@ -136,6 +143,13 @@ private fun HubPage(onBack: () -> Unit, onOpen: (OwnerPage) -> Unit) {
             OwnerNavRow(Icons.Rounded.Campaign, "Pengumuman", "Kirim realtime ke semua pengguna") { onOpen(OwnerPage.Announcements) }
             OwnerDivider()
             OwnerNavRow(Icons.Rounded.Coffee, "Donasi & popup", "Atur teks, tautan, dan popup realtime") { onOpen(OwnerPage.Donate) }
+        }
+
+        OwnerSection("Komunitas")
+        GroupCard {
+            OwnerNavRow(Icons.Rounded.Forum, "Moderasi chat global", "Hapus, bisukan, sematkan pesan") { onOpen(OwnerPage.ChatMod) }
+            OwnerDivider()
+            OwnerNavRow(Icons.Rounded.Gavel, "Aturan chat", "Kata terlarang, mode lambat, saklar chat") { onOpen(OwnerPage.ChatRules) }
         }
 
         OwnerSection("Sistem")

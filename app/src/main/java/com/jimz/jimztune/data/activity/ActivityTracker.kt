@@ -50,6 +50,29 @@ class ActivityTracker {
             JSONObject().put("p_id", sessionId).put("p_version", AppGraph.remote.versionName).toString(),
             token
         )
+        pushPresence()
+    }
+
+    // Kehadiran untuk teman: lagu yang sedang didengar + status online. Best-effort, gagal diabaikan.
+    private var curId: String? = null
+    private var curTitle: String? = null
+    private var curArtist: String? = null
+    private var curThumb: String? = null
+    private var curPlaying = false
+
+    private suspend fun pushPresence() {
+        try {
+            com.jimz.jimztune.data.social.SocialApi.setPresence(curId, curTitle, curArtist, curThumb, curPlaying)
+        } catch (_: Exception) {
+        }
+    }
+
+    /** Dipanggil saat tombol putar/jeda berubah supaya status "sedang mendengarkan" ikut berubah. */
+    fun setPlaying(playing: Boolean) {
+        if (curPlaying == playing) return
+        curPlaying = playing
+        if (!AppGraph.auth.isLoggedIn) return
+        scope.launch { pushPresence() }
     }
 
     /** Id putaran di server untuk lagu yang sedang berjalan, dan detik dengar saat mulai (untuk menghitung lamanya). */
@@ -65,6 +88,12 @@ class ActivityTracker {
         if (song.id == lastSong && now - lastSongAt < 5_000) return
         lastSong = song.id
         lastSongAt = now
+        curId = song.id
+        curTitle = song.title
+        curArtist = song.subtitle.substringBefore(" • ")
+        curThumb = song.thumbnailUrl
+        curPlaying = true
+        scope.launch { pushPresence() }
         val closeId = currentEventId
         val closeSec = (AppGraph.listen.totalSeconds - currentStartListen).coerceAtLeast(0)
         currentEventId = 0L

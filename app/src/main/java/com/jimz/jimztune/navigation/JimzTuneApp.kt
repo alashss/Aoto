@@ -84,6 +84,24 @@ import com.jimz.jimztune.data.stats.RankPeriod
 import com.jimz.jimztune.ui.ranking.RankingScreen
 import com.jimz.jimztune.ui.profile.EditProfileScreen
 import com.jimz.jimztune.ui.profile.ProfileScreen
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AdminPanelSettings
+import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.Forum
+import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PersonAdd
+import com.jimz.jimztune.data.social.SocialNav
+import com.jimz.jimztune.data.social.SocialPage
+import com.jimz.jimztune.ui.components.NavButtonSize
+import com.jimz.jimztune.ui.components.NavEntry
+import com.jimz.jimztune.ui.components.NavMenuButton
+import com.jimz.jimztune.ui.components.NavMenuSide
+import com.jimz.jimztune.ui.components.NavMenuUp
 
 private fun tabIndex(route: String?): Int = Dest.all.indexOfFirst { it.route == route }
 
@@ -328,37 +346,85 @@ fun JimzTuneApp() {
                     .background(Brush.verticalGradient(listOf(Color.Transparent, JimzBackground.copy(alpha = if (com.jimz.jimztune.ui.theme.AppTheme.uiStyle.isGlassy && com.jimz.jimztune.ui.theme.backdropSupported) 0.30f else 0.92f))))
             )
 
+            // Navbar baru: tombol bulat kaca (tiga garis) di kiri, sejajar dengan mini player.
+            // Menu terbuka ke ATAS kalau ada mini player, ke SAMPING kalau belum ada lagu.
+            var menuOpen by remember { mutableStateOf(false) }
+            LaunchedEffect(barHidden, playerOpen) { if (barHidden || playerOpen) menuOpen = false }
+            val loggedIn = AppGraph.auth.isLoggedIn
+            val entries = buildList {
+                Dest.all.forEach { d ->
+                    add(NavEntry(d.icon, d.label, selected = currentRoute == d.route) { goTo(d) })
+                }
+                if (loggedIn && AppGraph.remote.featureOn("friends")) {
+                    add(NavEntry(Icons.Rounded.Forum, "Pesan", badge = SocialNav.badges.dmUnread) { SocialNav.open(SocialPage.Inbox) })
+                    add(NavEntry(Icons.Rounded.PersonAdd, "Teman", badge = SocialNav.badges.requests) { SocialNav.open(SocialPage.Friends) })
+                }
+                if (loggedIn && AppGraph.remote.featureOn("chat")) {
+                    add(NavEntry(Icons.Rounded.Groups, "Chat global") { SocialNav.open(SocialPage.GlobalChat) })
+                }
+                if (AppGraph.remote.featureOn("ranking")) add(NavEntry(Icons.Rounded.EmojiEvents, "Peringkat") { showRanking = true })
+                if (loggedIn && AppGraph.remote.featureOn("profile")) add(NavEntry(Icons.Rounded.Person, "Profil") { showProfile = true })
+                if (AppGraph.account.isOwner) add(NavEntry(Icons.Rounded.AdminPanelSettings, "Panel Owner") { showOwner = true })
+            }
+            val buttonW by animateDpAsState(
+                targetValue = if (barHidden) 0.dp else NavButtonSize,
+                animationSpec = tween(320, easing = FastOutSlowInEasing),
+                label = "buttonW"
+            )
+
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
                     .padding(bottom = 12.dp)
+                    .fillMaxWidth()
                     .offset { androidx.compose.ui.unit.IntOffset(0, miniDrop.roundToPx()) }
             ) {
-                // Mini player muncul meluncur dari bawah, dan lebarnya sama persis dengan navbar.
-                AnimatedVisibility(
-                    visible = hasMini,
-                    enter = slideInVertically(tween(380, easing = FastOutSlowInEasing)) { it / 2 } +
-                        fadeIn(tween(300)),
-                    exit = slideOutVertically(tween(260)) { it / 2 } + fadeOut(tween(180))
-                ) {
-                    MiniPlayer(
-                        state = player.ui,
-                        onToggle = player::togglePlay,
-                        onNext = player::next,
-                        onOpen = { expanded = true },
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
-                    )
-                }
-                JimzBottomBar(
-                    items = Dest.all,
-                    selectedIndex = tabIndex(currentRoute),
-                    onSelect = { goTo(Dest.all[it]) },
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .offset { androidx.compose.ui.unit.IntOffset(0, barExtra.roundToPx()) }
-                        .graphicsLayer { alpha = barAlpha }
+                NavMenuUp(
+                    visible = menuOpen && hasMini,
+                    entries = entries,
+                    onClose = { menuOpen = false },
+                    modifier = Modifier.padding(start = 16.dp)
                 )
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(buttonW)
+                            .graphicsLayer { alpha = barAlpha }
+                    ) {
+                        NavMenuButton(
+                            open = menuOpen,
+                            badge = SocialNav.badges.total,
+                            onToggle = { menuOpen = !menuOpen },
+                            modifier = Modifier.requiredSize(NavButtonSize)
+                        )
+                    }
+                    if (hasMini) {
+                        Spacer(Modifier.width(if (barHidden) 0.dp else 10.dp))
+                        // Mini player muncul meluncur dari bawah; lebarnya mengisi sisa baris.
+                        AnimatedVisibility(
+                            visible = true,
+                            modifier = Modifier.weight(1f),
+                            enter = slideInVertically(tween(380, easing = FastOutSlowInEasing)) { it / 2 } + fadeIn(tween(300)),
+                            exit = slideOutVertically(tween(260)) { it / 2 } + fadeOut(tween(180))
+                        ) {
+                            MiniPlayer(
+                                state = player.ui,
+                                onToggle = player::togglePlay,
+                                onNext = player::next,
+                                onOpen = { expanded = true }
+                            )
+                        }
+                    } else {
+                        Spacer(Modifier.width(10.dp))
+                        Box(Modifier.weight(1f)) {
+                            NavMenuSide(visible = menuOpen, entries = entries, onClose = { menuOpen = false })
+                        }
+                    }
+                }
             }
 
             AnimatedVisibility(
@@ -443,6 +509,8 @@ fun JimzTuneApp() {
             ) {
                 OwnerPanelScreen(onBack = { showOwner = false })
             }
+
+            com.jimz.jimztune.ui.social.SocialHost()
 
             BatteryPrompt(isPlaying = player.ui.isPlaying)
             if (showDonate && AppGraph.remote.featureOn("donate")) DonateDialog { showDonate = false }

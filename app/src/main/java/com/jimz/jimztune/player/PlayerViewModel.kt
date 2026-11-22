@@ -124,6 +124,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         val song = item?.toSong()
         if (p.isPlaying) PlaybackDiagnostics.finish()
         AppGraph.setPlaying(p.isPlaying)
+        AppGraph.activity.setPlaying(p.isPlaying)
         ui = ui.copy(
             current = song,
             isPlaying = p.isPlaying,

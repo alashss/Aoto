@@ -42,12 +42,44 @@ data class Announcement(
     /** Format yyyy-MM-dd. Setelah tanggal ini pengumuman tidak ditampilkan lagi. Kosong = tidak kedaluwarsa. */
     val expires: String? = null,
     /** True = musik user dihentikan & pemutar ditutup saat pengumuman ini muncul. */
-    val interrupt: Boolean = true
+    val interrupt: Boolean = true,
+    /** Format yyyy-MM-dd. Sebelum tanggal ini pengumuman belum tampil. */
+    val starts: String? = null,
+    /** Hari tampil: 1 = Senin ... 7 = Minggu. Kosong = tiap hari. */
+    val days: Set<Int> = emptySet(),
+    /** Jam tampil "HH:mm" menurut jam HP pengguna. Boleh melewati tengah malam (22:00 sampai 02:00). */
+    val startTime: String? = null,
+    val endTime: String? = null,
+    /** True = muncul lagi tiap hari (di hari/jam yang cocok) walau sudah dibaca kemarin. */
+    val repeatDaily: Boolean = false
 ) {
     fun isActive(): Boolean {
-        val e = expires ?: return true
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-        return today <= e
+        val now = java.util.Calendar.getInstance()
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now.time)
+        if (expires != null && today > expires) return false
+        if (starts != null && today < starts) return false
+        if (days.isNotEmpty()) {
+            val isoDay = (now.get(java.util.Calendar.DAY_OF_WEEK) + 5) % 7 + 1 // Senin = 1 ... Minggu = 7
+            if (isoDay !in days) return false
+        }
+        val s = minutesOf(startTime)
+        val e = minutesOf(endTime)
+        if (s != null || e != null) {
+            val m = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
+            val from = s ?: 0
+            val to = e ?: (24 * 60 - 1)
+            val inside = if (from <= to) m in from..to else (m >= from || m <= to)
+            if (!inside) return false
+        }
+        return true
+    }
+
+    private fun minutesOf(t: String?): Int? {
+        if (t.isNullOrBlank()) return null
+        val parts = t.split(":")
+        val h = parts.getOrNull(0)?.toIntOrNull() ?: return null
+        val m = parts.getOrNull(1)?.toIntOrNull() ?: return null
+        return h * 60 + m
     }
 }
 
@@ -101,7 +133,12 @@ fun parseRemoteConfig(text: String): RemoteConfig {
                     url = it.str("url"),
                     urlLabel = it.str("url_label"),
                     expires = it.str("expires"),
-                    interrupt = it.optBoolean("interrupt", true)
+                    interrupt = it.optBoolean("interrupt", true),
+                    starts = it.str("starts"),
+                    days = it.optJSONArray("days")?.let { d -> (0 until d.length()).map { i -> d.optInt(i) }.filter { n -> n in 1..7 }.toSet() }.orEmpty(),
+                    startTime = it.str("start_time"),
+                    endTime = it.str("end_time"),
+                    repeatDaily = it.optBoolean("repeat", false)
                 )
             }
         },
@@ -138,4 +175,17 @@ fun parseRemoteConfig(text: String): RemoteConfig {
             }
         }
     )
+}
+
+/** Memecah larik pengumuman (bentuk sama dengan get_app_config.announcements / my_messages). */
+fun parseAnnouncements(text: String): List<Announcement> {
+    val arr = org.json.JSONArray(text)
+    return (0 until arr.length()).mapNotNull { arr.optJSONObject(it) }.mapNotNull {
+        val id = it.str("id") ?: return@mapNotNull null
+        Announcement(
+            id = id, title = it.str("title").orEmpty(), message = it.str("message").orEmpty(),
+            url = it.str("url"), urlLabel = it.str("url_label"), expires = it.str("expires"),
+            interrupt = it.optBoolean("interrupt", false)
+        )
+    }
 }
