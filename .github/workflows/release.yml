@@ -51,9 +51,23 @@ jobs:
         run: cp app/build/outputs/apk/release/app-release.apk Aoto.apk
 
       - name: Cetak sidik jari SHA-256 (untuk web/.well-known/assetlinks.json)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          keytool -printcert -jarfile Aoto.apk | grep -i "SHA256:" || true
-          echo "::notice title=SHA-256 penandatangan::$(keytool -printcert -jarfile Aoto.apk | grep -i 'SHA256:' | head -1)"
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          if [ -n "$APKSIGNER" ]; then
+            echo "== Dari APK (apksigner) =="
+            "$APKSIGNER" verify --print-certs Aoto.apk | grep -i "SHA-256" || true
+          fi
+          if [ -n "$KEYSTORE_PATH" ] && [ -f "$KEYSTORE_PATH" ]; then
+            echo "== Dari keystore =="
+            SHA=$(keytool -list -v -keystore "$KEYSTORE_PATH" -alias "$KEY_ALIAS" -storepass "$KEYSTORE_PASSWORD" 2>/dev/null | grep -i "SHA256:" | head -1 | sed 's/^ *//')
+            echo "$SHA"
+            echo "::notice title=SHA-256 penandatangan::$SHA"
+          else
+            echo "Keystore rilis tidak ada: APK memakai kunci debug acak."
+          fi
 
       - name: Tentukan nama tag
         run: |
