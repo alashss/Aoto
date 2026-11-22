@@ -1,16 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "sed -i \"s|GANTI_CLOUD_URL|$CLOUD_URL|; s|GANTI_CLOUD_KEY|$CLOUD_KEY|\" index.html",
+  "buildCommand": "sed -i \"s|GANTI_CLOUD_URL|$CLOUD_URL|; s|GANTI_CLOUD_KEY|$CLOUD_KEY|\" app.html",
   "outputDirectory": ".",
   "rewrites": [
     {
       "source": "/p/:code",
-      "destination": "/index.html"
+      "destination": "/app.html"
     },
     {
       "source": "/u/:username",
-      "destination": "/index.html"
+      "destination": "/app.html"
     }
   ],
   "headers": [

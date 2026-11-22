@@ -3,122 +3,295 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="referrer" content="no-referrer">
-<title>Aoto</title>
-<meta property="og:title" content="Playlist di Aoto">
-<style>
-  :root{color-scheme:dark;--bg:#0b1030;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.1);--ac:#6c93ff}
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,#1b1f5e,var(--bg) 60%);color:#fff;min-height:100vh}
-  main{max-width:520px;margin:0 auto;padding:28px 18px 60px}
-  .brand{font-weight:800;letter-spacing:.5px;opacity:.85;margin-bottom:18px}
-  .hero{display:flex;gap:16px;align-items:center}
-  .cover{width:96px;height:96px;border-radius:20px;object-fit:cover;background:var(--card);flex:none}
-  h1{font-size:24px;line-height:1.15;margin:0 0 6px}
-  .muted{color:rgba(255,255,255,.62);font-size:14px}
-  .creator{display:flex;gap:12px;align-items:center;margin:20px 0;padding:12px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
-  .avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--ac);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
-  .grow{flex:1;min-width:0}
-  .lvl{font-weight:800;color:var(--ac)}
-  .btns{display:flex;gap:10px;margin-bottom:22px}
-  a.btn{flex:1;text-align:center;padding:14px;border-radius:50px;font-weight:700;text-decoration:none;color:#0b1030;background:#fff}
-  a.btn.alt{background:var(--card);color:#fff;border:1px solid var(--line)}
-  ol{list-style:none;margin:0;padding:0}
-  li{display:flex;gap:12px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--line)}
-  li img{width:46px;height:46px;border-radius:10px;object-fit:cover;background:var(--card);flex:none}
-  li .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  li .n{width:22px;color:rgba(255,255,255,.4);font-size:13px;flex:none}
-  .err{padding:40px 10px;text-align:center}
-</style>
+<title>Aoto untuk Android</title>
+<meta name="description" content="Aoto: pemutar musik Android dengan tampilan modern. Unduh versi terbaru dan ikuti kabar pembaruan lewat saluran WhatsApp.">
+<meta property="og:title" content="Aoto untuk Android">
+<meta property="og:image" content="https://aoto50.wordpress.com/wp-content/uploads/2026/11/aoto-logo-1.jpg">
+<style>html,body{margin:0;background:#030817;overflow-x:hidden}html{scroll-behavior:smooth}</style>
 </head>
 <body>
-<main>
-  <div class="brand">♪ Aoto</div>
-  <div id="app" class="muted">Memuat…</div>
+<div style="width:100vw;max-width:100vw;position:relative;left:50%;margin-left:-50vw;overflow:hidden;background:#030817;color:#eef7ff;font-family:Arial,Helvetica,sans-serif">
+
+<div style="background:radial-gradient(ellipse at 75% 15%,#102d72 0%,#07142f 35%,#030817 75%)">
+
+<!-- HEADER -->
+<header style="padding:16px clamp(18px,5vw,80px);display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;border-bottom:1px solid #1b3b70;background:#030817dd">
+
+<a href="#home" style="display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-size:22px;font-weight:900">
+<img src="https://aoto50.wordpress.com/wp-content/uploads/2026/11/aoto-logo-1.jpg" alt="Logo Aoto" style="width:42px;height:42px;object-fit:cover;border-radius:12px;box-shadow:0 0 20px #168bff88">
+AOTO
+</a>
+
+<nav style="display:flex;align-items:center;justify-content:center;gap:clamp(12px,2.5vw,30px);flex-wrap:wrap">
+<a href="#home" style="color:#dceaff;text-decoration:none;font-size:13px;font-weight:700">Beranda</a>
+<a href="#about" style="color:#9db6d7;text-decoration:none;font-size:13px">Tentang</a>
+<a href="#features" style="color:#9db6d7;text-decoration:none;font-size:13px">Fitur</a>
+<a href="#install" style="color:#9db6d7;text-decoration:none;font-size:13px">Instalasi</a>
+</nav>
+
+<a href="https://www.mediafire.com/file/feyr8l3k1y5ar8w/Aoto_1.9.6.apk/file" target="_blank" rel="noopener" style="padding:12px 18px;border-radius:30px;background:linear-gradient(100deg,#00bfff,#315dff);color:white;text-decoration:none;font-size:12px;font-weight:900;box-shadow:0 0 25px #087dff77">
+↓ Unduh APK
+</a>
+</header>
+
+<main id="home">
+
+<!-- HERO -->
+<section style="padding:clamp(55px,8vw,105px) clamp(18px,8vw,125px) 75px;display:flex;align-items:center;justify-content:space-between;gap:38px;flex-wrap:wrap;min-height:520px">
+
+<div style="flex:1 1 340px;max-width:620px">
+
+<div style="display:inline-flex;align-items:center;gap:9px;padding:9px 14px;border:1px solid #147dff88;border-radius:30px;background:#08285a99;color:#b9e9ff;font-size:11px;font-weight:800;letter-spacing:.6px">
+<span style="width:8px;height:8px;border-radius:50%;background:#00e6a0;box-shadow:0 0 10px #00e6a0"></span>
+VERSI 1.9.6 · UNTUK ANDROID
+</div>
+
+<h1 style="font-size:clamp(46px,7.2vw,84px);line-height:.98;letter-spacing:-3px;margin:24px 0 18px;color:#fff;font-weight:900">
+Aoto untuk<br>
+<span style="background:linear-gradient(90deg,#19d9ff,#3984ff,#9b8cff);background-clip:text;-webkit-background-clip:text;color:transparent">Android.</span>
+</h1>
+
+<p style="max-width:520px;color:#b4c9e7;font-size:16px;line-height:1.8;margin:0">
+Kenali Aoto melalui tampilan yang modern dan informasi yang tersusun rapi. Unduh versi terbaru dan ikuti kabar pembaruannya melalui saluran WhatsApp.
+</p>
+
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:28px">
+
+<a href="https://whatsapp.com/channel/0029VbA2PBf7dmeakiPKgK1k" target="_blank" rel="noopener" style="padding:15px 20px;border-radius:30px;background:linear-gradient(100deg,#00d978,#00ad8b);color:#fff;text-decoration:none;font-size:13px;font-weight:900;box-shadow:0 0 25px #00d97855">
+◉ Gabung Saluran WhatsApp
+</a>
+
+<a href="https://www.mediafire.com/file/feyr8l3k1y5ar8w/Aoto_1.9.6.apk/file" target="_blank" rel="noopener" style="padding:15px 20px;border-radius:30px;background:linear-gradient(100deg,#087dff,#4d5eff);color:#fff;text-decoration:none;font-size:13px;font-weight:900;box-shadow:0 0 25px #087dff66">
+↓ Unduh APK
+</a>
+</div>
+
+<p style="margin:17px 0 0;color:#7f9fc6;font-size:11px">
+Gratis · Android · Versi 1.9.6
+</p>
+</div>
+
+<!-- LOGO PREVIEW -->
+<div style="flex:1 1 300px;display:flex;align-items:center;justify-content:center;min-width:260px">
+
+<div style="position:relative;width:min(100%,390px);padding:25px;border:1px solid #168cff77;border-radius:38px;background:linear-gradient(145deg,#0b2860,#06132f 65%,#071b48);box-shadow:0 0 35px #087dff44,inset 0 0 35px #0d6dff22;text-align:center">
+
+<div style="position:absolute;inset:12px;border:1px solid #2d7bff33;border-radius:29px;pointer-events:none"></div>
+
+<img src="https://aoto50.wordpress.com/wp-content/uploads/2026/11/aoto-logo-1.jpg" alt="Ikon resmi Aoto" style="display:block;width:min(78%,260px);aspect-ratio:1;object-fit:cover;border-radius:28%;margin:8px auto 18px;box-shadow:0 0 45px #087dff88">
+
+<div style="color:#fff;font-size:25px;font-weight:900;letter-spacing:1px">AOTO</div>
+<div style="color:#7fdfff;font-size:11px;letter-spacing:2px;margin-top:6px">EXPLORE MORE</div>
+
+<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:22px">
+<span style="padding:8px 11px;border-radius:20px;background:#0b3b7a;color:#bcecff;font-size:10px">ANDROID APP</span>
+<span style="padding:8px 11px;border-radius:20px;background:#0b3b7a;color:#bcecff;font-size:10px">VERSION 1.9.6</span>
+</div>
+
+</div>
+</div>
+</section>
+
+<!-- INFO CARDS -->
+<section style="padding:0 clamp(18px,7vw,105px) 75px">
+
+<div style="display:flex;gap:12px;flex-wrap:wrap;max-width:1150px;margin:auto">
+
+<div style="flex:1 1 180px;padding:19px 22px;border:1px solid #1c4e91;border-radius:16px;background:linear-gradient(135deg,#0c2550,#07152e)">
+<div style="font-size:22px;color:#28dfff">✧</div>
+<b style="display:block;color:#fff;margin-top:8px;font-size:14px">Gratis</b>
+<span style="color:#9bb4d5;font-size:12px">Unduh dan gunakan tanpa biaya.</span>
+</div>
+
+<div style="flex:1 1 180px;padding:19px 22px;border:1px solid #1c4e91;border-radius:16px;background:linear-gradient(135deg,#0c2550,#07152e)">
+<div style="font-size:22px;color:#28dfff">◐</div>
+<b style="display:block;color:#fff;margin-top:8px;font-size:14px">Tampilan modern</b>
+<span style="color:#9bb4d5;font-size:12px">Identitas visual biru gelap Aoto.</span>
+</div>
+
+<div style="flex:1 1 180px;padding:19px 22px;border:1px solid #1c4e91;border-radius:16px;background:linear-gradient(135deg,#0c2550,#07152e)">
+<div style="font-size:22px;color:#28dfff">↻</div>
+<b style="display:block;color:#fff;margin-top:8px;font-size:14px">Info terbaru</b>
+<span style="color:#9bb4d5;font-size:12px">Ikuti kabar melalui saluran WhatsApp.</span>
+</div>
+
+</div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" style="padding:85px clamp(18px,7vw,105px);background:linear-gradient(180deg,#06122a,#07172e)">
+
+<div style="max-width:1100px;margin:auto;display:flex;align-items:center;gap:45px;flex-wrap:wrap">
+
+<div style="flex:1 1 300px">
+<div style="color:#24d8ff;font-size:11px;font-weight:900;letter-spacing:2px">TENTANG AOTO</div>
+
+<h2 style="font-size:clamp(32px,5vw,52px);line-height:1.08;color:#fff;letter-spacing:-1.5px;margin:15px 0">
+Dibuat dengan identitas yang kuat.
+</h2>
+
+<p style="color:#a9c0df;font-size:14px;line-height:1.9">
+Aoto hadir dengan identitas visual khas: warna biru gelap, cahaya neon, dan simbol A yang menjadi ciri utamanya. Website ini menjadi pusat informasi untuk mengenal aplikasi, mengakses unduhan, dan mengikuti pembaruan.
+</p>
+</div>
+
+<div style="flex:1 1 300px;padding:27px;border-radius:24px;border:1px solid #1b65b7;background:radial-gradient(circle at 50% 0%,#123f82,#08172f 70%);box-shadow:0 0 40px #006dff22">
+
+<div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #ffffff17">
+<span style="font-size:24px;color:#24d8ff">01</span>
+<div>
+<b style="color:#fff;font-size:14px">Identitas Aoto</b>
+<div style="color:#8eaed4;font-size:12px;margin-top:4px">Logo dan nuansa visual khas</div>
+</div>
+</div>
+
+<div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #ffffff17">
+<span style="font-size:24px;color:#24d8ff">02</span>
+<div>
+<b style="color:#fff;font-size:14px">Akses unduhan</b>
+<div style="color:#8eaed4;font-size:12px;margin-top:4px">Tautan APK versi yang tersedia</div>
+</div>
+</div>
+
+<div style="display:flex;align-items:center;gap:14px;padding:14px 0">
+<span style="font-size:24px;color:#24d8ff">03</span>
+<div>
+<b style="color:#fff;font-size:14px">Saluran informasi</b>
+<div style="color:#8eaed4;font-size:12px;margin-top:4px">Kabar dan update melalui WhatsApp</div>
+</div>
+</div>
+
+</div>
+</div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" style="padding:85px clamp(18px,7vw,105px);background:#030817">
+
+<div style="max-width:1100px;margin:auto;text-align:center">
+
+<div style="color:#24d8ff;font-size:11px;font-weight:900;letter-spacing:2px">JELAJAHI</div>
+
+<h2 style="font-size:clamp(32px,5vw,48px);color:#fff;margin:13px 0">
+Semua informasi dalam satu tempat.
+</h2>
+
+<p style="max-width:620px;margin:0 auto 35px;color:#9eb6d7;font-size:14px;line-height:1.8">
+Temukan hal-hal penting seputar Aoto tanpa harus mencari ke banyak tempat.
+</p>
+
+<div style="display:flex;gap:15px;flex-wrap:wrap;text-align:left">
+
+<div style="flex:1 1 230px;padding:24px;border-radius:18px;border:1px solid #174a8d;background:#091b39">
+<div style="font-size:25px;color:#20dfff">◈</div>
+<h3 style="color:#fff;font-size:16px;margin:14px 0 8px">Tentang aplikasi</h3>
+<p style="color:#9eb6d7;font-size:12px;line-height:1.8;margin:0">Baca informasi dasar dan kenali identitas Aoto.</p>
+</div>
+
+<div style="flex:1 1 230px;padding:24px;border-radius:18px;border:1px solid #174a8d;background:#091b39">
+<div style="font-size:25px;color:#20dfff">↓</div>
+<h3 style="color:#fff;font-size:16px;margin:14px 0 8px">Unduh APK</h3>
+<p style="color:#9eb6d7;font-size:12px;line-height:1.8;margin:0">Akses berkas Aoto versi 1.9.6 melalui tautan unduhan.</p>
+</div>
+
+<div style="flex:1 1 230px;padding:24px;border-radius:18px;border:1px solid #174a8d;background:#091b39">
+<div style="font-size:25px;color:#20dfff">◉</div>
+<h3 style="color:#fff;font-size:16px;margin:14px 0 8px">Kanal WhatsApp</h3>
+<p style="color:#9eb6d7;font-size:12px;line-height:1.8;margin:0">Ikuti saluran untuk mendapatkan informasi terbaru.</p>
+</div>
+
+</div>
+</div>
+</section>
+
+<!-- INSTALLATION -->
+<section id="install" style="padding:85px clamp(18px,7vw,105px);background:#06132b">
+
+<div style="max-width:1100px;margin:auto">
+
+<div style="text-align:center;margin-bottom:38px">
+<div style="color:#24d8ff;font-size:11px;font-weight:900;letter-spacing:2px">PANDUAN INSTALASI</div>
+<h2 style="font-size:clamp(32px,5vw,46px);color:#fff;margin:13px 0">Cara memasang Aoto</h2>
+<p style="color:#9eb6d7;font-size:14px">Ikuti langkah berikut saat memasang aplikasi di perangkat Android.</p>
+</div>
+
+<div style="display:flex;gap:14px;flex-wrap:wrap">
+
+<div style="flex:1 1 220px;padding:23px;border-radius:17px;background:#0a2145;border:1px solid #1c5ba6">
+<div style="color:#22dfff;font-size:12px;font-weight:900">LANGKAH 01</div>
+<h3 style="color:#fff;font-size:16px;margin:12px 0 7px">Unduh berkas</h3>
+<p style="color:#9eb6d7;font-size:12px;line-height:1.8;margin:0">Tekan tombol Unduh APK dan tunggu proses unduhan selesai.</p>
+</div>
+
+<div style="flex:1 1 220px;padding:23px;border-radius:17px;background:#0a2145;border:1px solid #1c5ba6">
+<div style="color:#22dfff;font-size:12px;font-weight:900">LANGKAH 02</div>
+<h3 style="color:#fff;font-size:16px;margin:12px 0 7px">Periksa berkas</h3>
+<p style="color:#9eb6d7;font-size:12px;line-height:1.8;margin:0">Pastikan berkas berasal dari tautan resmi Aoto dan sesuai versi yang dicari.</p>
+</div>
+
+<div style="flex:1 1 220px;padding:23px;border-radius:17px;background:#0a2145;border:1px solid #1c5ba6">
+<div style="color:#22dfff;font-size:12px;font-weight:900">LANGKAH 03</div>
+<h3 style="color:#fff;font-size:16px;margin:12px 0 7px">Ikuti petunjuk Android</h3>
+<p style="color:#9eb6d7;font-size:12px;line-height:1.8;margin:0">Buka berkas dan ikuti instruksi keamanan yang ditampilkan perangkat.</p>
+</div>
+
+</div>
+</div>
+</section>
+
+<!-- CTA -->
+<section style="padding:65px 20px;background:radial-gradient(ellipse at center,#10418a,#030817 72%);text-align:center">
+
+<img src="https://aoto50.wordpress.com/wp-content/uploads/2026/11/aoto-logo-1.jpg" alt="Logo Aoto" style="width:76px;height:76px;object-fit:cover;border-radius:22px;box-shadow:0 0 28px #168bff99">
+
+<h2 style="color:#fff;font-size:clamp(30px,5vw,48px);margin:17px 0 10px">
+Siap mencoba Aoto?
+</h2>
+
+<p style="color:#a9c0df;font-size:14px;line-height:1.8;margin:0 auto 25px">
+Unduh Aoto 1.9.6 untuk Android atau gabung saluran WhatsApp.
+</p>
+
+<div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">
+
+<a href="https://whatsapp.com/channel/0029VbA2PBf7dmeakiPKgK1k" target="_blank" rel="noopener" style="padding:15px 22px;border-radius:30px;background:#00c985;color:#fff;text-decoration:none;font-size:13px;font-weight:900">
+◉ Gabung Saluran
+</a>
+
+<a href="https://www.mediafire.com/file/feyr8l3k1y5ar8w/Aoto_1.9.6.apk/file" target="_blank" rel="noopener" style="padding:15px 22px;border-radius:30px;background:linear-gradient(100deg,#087dff,#5364ff);color:#fff;text-decoration:none;font-size:13px;font-weight:900">
+↓ Unduh APK
+</a>
+
+</div>
+</section>
+
 </main>
-<script>
-// ISI DUA BARIS INI (sama seperti CLOUD_URL dan CLOUD_KEY di build aplikasi; kunci anon memang publik).
-const CLOUD_URL = "GANTI_CLOUD_URL";
-const CLOUD_KEY = "GANTI_CLOUD_KEY";
-// Alamat unduh aplikasi (halaman rilis GitHub dsb). Boleh dikosongkan.
-const DOWNLOAD_URL = "";
 
-const code = new URLSearchParams(location.search).get("c") || (location.pathname.match(/\/p\/([A-Za-z0-9]+)/) || [])[1] || "";
-const app = document.getElementById("app");
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-// Hanya gambar https yang ditampilkan (data dari pengguna lain tidak dipercaya).
-const safeImg = u => /^https:\/\//i.test(String(u || "")) ? String(u) : "";
-const artist = s => String(s || "").split(" • ")[0];
+<!-- FOOTER -->
+<footer style="padding:25px clamp(18px,7vw,105px);background:#020611;border-top:1px solid #174078">
 
-const uname = (location.pathname.match(/\/u\/([A-Za-z0-9_.]{3,20})/) || [])[1] || "";
+<div style="max-width:1100px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
 
-async function loadProfile() {
-  try {
-    const r = await fetch(CLOUD_URL + "/rest/v1/rpc/get_public_profile", {
-      method: "POST",
-      headers: {apikey: CLOUD_KEY, Authorization: "Bearer " + CLOUD_KEY, "Content-Type": "application/json"},
-      body: JSON.stringify({p_username: uname})
-    });
-    const d = r.ok ? await r.json() : null;
-    if (!d) return fail("Profil ini tidak ditemukan atau tidak dibuat publik.");
-    renderProfile(d);
-  } catch (e) { fail("Tidak bisa menghubungi server."); }
-}
-function hours(sec) { const h = sec / 3600; return h >= 10 ? Math.round(h) + " jam" : h.toFixed(1).replace(".", ",") + " jam"; }
-function renderProfile(d) {
-  const name = d.name || d.username;
-  document.title = name + " · Aoto";
-  if (/^#[0-9A-Fa-f]{6}$/.test(d.accent || "")) document.documentElement.style.setProperty("--ac", d.accent);
-  const av = safeImg(d.avatar) ? '<img class="avatar" style="width:72px;height:72px" src="' + esc(safeImg(d.avatar)) + '" alt="">'
-                               : '<div class="avatar" style="width:72px;height:72px;font-size:28px">' + esc(name.slice(0,1).toUpperCase()) + '</div>';
-  const stat = (v, l) => '<div style="flex:1;text-align:center;padding:12px 4px;border-radius:16px;background:var(--card);border:1px solid var(--line)"><div class="lvl" style="font-size:20px">' + esc(v) + '</div><div class="muted" style="font-size:11px">' + l + '</div></div>';
-  const top = d.top || [];
-  app.innerHTML =
-    '<div class="hero">' + av + '<div><h1>' + esc(name) + '</h1><div class="muted">@' + esc(d.username) + '</div></div></div>' +
-    (d.bio ? '<p class="muted" style="margin:14px 0 0">' + esc(d.bio) + '</p>' : '') +
-    '<div style="display:flex;gap:10px;margin:20px 0">' + stat("Lvl. " + (d.level || 1), "Level") + stat(hours(d.seconds || 0), "Total dengar") + stat(d.days || 0, "Hari aktif") + '</div>' +
-    (DOWNLOAD_URL ? '<div class="btns"><a class="btn" href="' + esc(DOWNLOAD_URL) + '">Unduh Aoto</a></div>' : '') +
-    (top.length ? '<div class="muted" style="margin:6px 0">Paling sering didengar (90 hari)</div><ol>' + top.map((s, i) =>
-      '<li><span class="n">' + (i + 1) + '</span><img src="' + esc(safeImg(s.cover)) + '" alt="">' +
-      '<div class="grow"><div class="t">' + esc(s.title) + '</div><div class="muted" style="font-size:12px">' + esc(artist(s.artist)) + '</div></div></li>').join("") + '</ol>' : '');
-}
+<a href="#home" style="display:flex;align-items:center;gap:9px;color:#fff;text-decoration:none;font-weight:900">
+<img src="https://aoto50.wordpress.com/wp-content/uploads/2026/11/aoto-logo-1.jpg" alt="" style="width:30px;height:30px;object-fit:cover;border-radius:9px">
+AOTO
+</a>
 
-async function load() {
-  if (CLOUD_URL.indexOf("GANTI_") === 0 || CLOUD_KEY.indexOf("GANTI_") === 0)
-    return fail("Server belum diatur. Isi CLOUD_URL dan CLOUD_KEY di Environment Variables Vercel, lalu Redeploy.");
-  if (uname) return loadProfile();
-  if (!/^[A-Za-z0-9]{4,16}$/.test(code)) return fail("Tautan tidak valid.");
-  try {
-    const r = await fetch(CLOUD_URL + "/rest/v1/rpc/get_shared_playlist", {
-      method: "POST",
-      headers: {apikey: CLOUD_KEY, Authorization: "Bearer " + CLOUD_KEY, "Content-Type": "application/json"},
-      body: JSON.stringify({p_code: code})
-    });
-    const d = r.ok ? await r.json() : null;
-    if (!d) return fail("Playlist tidak ditemukan atau sudah dihapus.");
-    render(d);
-  } catch (e) { fail("Tidak bisa menghubungi server."); }
-}
-function fail(msg) { app.innerHTML = '<div class="err">' + esc(msg) + '</div>'; }
-function render(d) {
-  const songs = d.songs || [], c = d.creator || {};
-  const name = c.display_name || c.username || "Pengguna Aoto";
-  document.title = d.title + " · Aoto";
-  const av = safeImg(c.avatar_url) ? '<img class="avatar" src="' + esc(safeImg(c.avatar_url)) + '" alt="">'
-                          : '<div class="avatar">' + esc(name.slice(0,1).toUpperCase()) + '</div>';
-  app.innerHTML =
-    '<div class="hero"><img class="cover" src="' + esc(safeImg(songs[0]?.thumbnail)) + '" alt="">' +
-    '<div><h1>' + esc(d.title) + '</h1><div class="muted">' + songs.length + (songs.length === 1 ? ' lagu' : ' lagu') + '</div></div></div>' +
-    '<div class="creator">' + av + '<div class="grow"><div class="muted" style="font-size:11px">Dibuat oleh</div><b>' + esc(name) + '</b>' +
-    (c.username ? '<div class="muted" style="font-size:12px">@' + esc(c.username) + '</div>' : '') + '</div><div class="lvl">Lvl. ' + (c.level || 1) + '</div></div>' +
-    '<div class="btns"><a class="btn" href="aoto://p/' + code + '">Buka di Aoto</a>' +
-    (DOWNLOAD_URL ? '<a class="btn alt" href="' + esc(DOWNLOAD_URL) + '">Unduh aplikasi</a>' : '') + '</div>' +
-    '<ol>' + songs.map((s, i) => '<li><span class="n">' + (i + 1) + '</span><img src="' + esc(safeImg(s.thumbnail)) + '" alt="">' +
-      '<div class="grow"><div class="t">' + esc(s.title) + '</div><div class="muted" style="font-size:12px">' + esc(artist(s.subtitle)) + '</div></div></li>').join("") + '</ol>';
-  // Coba buka aplikasi otomatis di HP (diabaikan kalau tidak terpasang).
-  if (/Android/i.test(navigator.userAgent)) setTimeout(() => { location.href = "aoto://p/" + code; }, 400);
-}
-load();
-</script>
+<div style="display:flex;gap:18px;flex-wrap:wrap">
+<a href="#about" style="color:#8da9cc;text-decoration:none;font-size:12px">Tentang</a>
+<a href="#features" style="color:#8da9cc;text-decoration:none;font-size:12px">Fitur</a>
+<a href="#install" style="color:#8da9cc;text-decoration:none;font-size:12px">Instalasi</a>
+<a href="https://whatsapp.com/channel/0029VbA2PBf7dmeakiPKgK1k" style="color:#8da9cc;text-decoration:none;font-size:12px">WhatsApp</a>
+</div>
+
+<div style="width:100%;border-top:1px solid #ffffff14;padding-top:16px;color:#6682a7;font-size:11px;text-align:center">
+© 2026 Aoto. Semua hak cipta dilindungi.
+</div>
+
+</div>
+</footer>
+
+</div>
+</div>
 </body>
 </html>
