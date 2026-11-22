@@ -50,6 +50,11 @@ jobs:
       - name: Beri nama tetap pada APK
         run: cp app/build/outputs/apk/release/app-release.apk Aoto.apk
 
+      - name: Cetak sidik jari SHA-256 (untuk web/.well-known/assetlinks.json)
+        run: |
+          keytool -printcert -jarfile Aoto.apk | grep -i "SHA256:" || true
+          echo "::notice title=SHA-256 penandatangan::$(keytool -printcert -jarfile Aoto.apk | grep -i 'SHA256:' | head -1)"
+
       - name: Tentukan nama tag
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
