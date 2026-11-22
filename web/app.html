@@ -88,8 +88,9 @@ function renderProfile(d) {
   const badges = (d.badges || []).slice(0, 5).map(b => '<span class="badge">' + esc(b) + '</span>').join("");
   const status = (d.status || "").trim();
   const joined = d.joined ? new Date(d.joined).toLocaleDateString("id-ID", {month: "long", year: "numeric"}) : "";
+  const setBanner = () => { const el = document.getElementById("pbn"); if (el && bn) el.style.backgroundImage = 'url("' + encodeURI(bn).replace(/['"()]/g, encodeURIComponent) + '")'; };
   app.innerHTML =
-    '<div class="pbanner"' + (bn ? ' style="background-image:url(\'' + esc(bn) + '\')"' : '') + '></div>' +
+    '<div class="pbanner" id="pbn"></div>' +
     '<div class="pav">' + av + '<div style="padding-bottom:6px;min-width:0"><h1 style="margin:0">' + esc(name) + '</h1><div class="muted">@' + esc(d.username) + '</div></div></div>' +
     (status ? '<span class="pill">' + esc(status) + '</span>' : '') +
     (joined ? '<span class="pill">Bergabung ' + esc(joined) + '</span>' : '') +
@@ -100,6 +101,7 @@ function renderProfile(d) {
     (top.length ? '<div class="sect">Paling sering didengar <span class="muted" style="font-weight:400">· 90 hari</span></div><ol>' + top.map((s, i) =>
       '<li><span class="n" style="color:var(--ac);font-weight:800">' + (i + 1) + '</span><img src="' + esc(safeImg(s.cover)) + '" alt="">' +
       '<div class="grow"><div class="t">' + esc(s.title) + '</div><div class="muted" style="font-size:12px">' + esc(artist(s.artist)) + '</div></div></li>').join("") + '</ol>' : '');
+  setBanner();
 }
 
 async function load() {
