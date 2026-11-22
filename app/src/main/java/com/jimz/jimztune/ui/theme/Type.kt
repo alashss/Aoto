@@ -52,7 +52,8 @@ object AppFont {
         private set
 
     fun init(context: android.content.Context) {
-        id = context.getSharedPreferences("jimztune_settings", android.content.Context.MODE_PRIVATE).getString("font", "default") ?: "default"
+        // Pilihan font sudah dihapus dari Setelan: selalu pakai font bawaan (pilihan lama diabaikan).
+        id = "default"
     }
 
     fun set(context: android.content.Context, value: String) {

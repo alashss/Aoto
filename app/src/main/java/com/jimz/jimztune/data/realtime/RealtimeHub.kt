@@ -3,6 +3,7 @@ package com.jimz.jimztune.data.realtime
 import com.jimz.jimztune.AppConfig
 import com.jimz.jimztune.AppGraph
 import com.jimz.jimztune.data.cloud.CloudApi
+import com.jimz.jimztune.data.owner.OwnerApi
 import com.jimz.jimztune.util.Notifier
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -60,6 +61,8 @@ class RealtimeHub {
         pollJob = scope.launch {
             while (isActive && wanted) {
                 delay(POLL_MS)
+                // Cadangan notifikasi donasi: kalau soket realtime diam, donasi baru tetap ketahuan dalam ±15 detik.
+                try { pollDonations() } catch (_: Exception) {}
                 if (AppGraph.appVisible) {
                     withContext(Dispatchers.Main) { AppGraph.remote.refresh(force = true) }
                 }
@@ -202,6 +205,22 @@ class RealtimeHub {
             heartbeat?.cancel()
             closed.complete(joined)
         }
+    }
+
+    private suspend fun pollDonations() {
+        if (!AppGraph.account.isOwner || AppGraph.auth.session == null) return
+        val list = OwnerApi.donations().value ?: return
+        val maxId = list.maxOfOrNull { it.id } ?: return
+        val prefs = AppGraph.appContext.getSharedPreferences("jimztune_donasi", android.content.Context.MODE_PRIVATE)
+        val last = prefs.getLong("last_id", -1L)
+        if (last < 0L) { // pertama kali: jadikan patokan, jangan membanjiri notifikasi donasi lama
+            prefs.edit().putLong("last_id", maxId).apply()
+            return
+        }
+        list.filter { it.id > last }.sortedBy { it.id }.forEach { d ->
+            if (notified.add("don:${d.id}")) Notifier.donation(AppGraph.appContext, d.id.toString(), d.name, d.amount, d.note)
+        }
+        if (maxId > last) prefs.edit().putLong("last_id", maxId).apply()
     }
 
     private fun onDonation(rec: JSONObject?) {

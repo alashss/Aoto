@@ -185,6 +185,40 @@ fun SettingsScreen(
                         },
                         onClick = { AppGraph.cloud.syncManually() }
                     )
+
+                var pubOn by remember { mutableStateOf(false) }
+                var pubReady by remember { mutableStateOf(false) }
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    com.jimz.jimztune.data.profile.PublicProfile.isOn()?.let { pubOn = it; pubReady = true }
+                }
+                val togglePub: (Boolean) -> Unit = { want ->
+                    scope.launch {
+                        val r = com.jimz.jimztune.data.profile.PublicProfile.set(want)
+                        if (r == null) Toast.makeText(context, "Gagal mengubah. Coba lagi.", Toast.LENGTH_SHORT).show()
+                        else pubOn = r
+                    }
+                }
+                RowDivider()
+                SettingRow(
+                    icon = Icons.Rounded.Link,
+                    title = "Profil publik",
+                    subtitle = if (pubOn) "Aktif: link profilmu bisa dibuka tanpa aplikasi" else "Mati: tampilkan level, total dengar, dan 5 lagu teratas lewat link",
+                    onClick = { if (pubReady) togglePub(!pubOn) },
+                    trailing = { Switch(checked = pubOn, enabled = pubReady, onCheckedChange = { togglePub(it) }) }
+                )
+                if (pubOn) {
+                    val link = com.jimz.jimztune.data.profile.PublicProfile.link()
+                    RowDivider()
+                    SettingRow(
+                        icon = Icons.Rounded.Link,
+                        title = "Bagikan link profil",
+                        subtitle = link ?: "Alamat web belum diatur di build ini",
+                        onClick = {
+                            if (link != null) context.shareText("Profil Aoto", link)
+                            else Toast.makeText(context, "SHARE_BASE_URL belum diisi", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
                     // Hanya muncul untuk akun yang didaftarkan sebagai owner di server.
                     if (AppGraph.account.isOwner) {
                         RowDivider()
@@ -310,7 +344,6 @@ fun SettingsScreen(
         // ---- Personalisasi ----
         Section("Personalisasi")
         var hiRefresh by remember { mutableStateOf(com.jimz.jimztune.util.PrivacyPrefs.highRefresh(context)) }
-        var iconId by remember { mutableStateOf(com.jimz.jimztune.util.AppIcons.current(context)) }
         GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
             SettingRow(
                 icon = Icons.Rounded.Bolt,
@@ -369,90 +402,6 @@ fun SettingsScreen(
                         })
                     }
                 )
-            }
-            RowDivider()
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Text("Ikon aplikasi", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                Text(
-                    "Aoto bisa menutup sebentar saat ikon diganti",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(10.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-                ) {
-                    com.jimz.jimztune.util.AppIcons.options.forEach { o ->
-                        val sel = o.id == iconId
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .clickable {
-                                    iconId = o.id
-                                    com.jimz.jimztune.util.AppIcons.set(context, o.id)
-                                }
-                                .padding(4.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(58.dp)
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(
-                                        androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(o.end), Color(o.start)))
-                                    )
-                                    .border(
-                                        if (sel) 2.5.dp else 1.dp,
-                                        if (sel) Color.White else Color.White.copy(alpha = 0.18f),
-                                        RoundedCornerShape(18.dp)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    painter = androidx.compose.ui.res.painterResource(com.jimz.jimztune.R.drawable.ic_launcher_foreground),
-                                    contentDescription = o.label,
-                                    modifier = Modifier
-                                        .size(58.dp)
-                                        .graphicsLayer {
-                                            scaleX = 1.45f
-                                            scaleY = 1.45f
-                                        }
-                                )
-                            }
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                o.label,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
-                                color = if (sel) Color.White else Color.White.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-                }
-            }
-            RowDivider()
-            var fontId by remember { mutableStateOf<String>(com.jimz.jimztune.ui.theme.AppFont.id) }
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Text("Font", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    com.jimz.jimztune.ui.theme.AppFont.options.forEach { o ->
-                        val sel = o.id == fontId
-                        Text(
-                            o.label,
-                            fontFamily = o.family,
-                            color = if (sel) Color.White else Color.White.copy(alpha = 0.6f),
-                            modifier = Modifier
-                                .background(Color.White.copy(alpha = if (sel) 0.22f else 0.08f), RoundedCornerShape(50))
-                                .clickable {
-                                    fontId = o.id
-                                    com.jimz.jimztune.ui.theme.AppFont.set(context, o.id)
-                                }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        )
-                    }
-                }
             }
         }
 
@@ -615,41 +564,6 @@ fun SettingsScreen(
                     })
                 }
             )
-            if (com.jimz.jimztune.data.cloud.CloudApi.configured && AppGraph.auth.isLoggedIn) {
-                var pubOn by remember { mutableStateOf(false) }
-                var pubReady by remember { mutableStateOf(false) }
-                androidx.compose.runtime.LaunchedEffect(Unit) {
-                    com.jimz.jimztune.data.profile.PublicProfile.isOn()?.let { pubOn = it; pubReady = true }
-                }
-                val togglePub: (Boolean) -> Unit = { want ->
-                    scope.launch {
-                        val r = com.jimz.jimztune.data.profile.PublicProfile.set(want)
-                        if (r == null) Toast.makeText(context, "Gagal mengubah. Coba lagi.", Toast.LENGTH_SHORT).show()
-                        else pubOn = r
-                    }
-                }
-                RowDivider()
-                SettingRow(
-                    icon = Icons.Rounded.Link,
-                    title = "Halaman profil publik",
-                    subtitle = "Siapa pun yang punya link bisa melihat level, total dengar, dan 5 lagu teratasmu",
-                    onClick = { if (pubReady) togglePub(!pubOn) },
-                    trailing = { Switch(checked = pubOn, enabled = pubReady, onCheckedChange = { togglePub(it) }) }
-                )
-                if (pubOn) {
-                    val link = com.jimz.jimztune.data.profile.PublicProfile.link()
-                    RowDivider()
-                    SettingRow(
-                        icon = Icons.Rounded.Link,
-                        title = "Bagikan link profil",
-                        subtitle = link ?: "Alamat web belum diatur di build ini",
-                        onClick = {
-                            if (link != null) context.shareText("Profil Aoto", link)
-                            else Toast.makeText(context, "SHARE_BASE_URL belum diisi", Toast.LENGTH_SHORT).show()
-                        }
-                    )
-                }
-            }
             RowDivider()
             SettingRow(
                 icon = Icons.Rounded.Link,

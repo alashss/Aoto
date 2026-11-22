@@ -1,5 +1,16 @@
 # Catatan perubahan
 
+## 2.9.2
+
+- **Bagikan lagu & playlist diaktifkan kembali.** Tautan `aoto://p/KODE` dan `https://domainmu/p/KODE` kini benar-benar membuka Aoto (sebelumnya manifest tidak punya filter tautan, jadi tombol "Buka di Aoto" tidak berfungsi).
+- Halaman web memberi pesan jelas kalau `CLOUD_URL` / `CLOUD_KEY` belum diisi di Vercel.
+
+## 2.9.1
+
+- **Notifikasi donasi** sekarang punya jalur cadangan: selain realtime, owner memeriksa donasi baru tiap ±15 detik selama Aoto berjalan.
+- **Profil publik** dipindah ke kartu Akun di Setelan (langsung di bawah "Sinkronkan sekarang").
+- **Setelan dirapikan**: pilihan Ikon aplikasi dan Font dihapus. Font kembali ke bawaan.
+
 ## 2.9.0
 
 - **Donasi masuk otomatis (owner)**: webhook Trakteer, Saweria, atau umum mencatat donasi ke server, dan HP owner langsung menerima notifikasi "Donasi masuk" lewat koneksi realtime. Donasi ganda dicegah, dan pesan berisi `@username` otomatis menautkan donasi ke akun Aoto itu.

@@ -20,11 +20,11 @@ object AppConfig {
     val SOURCE_URL: String get() = BuildConfig.SOURCE_URL
 
     /**
-     * Saklar tunggal fitur bagikan lagu & playlist (tautan, menu, dan pembuka tautan). Dimatikan sementara:
-     * tombolnya disembunyikan dan tautan bagikan yang masuk diabaikan. Ubah ke true untuk menyalakan kembali.
+     * Saklar tunggal fitur bagikan lagu & playlist (tautan, menu, dan pembuka tautan). Aktif. Ubah ke false untuk mematikan:
+     * tombolnya disembunyikan dan tautan bagikan yang masuk diabaikan.
      * (Bagikan lirik / rekap / streak sebagai gambar tidak termasuk dan tetap aktif.)
      */
-    const val SHARE_ENABLED: Boolean = false
+    const val SHARE_ENABLED: Boolean = true
     /** Alamat halaman web bagikan (opsional). Kosong = tautan jimztune://p/KODE. */
     val SHARE_BASE_URL: String get() = BuildConfig.SHARE_BASE_URL
 }

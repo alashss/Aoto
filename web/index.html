@@ -84,6 +84,8 @@ function renderProfile(d) {
 }
 
 async function load() {
+  if (CLOUD_URL.indexOf("GANTI_") === 0 || CLOUD_KEY.indexOf("GANTI_") === 0)
+    return fail("Server belum diatur. Isi CLOUD_URL dan CLOUD_KEY di Environment Variables Vercel, lalu Redeploy.");
   if (uname) return loadProfile();
   if (!/^[A-Za-z0-9]{4,16}$/.test(code)) return fail("Tautan tidak valid.");
   try {

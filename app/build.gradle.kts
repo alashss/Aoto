@@ -32,8 +32,8 @@ android {
         applicationId = "com.jimz.jimztune"
         minSdk = 26
         targetSdk = 35
-        versionCode = 33
-        versionName = "2.9.0"
+        versionCode = 35
+        versionName = "2.9.2"
 
         buildConfigField("String", "CLOUD_URL", buildSetting("CLOUD_URL", "GANTI_CLOUD_URL").asBuildConfigString())
         buildConfigField("String", "CLOUD_KEY", buildSetting("CLOUD_KEY", "GANTI_CLOUD_KEY").asBuildConfigString())

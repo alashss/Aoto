@@ -31,6 +31,21 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="jimztune" android:host="auth" />
             </intent-filter>
+            <!-- Tautan bagikan: aoto://p/KODE, jimztune://p/KODE -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="aoto" android:host="p" />
+                <data android:scheme="jimztune" android:host="p" />
+            </intent-filter>
+            <!-- Tautan web bagikan: https://domainmu/p/KODE (domain dari SHARE_BASE_URL saat build) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="${shareHost}" android:pathPrefix="/p/" />
+            </intent-filter>
         </activity>
 
         <activity-alias
