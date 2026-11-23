@@ -92,7 +92,7 @@ internal fun CosmeticsAdminPage(onBack: () -> Unit) {
                 Column {
                     OwnerField(lvl, { lvl = it.filter(Char::isDigit).take(3) }, "Level otomatis (kosong = hanya owner)")
                     Spacer(Modifier.height(8.dp))
-                    OwnerSwitchRow("Aktif", "Nonaktif = tidak bisa dipakai siapa pun", active) { active = !active }
+                    OwnerSwitchRow("Aktif", "Nonaktif = tidak bisa dipakai siapa pun", active, onChange = { active = !active })
                 }
             },
             confirmButton = {
