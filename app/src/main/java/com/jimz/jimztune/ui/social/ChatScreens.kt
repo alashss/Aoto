@@ -132,7 +132,7 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
     }
     LaunchedEffect(msgs?.size) {
         val n = msgs?.size ?: 0
-        if (n > 0) listState.animateScrollToItem(n - 1)
+        if (n > 0) listState.animateScrollToItem(n)
     }
 
     SocialScaffold(
@@ -151,6 +151,17 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
                 CosmeticName(name, eq, fontSize = 18.sp)
                 Text("Belum ada pesan. Sapa duluan 👋", color = Color.White.copy(alpha = 0.55f), textAlign = TextAlign.Center, fontSize = 13.sp)
             } else LazyColumn(state = listState, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+                item {
+                    Column(Modifier.fillMaxWidth().padding(vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        AvatarWithDot(avatar, name, 76.dp, online, userId = userId)
+                        Spacer(Modifier.height(10.dp))
+                        CosmeticName(name, eq, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Lihat profil", color = LocalCoverTheme.current.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(top = 6.dp).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.08f)).clickable { SocialNav.openProfile(userId) }.padding(horizontal = 16.dp, vertical = 7.dp)
+                        )
+                    }
+                }
                 items(list.size, key = { list[it].id }) { i ->
                     val m = list[i]
                     val prev = list.getOrNull(i - 1)
@@ -272,9 +283,14 @@ fun GlobalChatScreen(onBack: () -> Unit) {
                     s == null -> Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) { Text(failed ?: "", color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center) }
                     !s.info.enabled -> Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) { Text("Chat global sedang dimatikan oleh owner.", color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center) }
                     s.messages.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text("Belum ada pesan. Jadi yang pertama! 🎉", color = Color.White.copy(alpha = 0.55f)) }
-                    else -> LazyColumn(state = listState, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(s.messages, key = { it.id }) { m ->
-                            ChatCard(m, m.userId == me, accent, onLong = { actionFor = m }, onTap = { SocialNav.openProfile(m.userId) })
+                    else -> LazyColumn(state = listState, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        items(s.messages.size, key = { s.messages[it].id }) { i ->
+                            val m = s.messages[i]
+                            val prev = s.messages.getOrNull(i - 1)
+                            val next = s.messages.getOrNull(i + 1)
+                            val first = prev == null || prev.userId != m.userId
+                            val last = next == null || next.userId != m.userId
+                            ChatBubbleRow(m, m.userId == me, first, last, accent, Modifier.padding(top = if (first && i > 0) 8.dp else 0.dp), onLong = { actionFor = m }, onTap = { SocialNav.openProfile(m.userId) })
                         }
                     }
                 }
@@ -321,32 +337,37 @@ private fun SheetAction(icon: androidx.compose.ui.graphics.vector.ImageVector, l
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ChatCard(m: ChatMessage, mine: Boolean, accent: Color, onLong: () -> Unit, onTap: () -> Unit) {
+private fun ChatBubbleRow(m: ChatMessage, mine: Boolean, first: Boolean, last: Boolean, accent: Color, modifier: Modifier, onLong: () -> Unit, onTap: () -> Unit) {
     LaunchedEffect(m.userId) { CosmeticsStore.request(m.userId) }
     val eq = CosmeticsStore.map[m.userId]
-    val hasPlate = eq?.plate != null
-    PlateBox(eq?.plate, Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth()
-                .then(if (!hasPlate) Modifier.clip(RoundedCornerShape(16.dp)).background(if (mine) accent.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.07f)) else Modifier)
-                .combinedClickable(onClick = onTap, onLongClick = onLong)
-                .padding(horizontal = 10.dp, vertical = 9.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            AvatarWithDot(m.avatar, m.name, 38.dp, null, userId = m.userId)
-            Spacer(Modifier.width(if (eq?.frame != null) 16.dp else 10.dp))
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CosmeticName(m.name + if (mine) " (kamu)" else "", eq, color = if (m.owner) accent else Color.White.copy(alpha = 0.92f), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
-                    if (m.owner) Text(
-                        " OWNER ", color = Color.Black, fontSize = 8.sp, fontWeight = FontWeight.Black,
-                        modifier = Modifier.padding(start = 6.dp).clip(RoundedCornerShape(50)).background(accent).padding(horizontal = 5.dp, vertical = 1.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(hourText(m.createdAt), color = Color.White.copy(alpha = 0.45f), fontSize = 10.sp)
-                }
-                Text(m.body, color = Color.White, fontSize = 14.sp, lineHeight = 19.sp)
+    val r = 20.dp
+    val t = 5.dp
+    val shape = if (mine) RoundedCornerShape(topStart = r, topEnd = if (first) r else t, bottomStart = r, bottomEnd = if (last) r else t)
+    else RoundedCornerShape(topStart = if (first) r else t, topEnd = r, bottomStart = if (last) r else t, bottomEnd = r)
+    val mineBrush = Brush.linearGradient(listOf(lerp(accent, Color.Black, 0.5f), lerp(lerp(accent, Color(0xFF6A3DFF), 0.35f), Color.Black, 0.35f)))
+    Row(modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start, verticalAlignment = Alignment.Bottom) {
+        if (!mine) {
+            Box(Modifier.width(if (eq?.frame != null) 50.dp else 40.dp), contentAlignment = Alignment.BottomStart) {
+                if (last) Box(Modifier.clickable(onClick = onTap)) { AvatarWithDot(m.avatar, m.name, 34.dp, null, userId = m.userId) }
             }
+        }
+        Column(horizontalAlignment = if (mine) Alignment.End else Alignment.Start, modifier = Modifier.weight(1f, fill = false)) {
+            if (!mine && first) Row(Modifier.padding(start = 6.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                CosmeticName(m.name, eq, color = if (m.owner) accent else Color.White.copy(alpha = 0.8f), fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
+                if (m.owner) Text(
+                    "OWNER", color = Color.Black, fontSize = 8.sp, fontWeight = FontWeight.Black,
+                    modifier = Modifier.padding(start = 6.dp).clip(RoundedCornerShape(50)).background(accent).padding(horizontal = 5.dp, vertical = 1.dp)
+                )
+            }
+            PlateBox(if (mine) null else eq?.plate, Modifier.widthIn(max = 280.dp).combinedClickable(onClick = onTap, onLongClick = onLong), shape) {
+                Text(
+                    m.body, color = Color.White, fontSize = 15.sp, lineHeight = 20.sp,
+                    modifier = Modifier
+                        .then(if (mine) Modifier.clip(shape).background(mineBrush) else if (eq?.plate == null) Modifier.clip(shape).background(Color.White.copy(alpha = 0.11f)) else Modifier)
+                        .padding(horizontal = 14.dp, vertical = 9.dp)
+                )
+            }
+            if (last) Text(hourText(m.createdAt), color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
         }
     }
 }

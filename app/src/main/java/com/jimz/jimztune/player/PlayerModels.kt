@@ -28,6 +28,7 @@ private const val EXTRA_ARTIST_ID = "artistId"
 private const val EXTRA_ALBUM_ID = "albumId"
 
 fun SearchItem.toMediaItem(): MediaItem = MediaItem.Builder()
+    .apply { com.jimz.jimztune.data.stream.StreamResolver.hint(id, title, subtitle.substringBefore(" • ")) }
     .setMediaId(id)
     .setUri("jimztune://song/$id")
     .setCustomCacheKey(id)

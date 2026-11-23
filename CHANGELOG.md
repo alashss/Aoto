@@ -1,5 +1,11 @@
 # Catatan perubahan
 
+## 2.13.1
+- Catatan gaya Instagram: tombol lagu (cari lagu), pilih satu baris lirik, editor warna terpisah (Terapkan/Hapus), ketuk lagu di catatan teman untuk memutar.
+- Pemilihan pengguna di panel owner (Kosmetik) berupa daftar yang bisa dicentang.
+- Lagu yang butuh login YouTube otomatis dicarikan unggahan lain.
+- Chat global dan Pesan berdesain gelembung berkelompok; daftar teman dipisah Online/Offline.
+
 ## 2.13.0
 - Dihapus: lirik buatan AI.
 - Pesan, Teman, Chat global didesain ulang bergaya Instagram (catatan berwarna + lagu, balas lewat lembar bawah, gelembung gradasi, tab meluncur).

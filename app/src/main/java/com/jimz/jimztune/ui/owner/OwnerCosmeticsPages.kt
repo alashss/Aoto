@@ -9,6 +9,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Checkbox
+import androidx.compose.runtime.mutableStateListOf
+import com.jimz.jimztune.data.owner.AdminUser
+import com.jimz.jimztune.data.owner.OwnerApi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -107,36 +114,58 @@ internal fun CosmeticsAdminPage(onBack: () -> Unit) {
 
     giveFor?.let { item ->
         var q by remember { mutableStateOf("") }
-        var res by remember { mutableStateOf<List<SearchRow>>(emptyList()) }
+        var users by remember { mutableStateOf<List<AdminUser>?>(null) }
+        var err by remember { mutableStateOf<String?>(null) }
+        val picked = remember { mutableStateListOf<String>() }
+        var holders by remember(item.id) { mutableStateOf<Set<String>>(emptySet()) }
+        LaunchedEffect(item.id) { holders = CosmeticsApi.holders(item.id).value.orEmpty().map { it.userId }.toSet() }
         LaunchedEffect(q) {
-            if (q.trim().length < 2) { res = emptyList(); return@LaunchedEffect }
-            delay(350)
-            res = SocialApi.search(q.trim()).value ?: emptyList()
+            delay(if (users == null) 0 else 300)
+            val r = OwnerApi.users(q)
+            if (r.ok) { users = r.value.orEmpty(); err = null } else err = r.error ?: "Gagal memuat pengguna"
         }
         AlertDialog(
             onDismissRequest = { giveFor = null },
             title = { Text("Beri \"${item.name}\"") },
             text = {
                 Column {
-                    OwnerField(q, { q = it.take(40) }, "Cari nama atau @username")
+                    OwnerField(q, { q = it.take(40) }, "Cari pengguna")
                     Spacer(Modifier.height(8.dp))
-                    res.take(8).forEach { u ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(u.name, color = Color.White, fontSize = 14.sp)
-                                u.username?.let { Text("@$it", color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp) }
-                            }
-                            PillTextButton("Beri", {
-                                scope.launch {
-                                    toast(context, CosmeticsApi.grant(u.userId, item.id) ?: "Diberikan ke ${u.name}")
-                                    loader.reload()
+                    val l = users
+                    if (l == null) Text(err ?: "Memuat…", fontSize = 13.sp)
+                    else LazyColumn(Modifier.heightIn(max = 340.dp)) {
+                        items(l, key = { it.id }) { u ->
+                            val has = u.id in holders
+                            val on = u.id in picked
+                            Row(
+                                Modifier.fillMaxWidth().clickable(enabled = !has) { if (on) picked.remove(u.id) else picked.add(u.id) }.padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(checked = on || has, onCheckedChange = null, enabled = !has)
+                                Spacer(Modifier.width(8.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(u.displayName.ifBlank { u.email }, fontSize = 14.sp, maxLines = 1)
+                                    Text(listOfNotNull(u.username?.let { "@$it" }, u.email).joinToString(" · "), fontSize = 11.sp, maxLines = 1, color = Color.Gray)
                                 }
-                            })
+                                if (has) Text("Sudah punya", fontSize = 11.sp, color = Color.Gray)
+                            }
                         }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { giveFor = null }) { Text("Selesai") } }
+            confirmButton = {
+                TextButton(enabled = picked.isNotEmpty(), onClick = {
+                    val ids = picked.toList()
+                    giveFor = null
+                    scope.launch {
+                        var fail: String? = null
+                        ids.forEach { id -> CosmeticsApi.grant(id, item.id)?.let { fail = it } }
+                        toast(context, fail ?: "Diberikan ke ${ids.size} pengguna")
+                        loader.reload()
+                    }
+                }) { Text("Beri (${picked.size})") }
+            },
+            dismissButton = { TextButton(onClick = { giveFor = null }) { Text("Batal") } }
         )
     }
 

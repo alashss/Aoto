@@ -140,7 +140,14 @@ fun BottomSheetLite(visible: Boolean, onDismiss: () -> Unit, content: @Composabl
 }
 
 /** Warna gelembung catatan yang bisa dipilih. */
-val NoteColors = listOf("#A78BFF", "#7B3FFF", "#4300C2", "#FF8FF5", "#D100C4", "#8A0083", "#4FC3F7", "#3DDC84", "#FFB74D", "#FF5C7A")
+val NoteColorPages = listOf(
+    listOf("#A78BFF", "#7B3FFF", "#4300C2", "#FF8FF5", "#D100C4", "#8A0083"),
+    listOf("#FF7A90", "#FF3D5E", "#B3123A", "#FFB199", "#FF7043", "#C2410C"),
+    listOf("#8EDBFF", "#4FC3F7", "#1E88E5", "#2DD4BF", "#0F766E", "#1E3A8A"),
+    listOf("#B9F6CA", "#3DDC84", "#15803D", "#FFE082", "#FFB300", "#A16207"),
+    listOf("#F5F5F5", "#B0BEC5", "#607D8B", "#37474F", "#1F2937", "#000000")
+)
+val NoteColors = NoteColorPages.flatten()
 
 /** "baru saja", "5 menit lalu" dari waktu ISO server. */
 fun agoText(iso: String?): String = TimeUtil.parse(iso)?.let { TimeUtil.ago(it) } ?: ""

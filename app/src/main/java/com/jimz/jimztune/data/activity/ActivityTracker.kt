@@ -54,7 +54,8 @@ class ActivityTracker {
     }
 
     // Kehadiran untuk teman: lagu yang sedang didengar + status online. Best-effort, gagal diabaikan.
-    private var curId: String? = null
+    var curId: String? = null
+        private set
     var curTitle: String? = null
         private set
     var curArtist: String? = null

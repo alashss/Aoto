@@ -167,7 +167,45 @@ object StreamResolver {
                 return winner.second
             }
         }
+        // Video butuh login / dibatasi: cari unggahan lain dari lagu yang sama (mis. versi lirik atau Topic).
+        if (errors.any { it.contains("LOGIN_REQUIRED", true) || it.contains("sign in", true) }) {
+            alternate(videoId)?.let { return it }
+        }
         throw IOException("Semua sumber audio gagal: " + errors.joinToString("; "))
+    }
+
+    private val hints = ConcurrentHashMap<String, Pair<String, String>>()
+    fun hint(id: String, title: String, artist: String) { if (id.isNotBlank()) hints[id] = title to artist }
+
+    private fun words(s: String) = s.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).filter { it.length > 2 }.toSet()
+
+    private suspend fun alternate(videoId: String): String? {
+        val (title, artist) = hints[videoId] ?: return null
+        PlaybackDiagnostics.add("Video butuh login, mencari unggahan lain…")
+        val items = try {
+            AppGraph.searchRepository.search("$title $artist", com.jimz.jimztune.data.model.SearchType.SONG, quick = true).items
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Throwable) {
+            return null
+        }
+        val want = words(title)
+        val tried = mutableListOf<String>()
+        for (it in items) {
+            if (it.id == videoId || tried.size >= 3) continue
+            if (want.isNotEmpty() && words(it.title).intersect(want).isEmpty()) continue
+            tried.add(it.id)
+            val errs = mutableListOf<String>()
+            val win = race(groups.first().first, it.id, errs, groups.first().second) ?: continue
+            val now = System.currentTimeMillis()
+            val expire = expireParam.find(win.second)?.groupValues?.get(1)?.toLongOrNull()?.times(1000)
+            val until = if (expire != null) minOf(expire - 10 * 60_000L, now + TTL_MS) else now + TTL_MS
+            cache[videoId] = Cached(win.second, until)
+            lastProvider[videoId] = win.first
+            PlaybackDiagnostics.add("Memakai unggahan lain: ${it.title}")
+            return win.second
+        }
+        return null
     }
 
     private suspend fun race(
