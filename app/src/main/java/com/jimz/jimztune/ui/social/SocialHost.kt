@@ -42,6 +42,7 @@ fun SocialHost() {
                 SocialPage.Friends -> FriendsScreen(back)
                 SocialPage.GlobalChat -> GlobalChatScreen(back)
                 SocialPage.Privacy -> PrivacyScreen(back)
+                SocialPage.Cosmetics -> CosmeticsScreen(back)
                 is SocialPage.Dm -> DmScreen(page.userId, page.name, page.avatar, back)
             }
         }

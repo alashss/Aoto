@@ -18,6 +18,7 @@ sealed interface SocialPage {
     data object Friends : SocialPage
     data object GlobalChat : SocialPage
     data object Privacy : SocialPage
+    data object Cosmetics : SocialPage
     data class Dm(val userId: String, val name: String, val avatar: String?) : SocialPage
 }
 

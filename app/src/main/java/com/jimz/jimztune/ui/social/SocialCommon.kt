@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -80,24 +83,64 @@ fun SocialScaffold(
     }
 }
 
-/** Foto profil dengan titik hijau kalau online. [online] null atau false = tanpa titik. */
+/** Foto profil dengan titik hijau kalau online dan bingkai kosmetik (kalau [userId] diisi). */
 @Composable
-fun AvatarWithDot(url: String?, name: String, size: Dp, online: Boolean?, ring: Color? = null) {
-    Box(modifier = Modifier.size(size)) {
-        RankAvatar(url, name, size, ring = ring)
-        if (online == true) {
-            val dot = size * 0.26f
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(dot)
-                    .clip(CircleShape)
-                    .background(OnlineGreen)
-                    .border(2.dp, Color(0xFF12163A), CircleShape)
-            )
+fun AvatarWithDot(url: String?, name: String, size: Dp, online: Boolean?, ring: Color? = null, userId: String? = null) {
+    FramedAvatar(size, userId) {
+        Box(modifier = Modifier.size(size)) {
+            RankAvatar(url, name, size, ring = ring)
+            if (online == true) {
+                val dot = size * 0.26f
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(dot)
+                        .clip(CircleShape)
+                        .background(OnlineGreen)
+                        .border(2.dp, Color(0xFF12163A), CircleShape)
+                )
+            }
         }
     }
 }
+
+/** Lembar dari bawah (gaya Instagram): latar gelap meredup, tarikan kecil di atas, isi di dalam. */
+@Composable
+fun BottomSheetLite(visible: Boolean, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    androidx.compose.animation.AnimatedVisibility(
+        visible = visible,
+        enter = androidx.compose.animation.fadeIn(),
+        exit = androidx.compose.animation.fadeOut()
+    ) {
+        Box(
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f))
+                .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null, onClick = onDismiss)
+        )
+    }
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+        androidx.compose.animation.AnimatedVisibility(
+            visible = visible,
+            enter = androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(280)) { it } + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.slideOutVertically(androidx.compose.animation.core.tween(220)) { it } + androidx.compose.animation.fadeOut()
+        ) {
+            Column(
+                Modifier.fillMaxWidth()
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                    .background(Color(0xFF1B1F33))
+                    .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) {}
+                    .padding(horizontal = 16.dp).padding(top = 10.dp, bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(Modifier.width(40.dp).height(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
+                Spacer(Modifier.height(12.dp))
+                content()
+            }
+        }
+    }
+}
+
+/** Warna gelembung catatan yang bisa dipilih. */
+val NoteColors = listOf("#A78BFF", "#7B3FFF", "#4300C2", "#FF8FF5", "#D100C4", "#8A0083", "#4FC3F7", "#3DDC84", "#FFB74D", "#FF5C7A")
 
 /** "baru saja", "5 menit lalu" dari waktu ISO server. */
 fun agoText(iso: String?): String = TimeUtil.parse(iso)?.let { TimeUtil.ago(it) } ?: ""

@@ -44,7 +44,8 @@ data class UserProfile(
 data class FriendRow(
     val userId: String, val name: String, val username: String?, val avatar: String?,
     val online: Boolean?, val playing: NowPlayingInfo?, val note: String?,
-    val lastBody: String?, val lastAt: String?, val lastMine: Boolean, val unread: Int
+    val lastBody: String?, val lastAt: String?, val lastMine: Boolean, val unread: Int,
+    val noteColor: String? = null, val noteSong: String? = null
 )
 
 data class PersonRow(
@@ -170,7 +171,7 @@ object SocialApi {
                 online = if (it.isNull("online")) null else it.optBoolean("online"),
                 playing = nowOf(it.optJSONObject("playing")), note = it.s("note"),
                 lastBody = it.s("last_body"), lastAt = it.s("last_at"), lastMine = it.optBoolean("last_mine"),
-                unread = it.optInt("unread")
+                unread = it.optInt("unread"), noteColor = it.s("note_color"), noteSong = it.s("note_song")
             )
         }
     }
@@ -219,6 +220,11 @@ object SocialApi {
 
     /** Catatan singkat 24 jam (seperti catatan Instagram). Kosong = hapus. */
     suspend fun setNote(text: String): String? = rpcDo("set_note", JSONObject().put("p_body", text))
+
+    suspend fun setNoteV2(text: String, color: String?, song: String?): String? = rpcDo(
+        "set_note_v2",
+        JSONObject().put("p_body", text).put("p_color", color ?: JSONObject.NULL).put("p_song", song ?: JSONObject.NULL)
+    )
 
     suspend fun setPresence(songId: String?, title: String?, artist: String?, thumb: String?, playing: Boolean) {
         rpc(

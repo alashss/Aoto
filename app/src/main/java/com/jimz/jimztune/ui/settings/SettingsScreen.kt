@@ -536,9 +536,15 @@ fun SettingsScreen(
                 Section("Profil sosial")
                 GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
                     SettingRow(
-                        Icons.Rounded.Lock, "Privasi profil",
+                        Icons.Rounded.Lock, "Privasi & tampilan profil",
                         "Atur siapa yang bisa melihat profilmu, bagian yang disembunyikan, dan daftar blokir",
                         { com.jimz.jimztune.data.social.SocialNav.open(com.jimz.jimztune.data.social.SocialPage.Privacy) },
+                        trailing = { HubChevron() }
+                    )
+                    SettingRow(
+                        Icons.Rounded.Lock, "Kosmetik profil",
+                        "Bingkai foto, plat nama, dan efek profil",
+                        { com.jimz.jimztune.data.social.SocialNav.open(com.jimz.jimztune.data.social.SocialPage.Cosmetics) },
                         trailing = { HubChevron() }
                     )
                 }

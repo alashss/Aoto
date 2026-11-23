@@ -1,5 +1,12 @@
 # Catatan perubahan
 
+## 2.13.0
+- Dihapus: lirik buatan AI.
+- Pesan, Teman, Chat global didesain ulang bergaya Instagram (catatan berwarna + lagu, balas lewat lembar bawah, gelembung gradasi, tab meluncur).
+- Kosmetik profil: bingkai foto, plat nama, efek profil (termasuk set emas). Diberikan owner atau terbuka di level tertentu.
+- Navbar: tombol garis tiga beranimasi, menu bisa digeser seperti navbar bawah, navbar tidak turun saat tidak ada lagu.
+- Privasi profil didesain ulang; panel owner: Kosmetik dan Ringkasan sosial.
+
 ## 2.12.0
 - Gambar di halaman Cari dan daftar lagu selalu tampil: cadangan thumbnail otomatis + placeholder, bukan kotak kosong.
 - Playback: error IO berulang kini membuang cache lagu itu dan pindah ke NewPipe; percobaan ulang ditambah.

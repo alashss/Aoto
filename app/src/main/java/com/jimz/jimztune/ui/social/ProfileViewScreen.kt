@@ -145,6 +145,8 @@ fun ProfileViewScreen(userId: String, onBack: () -> Unit) {
 @Composable
 private fun ProfileBody(p: UserProfile, busy: Boolean, info: String?, onInfoShown: () -> Unit, onAction: (String) -> Unit) {
     val accent = parseHex(p.accentHex)
+    androidx.compose.runtime.LaunchedEffect(p.id) { com.jimz.jimztune.data.social.CosmeticsStore.request(p.id) }
+    val eq = com.jimz.jimztune.data.social.CosmeticsStore.map[p.id]
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 40.dp)) {
         // Banner + foto
         Box(modifier = Modifier.fillMaxWidth().height(190.dp)) {
@@ -157,17 +159,20 @@ private fun ProfileBody(p: UserProfile, busy: Boolean, info: String?, onInfoShow
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x99000000)))))
                 }
             }
-            Box(modifier = Modifier.align(Alignment.BottomStart).padding(start = 20.dp)) {
-                AvatarWithDot(p.avatar, p.name, 92.dp, p.online, ring = accent)
+            ProfileEffect(eq?.effect)
+            Box(modifier = Modifier.align(Alignment.BottomStart).padding(start = 28.dp, bottom = 10.dp)) {
+                AvatarWithDot(p.avatar, p.name, 88.dp, p.online, ring = accent, userId = p.id)
             }
         }
         Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(p.name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+            PlateBox(eq?.plate, Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = if (eq?.plate != null) 14.dp else 0.dp, vertical = if (eq?.plate != null) 12.dp else 0.dp)) {
+                CosmeticName(p.name, eq, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
                 if (p.isOwner) {
                     Spacer(Modifier.width(8.dp))
                     Icon(Icons.Rounded.Security, "Owner", tint = accent, modifier = Modifier.size(20.dp))
                 }
+            }
             }
             if (!p.username.isNullOrBlank()) Text("@" + p.username, color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
 

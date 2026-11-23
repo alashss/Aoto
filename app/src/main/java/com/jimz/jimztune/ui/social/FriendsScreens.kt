@@ -1,16 +1,22 @@
 package com.jimz.jimztune.ui.social
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -19,19 +25,17 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Forum
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,32 +46,73 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jimz.jimztune.AppGraph
+import com.jimz.jimztune.data.social.CosmeticsStore
 import com.jimz.jimztune.data.social.FriendRequests
 import com.jimz.jimztune.data.social.FriendRow
-import com.jimz.jimztune.data.social.PersonRow
 import com.jimz.jimztune.data.social.SearchRow
 import com.jimz.jimztune.data.social.SocialApi
 import com.jimz.jimztune.data.social.SocialNav
 import com.jimz.jimztune.data.social.SocialPage
-import com.jimz.jimztune.ui.auth.jimzFieldColors
 import com.jimz.jimztune.ui.components.GlassIconButton
-import com.jimz.jimztune.ui.components.PillTextButton
-import com.jimz.jimztune.ui.ranking.RankAvatar
 import com.jimz.jimztune.ui.theme.LocalCoverTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @Composable
-private fun EmptyHint(text: String) {
-    Box(Modifier.fillMaxWidth().padding(40.dp), Alignment.Center) {
+private fun EmptyHint(emoji: String, text: String) {
+    Column(Modifier.fillMaxWidth().padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(emoji, fontSize = 40.sp)
+        Spacer(Modifier.height(8.dp))
         Text(text, color = Color.White.copy(alpha = 0.55f), textAlign = TextAlign.Center, fontSize = 14.sp)
+    }
+}
+
+@Composable
+private fun SearchPill(value: String, onChange: (String) -> Unit, hint: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(50))
+            .background(Color.White.copy(alpha = 0.09f)).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Rounded.Search, null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Box(Modifier.weight(1f)) {
+            if (value.isEmpty()) Text(hint, color = Color.White.copy(alpha = 0.4f), fontSize = 15.sp)
+            BasicTextField(
+                value = value, onValueChange = { onChange(it.take(40)) }, singleLine = true,
+                textStyle = TextStyle(color = Color.White, fontSize = 15.sp), cursorBrush = SolidColor(Color.White),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+/** Tab dengan garis penanda yang meluncur. */
+@Composable
+private fun SlideTabs(labels: List<String>, selected: Int, accent: Color, onSelect: (Int) -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+        val w = maxWidth / labels.size
+        val x by animateFloatAsState(selected * w.value, spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMediumLow), label = "tabX")
+        Row {
+            labels.forEachIndexed { i, l ->
+                Box(Modifier.weight(1f).clickable { onSelect(i) }.padding(vertical = 12.dp), Alignment.Center) {
+                    Text(l, color = if (selected == i) Color.White else Color.White.copy(alpha = 0.5f), fontWeight = if (selected == i) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp)
+                }
+            }
+        }
+        Box(Modifier.align(Alignment.BottomStart).offset(x = x.dp).width(w).padding(horizontal = 18.dp).height(3.dp).clip(RoundedCornerShape(50)).background(accent))
     }
 }
 
@@ -94,38 +139,29 @@ fun FriendsScreen(onBack: () -> Unit) {
         delay(350)
         results = SocialApi.search(query.trim()).value ?: emptyList()
     }
+    LaunchedEffect(friends) { friends?.let { l -> l.forEach { CosmeticsStore.request(it.userId) } } }
 
     val incoming = reqs?.incoming.orEmpty()
-    SocialScaffold(title = "Teman", onBack = onBack) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf("Teman" to 0, ("Permintaan" + (if (incoming.isNotEmpty()) " (${incoming.size})" else "")) to 1, "Cari" to 2).forEach { (label, i) ->
-                Text(
-                    label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                    color = if (tab == i) Color.Black else Color.White,
-                    modifier = Modifier.clip(RoundedCornerShape(50))
-                        .background(if (tab == i) accent else Color.White.copy(alpha = 0.08f))
-                        .clickable { tab = i }.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-        }
-        if (msg != null) Text(msg ?: "", color = accent, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+    SocialScaffold(title = "Teman", subtitle = friends?.let { "${it.size} teman" }, onBack = onBack) {
+        SlideTabs(listOf("Teman", if (incoming.isNotEmpty()) "Permintaan (${incoming.size})" else "Permintaan", "Cari"), tab, accent) { tab = it }
+        if (msg != null) Text(msg ?: "", color = accent, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
         when (tab) {
             0 -> {
                 val list = friends
                 when {
                     list == null -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = Color.White) }
-                    list.isEmpty() -> EmptyHint("Belum ada teman.\nCari pengguna di tab Cari atau dari papan peringkat.")
-                    else -> LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)) {
-                        items(list, key = { it.userId }) { f ->
-                            PersonLine(
-                                f.name, f.username, f.avatar, f.online,
-                                sub = f.playing?.let { "🎵 ${it.title} · ${it.artist}" } ?: if (f.online == true) "Online" else null,
-                                onClick = { SocialNav.open(SocialPage.Profile(f.userId)) }
-                            ) {
-                                GlassIconButton(Icons.Rounded.Forum, "Pesan", onClick = { SocialNav.open(SocialPage.Dm(f.userId, f.name, f.avatar)) })
+                    list.isEmpty() -> EmptyHint("🫶", "Belum ada teman.\nCari pengguna di tab Cari atau dari papan peringkat.")
+                    else -> {
+                        val sorted = list.sortedWith(compareByDescending<FriendRow> { it.online == true }.thenBy { it.name.lowercase() })
+                        LazyColumn(contentPadding = PaddingValues(top = 6.dp, bottom = 24.dp)) {
+                            items(sorted, key = { it.userId }) { f ->
+                                PersonLine(
+                                    f.name, f.username, f.avatar, f.online,
+                                    sub = f.playing?.let { "🎵 ${it.title} · ${it.artist}" } ?: if (f.online == true) "Online" else f.username?.let { "@$it" },
+                                    userId = f.userId, onClick = { SocialNav.open(SocialPage.Profile(f.userId)) }
+                                ) {
+                                    ActionPill("Pesan", true) { SocialNav.open(SocialPage.Dm(f.userId, f.name, f.avatar)) }
+                                }
                             }
                         }
                     }
@@ -134,54 +170,63 @@ fun FriendsScreen(onBack: () -> Unit) {
             1 -> {
                 val r = reqs
                 if (r == null) Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = Color.White) }
-                else if (r.incoming.isEmpty() && r.outgoing.isEmpty()) EmptyHint("Tidak ada permintaan teman.")
-                else LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)) {
-                    if (r.incoming.isNotEmpty()) item { SectionLabel("Masuk") }
+                else if (r.incoming.isEmpty() && r.outgoing.isEmpty()) EmptyHint("📭", "Tidak ada permintaan teman.")
+                else LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+                    if (r.incoming.isNotEmpty()) item { SectionLabel("Permintaan masuk") }
                     items(r.incoming, key = { "i" + it.requestId }) { p ->
-                        PersonLine(p.name, p.username, p.avatar, null, null, onClick = { SocialNav.open(SocialPage.Profile(p.userId)) }) {
+                        PersonLine(p.name, p.username, p.avatar, null, null, userId = p.userId, onClick = { SocialNav.open(SocialPage.Profile(p.userId)) }) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                PillTextButton("Terima", { scope.launch { msg = SocialApi.respond(p.requestId, true); reload++ } })
-                                PillTextButton("Tolak", { scope.launch { msg = SocialApi.respond(p.requestId, false); reload++ } }, primary = false)
+                                ActionPill("Konfirmasi", true) { scope.launch { msg = SocialApi.respond(p.requestId, true); reload++ } }
+                                ActionPill("Hapus", false) { scope.launch { msg = SocialApi.respond(p.requestId, false); reload++ } }
                             }
                         }
                     }
                     if (r.outgoing.isNotEmpty()) item { SectionLabel("Terkirim") }
                     items(r.outgoing, key = { "o" + it.requestId }) { p ->
-                        PersonLine(p.name, p.username, p.avatar, null, "Menunggu jawaban", onClick = { SocialNav.open(SocialPage.Profile(p.userId)) }) {
-                            PillTextButton("Batal", { scope.launch { msg = SocialApi.removeFriend(p.userId); reload++ } }, primary = false)
+                        PersonLine(p.name, p.username, p.avatar, null, "Menunggu jawaban", userId = p.userId, onClick = { SocialNav.open(SocialPage.Profile(p.userId)) }) {
+                            ActionPill("Batalkan", false) { scope.launch { msg = SocialApi.removeFriend(p.userId); reload++ } }
                         }
                     }
                 }
             }
             else -> {
-                OutlinedTextField(
-                    value = query, onValueChange = { query = it.take(40) },
-                    placeholder = { Text("Cari nama atau @username", color = Color.White.copy(alpha = 0.4f)) },
-                    leadingIcon = { Icon(Icons.Rounded.Search, null, tint = Color.White.copy(alpha = 0.6f)) },
-                    singleLine = true, shape = RoundedCornerShape(16.dp), colors = jimzFieldColors(accent),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                SearchPill(query, { query = it }, "Cari nama atau @username")
                 val res = results
-                if (res == null) EmptyHint("Ketik minimal 2 huruf.")
-                else if (res.isEmpty()) EmptyHint("Tidak ada pengguna yang cocok.")
-                else LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)) {
+                if (res == null) EmptyHint("🔎", "Ketik minimal 2 huruf.")
+                else if (res.isEmpty()) EmptyHint("🤷", "Tidak ada pengguna yang cocok.")
+                else LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
                     items(res, key = { it.userId }) { u ->
-                        PersonLine(u.name, u.username, u.avatar, null, when (u.relation) { "friend" -> "Teman"; "pending_out" -> "Permintaan terkirim"; "pending_in" -> "Mengirim permintaan"; else -> null },
-                            onClick = { SocialNav.open(SocialPage.Profile(u.userId)) }) {
-                            if (u.relation == "none") GlassIconButton(Icons.Rounded.PersonAdd, "Tambah", onClick = {
+                        PersonLine(
+                            u.name, u.username, u.avatar, null,
+                            when (u.relation) { "friend" -> "Teman"; "pending_out" -> "Permintaan terkirim"; "pending_in" -> "Mengirim permintaan"; else -> u.username?.let { "@$it" } },
+                            userId = u.userId, onClick = { SocialNav.open(SocialPage.Profile(u.userId)) }
+                        ) {
+                            if (u.relation == "none") ActionPill("Tambah", true) {
                                 scope.launch {
                                     val r = SocialApi.requestFriend(u.userId)
                                     msg = r.error ?: if (r.value == "accepted") "Kalian sekarang berteman" else "Permintaan terkirim"
                                     reload++
                                     results = SocialApi.search(query.trim()).value
                                 }
-                            })
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+internal fun ActionPill(label: String, primary: Boolean, onClick: () -> Unit) {
+    val accent = LocalCoverTheme.current.accent
+    Text(
+        label, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+        color = if (primary) Color.Black else Color.White,
+        modifier = Modifier.clip(RoundedCornerShape(50))
+            .background(if (primary) accent else Color.White.copy(alpha = 0.12f))
+            .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp)
+    )
 }
 
 @Composable
@@ -192,21 +237,24 @@ private fun SectionLabel(text: String) {
 @Composable
 internal fun PersonLine(
     name: String, username: String?, avatar: String?, online: Boolean?, sub: String?,
-    onClick: () -> Unit, trailing: @Composable () -> Unit = {}
+    onClick: () -> Unit, userId: String? = null, trailing: @Composable () -> Unit = {}
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AvatarWithDot(avatar, name, 48.dp, online)
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(name, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val line = sub ?: username?.let { "@$it" }
-            if (line != null) Text(line, color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    val eq = userId?.let { CosmeticsStore.map[it] }
+    PlateBox(eq?.plate, Modifier.fillMaxWidth().padding(horizontal = if (eq?.plate != null) 10.dp else 0.dp, vertical = if (eq?.plate != null) 3.dp else 0.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = if (eq?.plate != null) 10.dp else 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AvatarWithDot(avatar, name, 50.dp, online, userId = userId)
+            Spacer(Modifier.width(if (eq?.frame != null) 18.dp else 12.dp))
+            Column(Modifier.weight(1f)) {
+                CosmeticName(name, eq, fontSize = 15.sp)
+                val line = sub ?: username?.let { "@$it" }
+                if (line != null) Text(line, color = Color.White.copy(alpha = 0.62f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.width(8.dp))
+            trailing()
         }
-        Spacer(Modifier.width(8.dp))
-        trailing()
     }
 }
 
@@ -217,8 +265,12 @@ fun InboxScreen(onBack: () -> Unit) {
     val accent = LocalCoverTheme.current.accent
     val scope = rememberCoroutineScope()
     var friends by remember { mutableStateOf<List<FriendRow>?>(null) }
+    var query by remember { mutableStateOf("") }
     var editNote by remember { mutableStateOf(false) }
+    var viewNote by remember { mutableStateOf<FriendRow?>(null) }
     var myNote by remember { mutableStateOf("") }
+    var myColor by remember { mutableStateOf<String?>(null) }
+    var mySong by remember { mutableStateOf<String?>(null) }
     val me = AppGraph.auth.session?.userId
     val myProfile = AppGraph.profile.profile
 
@@ -230,119 +282,229 @@ fun InboxScreen(onBack: () -> Unit) {
             delay(5_000)
         }
     }
+    LaunchedEffect(friends) { friends?.forEach { CosmeticsStore.request(it.userId) } }
 
-    SocialScaffold(
-        title = "Pesan", onBack = onBack,
-        actions = {
-            GlassIconButton(Icons.Rounded.Groups, "Chat global", onClick = { SocialNav.open(SocialPage.GlobalChat) })
-            Spacer(Modifier.width(8.dp))
-            GlassIconButton(Icons.Rounded.PersonAdd, "Teman", onClick = { SocialNav.open(SocialPage.Friends) })
-        }
-    ) {
-        val list = friends
-        if (list == null) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = Color.White) }
-            return@SocialScaffold
-        }
-        // Baris catatan: catatan sendiri + catatan teman (hilang setelah 24 jam)
-        LazyRow(
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item {
-                NoteBubbleItem(myProfile?.displayName ?: "Kamu", myProfile?.avatarUrl, myNote.ifBlank { null }, null, "Catatanmu", accent) { editNote = true }
-            }
-            items(list.filter { !it.note.isNullOrBlank() }, key = { "n" + it.userId }) { f ->
-                NoteBubbleItem(f.name, f.avatar, f.note, f.online, f.name.substringBefore(' '), accent) {
-                    SocialNav.open(SocialPage.Dm(f.userId, f.name, f.avatar))
+    Box(Modifier.fillMaxSize()) {
+        SocialScaffold(
+            title = "Pesan", onBack = onBack,
+            actions = {
+                GlassIconButton(Icons.Rounded.Groups, "Chat global", onClick = { SocialNav.open(SocialPage.GlobalChat) })
+                Spacer(Modifier.width(8.dp))
+                Box {
+                    GlassIconButton(Icons.Rounded.PersonAdd, "Teman", onClick = { SocialNav.open(SocialPage.Friends) })
+                    if (SocialNav.badges.requests > 0) Box(Modifier.align(Alignment.TopEnd).size(10.dp).clip(CircleShape).background(Color(0xFFFF4D6D)))
                 }
             }
-        }
-        if (list.isEmpty()) {
-            EmptyHint("Belum ada percakapan.\nTambahkan teman dulu, lalu mulai ngobrol.")
-        } else {
-            val sorted = list.sortedWith(compareByDescending<FriendRow> { it.lastAt ?: "" }.thenBy { it.name })
-            LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)) {
-                items(sorted, key = { it.userId }) { f ->
-                    val preview = when {
-                        f.lastBody == null -> f.playing?.let { "🎵 ${it.title}" } ?: "Mulai percakapan"
-                        f.lastMine -> "Kamu: " + f.lastBody
-                        else -> f.lastBody
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable { SocialNav.open(SocialPage.Dm(f.userId, f.name, f.avatar)) }.padding(horizontal = 16.dp, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AvatarWithDot(f.avatar, f.name, 52.dp, f.online)
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(f.name, color = Color.White, fontWeight = if (f.unread > 0) FontWeight.Bold else FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(
-                                preview, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 13.sp,
-                                color = if (f.unread > 0) Color.White else Color.White.copy(alpha = 0.6f),
-                                fontWeight = if (f.unread > 0) FontWeight.SemiBold else FontWeight.Normal
-                            )
+        ) {
+            val list = friends
+            if (list == null) {
+                Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = Color.White) }
+                return@SocialScaffold
+            }
+            SearchPill(query, { query = it }, "Cari teman")
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    NoteItem(
+                        myProfile?.displayName ?: "Kamu", myProfile?.avatarUrl, me, myNote.ifBlank { null }, myColor, mySong, null,
+                        "Catatan Anda", accent
+                    ) { editNote = true }
+                }
+                items(list.filter { !it.note.isNullOrBlank() || !it.noteSong.isNullOrBlank() }, key = { "n" + it.userId }) { f ->
+                    NoteItem(f.name, f.avatar, f.userId, f.note, f.noteColor, f.noteSong, f.online, f.name.substringBefore(' '), accent) { viewNote = f }
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Pesan", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                if (SocialNav.badges.requests > 0) Text(
+                    "Permintaan (${SocialNav.badges.requests})", color = accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { SocialNav.open(SocialPage.Friends) }
+                )
+            }
+            val shown = list.filter { query.isBlank() || it.name.contains(query, true) || (it.username?.contains(query, true) == true) }
+            if (shown.isEmpty()) {
+                EmptyHint("💬", if (list.isEmpty()) "Belum ada percakapan.\nTambahkan teman dulu, lalu mulai ngobrol." else "Tidak ada yang cocok.")
+            } else {
+                val sorted = shown.sortedWith(compareByDescending<FriendRow> { it.lastAt ?: "" }.thenBy { it.name })
+                LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+                    items(sorted, key = { it.userId }) { f ->
+                        val preview = when {
+                            f.lastBody == null -> f.playing?.let { "🎵 ${it.title}" } ?: "Mulai percakapan"
+                            f.lastMine -> "Kamu: " + f.lastBody
+                            else -> f.lastBody
                         }
-                        Spacer(Modifier.width(8.dp))
-                        Column(horizontalAlignment = Alignment.End) {
-                            if (f.lastAt != null) Text(agoText(f.lastAt), color = Color.White.copy(alpha = 0.45f), fontSize = 11.sp)
-                            if (f.unread > 0) {
-                                Spacer(Modifier.height(4.dp))
-                                Box(Modifier.clip(CircleShape).background(accent).size(20.dp), Alignment.Center) {
-                                    Text(if (f.unread > 9) "9+" else f.unread.toString(), color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        val eq = CosmeticsStore.map[f.userId]
+                        PlateBox(eq?.plate, Modifier.fillMaxWidth().padding(horizontal = if (eq?.plate != null) 10.dp else 0.dp, vertical = if (eq?.plate != null) 3.dp else 0.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable { SocialNav.open(SocialPage.Dm(f.userId, f.name, f.avatar)) }
+                                    .padding(horizontal = if (eq?.plate != null) 10.dp else 16.dp, vertical = 9.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AvatarWithDot(f.avatar, f.name, 54.dp, f.online, userId = f.userId)
+                                Spacer(Modifier.width(if (eq?.frame != null) 20.dp else 14.dp))
+                                Column(Modifier.weight(1f)) {
+                                    CosmeticName(f.name, eq, fontSize = 15.sp, fontWeight = if (f.unread > 0) FontWeight.Bold else FontWeight.SemiBold)
+                                    Text(
+                                        preview + if (f.lastAt != null) "  ·  " + agoText(f.lastAt) else "", maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 13.sp,
+                                        color = if (f.unread > 0) Color.White else Color.White.copy(alpha = 0.6f),
+                                        fontWeight = if (f.unread > 0) FontWeight.SemiBold else FontWeight.Normal
+                                    )
                                 }
+                                if (f.unread > 0) Box(Modifier.padding(start = 8.dp).size(11.dp).clip(CircleShape).background(accent))
                             }
                         }
                     }
                 }
             }
         }
-    }
 
-    if (editNote) {
-        var text by remember { mutableStateOf(myNote) }
-        AlertDialog(
-            onDismissRequest = { editNote = false },
-            title = { Text("Catatanmu") },
-            text = {
-                Column {
-                    Text("Terlihat oleh temanmu selama 24 jam.", fontSize = 13.sp)
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(value = text, onValueChange = { text = it.take(60) }, placeholder = { Text("Lagi mikirin apa?") }, singleLine = false, maxLines = 3)
-                    Text("${text.length}/60", fontSize = 11.sp, modifier = Modifier.align(Alignment.End))
+        // Lihat catatan teman + balas cepat
+        val vn = viewNote
+        BottomSheetLite(visible = vn != null, onDismiss = { viewNote = null }) {
+            if (vn != null) NoteReplySheet(vn, accent) { reply ->
+                scope.launch {
+                    val body = "💬 “${vn.note.orEmpty().ifBlank { vn.noteSong.orEmpty() }.take(60)}”\n$reply"
+                    SocialApi.dmSend(vn.userId, body.take(500))
+                    viewNote = null
+                    SocialNav.open(SocialPage.Dm(vn.userId, vn.name, vn.avatar))
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    editNote = false
-                    scope.launch { SocialApi.setNote(text.trim()); myNote = text.trim() }
-                }) { Text("Simpan") }
-            },
-            dismissButton = {
-                if (myNote.isNotBlank()) TextButton(onClick = {
-                    editNote = false
-                    scope.launch { SocialApi.setNote(""); myNote = "" }
-                }) { Text("Hapus") }
             }
-        )
+        }
+        BottomSheetLite(visible = editNote, onDismiss = { editNote = false }) {
+            NoteEditor(
+                name = myProfile?.displayName ?: "Kamu", avatar = myProfile?.avatarUrl, userId = me,
+                initialText = myNote, initialColor = myColor, initialSong = mySong, accent = accent,
+                onClear = { editNote = false; scope.launch { SocialApi.setNoteV2("", null, null); myNote = ""; myColor = null; mySong = null } },
+                onShare = { t, c, s ->
+                    editNote = false
+                    scope.launch { SocialNav.message = SocialApi.setNoteV2(t, c, s); myNote = t; myColor = c; mySong = s }
+                }
+            )
+        }
+    }
+}
+
+private fun noteColor(hex: String?): Color? = hex?.let { parseHex(it, Color.Unspecified).takeIf { c -> c != Color.Unspecified } }
+
+/** Catatan gaya Instagram: gelembung di atas foto, dengan dua titik "ekor" di kiri bawah. */
+@Composable
+private fun NoteItem(name: String, avatar: String?, userId: String?, note: String?, color: String?, song: String?, online: Boolean?, label: String, accent: Color, onClick: () -> Unit) {
+    val bg = noteColor(color)
+    val text = buildString {
+        if (!song.isNullOrBlank()) append("♪ ").append(song).append(if (note.isNullOrBlank()) "" else "\n")
+        if (!note.isNullOrBlank()) append(note)
+    }.ifBlank { null }
+    Column(modifier = Modifier.width(80.dp).clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.height(54.dp).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+            Text(
+                text ?: "Siap untuk…", fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, lineHeight = 13.sp,
+                color = if (text == null) Color.White.copy(alpha = 0.55f) else if (bg != null) Color.White else Color.White,
+                modifier = Modifier.clip(RoundedCornerShape(18.dp))
+                    .background(bg ?: Color.White.copy(alpha = if (text == null) 0.08f else 0.16f))
+                    .padding(horizontal = 9.dp, vertical = 6.dp)
+            )
+        }
+        Row(Modifier.fillMaxWidth().padding(start = 12.dp).height(8.dp)) {
+            Box(Modifier.offset(y = (-3).dp).size(8.dp).clip(CircleShape).background(bg ?: Color.White.copy(alpha = 0.16f)))
+        }
+        AvatarWithDot(avatar, name, 58.dp, online, ring = if (text != null) bg ?: accent else null, userId = userId)
+        Spacer(Modifier.height(2.dp))
+        Text(label, color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 @Composable
-private fun NoteBubbleItem(name: String, avatar: String?, note: String?, online: Boolean?, label: String, accent: Color, onClick: () -> Unit) {
-    Column(modifier = Modifier.width(76.dp).clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier.height(40.dp).fillMaxWidth(),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Text(
-                note ?: "+ Catatan", fontSize = 10.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
-                color = if (note == null) Color.White.copy(alpha = 0.6f) else Color.White, lineHeight = 12.sp,
-                modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.12f)).padding(horizontal = 7.dp, vertical = 4.dp)
-            )
+private fun NoteReplySheet(f: FriendRow, accent: Color, onReply: (String) -> Unit) {
+    var reply by remember(f.userId) { mutableStateOf("") }
+    val bg = noteColor(f.noteColor) ?: Color.White.copy(alpha = 0.14f)
+    Text(f.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+    Spacer(Modifier.height(14.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        AvatarWithDot(f.avatar, f.name, 64.dp, f.online, userId = f.userId)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.clip(RoundedCornerShape(24.dp)).background(bg).padding(horizontal = 16.dp, vertical = 12.dp)) {
+            if (!f.noteSong.isNullOrBlank()) Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.MusicNote, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Text(f.noteSong ?: "", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (!f.note.isNullOrBlank()) Text(f.note ?: "", color = Color.White, fontSize = 15.sp)
         }
-        Spacer(Modifier.height(4.dp))
-        AvatarWithDot(avatar, name, 56.dp, online, ring = if (note != null) accent else null)
-        Text(label, color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+    Spacer(Modifier.height(16.dp))
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.09f)).padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.weight(1f)) {
+            if (reply.isEmpty()) Text("Balas ${f.name.substringBefore(' ')}", color = Color.White.copy(alpha = 0.45f), fontSize = 15.sp)
+            BasicTextField(reply, { reply = it.take(300) }, textStyle = TextStyle(color = Color.White, fontSize = 15.sp), cursorBrush = SolidColor(Color.White), modifier = Modifier.fillMaxWidth())
+        }
+        listOf("🔥", "😂", "😍").forEach { e -> Text(e, fontSize = 22.sp, modifier = Modifier.clickable { onReply(e) }.padding(horizontal = 4.dp)) }
+        if (reply.isNotBlank()) Icon(Icons.Rounded.Check, "Kirim", tint = accent, modifier = Modifier.clickable { onReply(reply.trim()) }.padding(6.dp))
+        else Icon(Icons.Rounded.Favorite, "Suka", tint = Color.White, modifier = Modifier.clickable { onReply("❤️") }.padding(6.dp))
     }
 }
+
+@Composable
+private fun NoteEditor(
+    name: String, avatar: String?, userId: String?, initialText: String, initialColor: String?, initialSong: String?,
+    accent: Color, onClear: () -> Unit, onShare: (String, String?, String?) -> Unit
+) {
+    var text by remember { mutableStateOf(initialText) }
+    var color by remember { mutableStateOf(initialColor ?: NoteColors[4]) }
+    var withSong by remember { mutableStateOf(initialSong != null) }
+    val songNow = AppGraph.activity.curTitle?.let { t -> AppGraph.activity.curArtist?.takeIf { it.isNotBlank() }?.let { "$t · $it" } ?: t }
+    val bubble = parseHex(color)
+    Text("Editor Gelembung", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+    Spacer(Modifier.height(18.dp))
+    Column(Modifier.widthIn2(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.clip(RoundedCornerShape(26.dp)).background(bubble).padding(horizontal = 22.dp, vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (withSong && songNow != null) Text("♪ $songNow", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Box(contentAlignment = Alignment.Center) {
+                if (text.isEmpty()) Text("Siap untuk…", color = Color.White.copy(alpha = 0.6f), fontSize = 20.sp, textAlign = TextAlign.Center)
+                BasicTextField(
+                    text, { text = it.take(60) }, textStyle = TextStyle(color = Color.White, fontSize = 20.sp, textAlign = TextAlign.Center),
+                    cursorBrush = SolidColor(Color.White), modifier = Modifier.fillMaxWidth(0.7f)
+                )
+            }
+        }
+        Box(Modifier.padding(start = 0.dp, top = 2.dp).size(10.dp).clip(CircleShape).background(bubble))
+        AvatarWithDot(avatar, name, 90.dp, null, userId = userId)
+    }
+    Spacer(Modifier.height(16.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        if (songNow != null) Row(
+            Modifier.clip(RoundedCornerShape(50)).background(if (withSong) accent.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.1f))
+                .clickable { withSong = !withSong }.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Rounded.MusicNote, null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Text(" Lagu diputar", color = Color.White, fontSize = 12.sp)
+        }
+        Text("${text.length}/60", color = Color.White.copy(alpha = 0.45f), fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+    }
+    Spacer(Modifier.height(12.dp))
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        items(NoteColors) { c ->
+            val on = c.equals(color, true)
+            Box(
+                Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.1f)).border(if (on) 2.dp else 0.dp, Color.White, RoundedCornerShape(12.dp))
+                    .clickable { color = c }.padding(5.dp)
+            ) { Box(Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)).background(parseHex(c))) }
+        }
+    }
+    Spacer(Modifier.height(16.dp))
+    Text(
+        "Bagikan", color = Color.Black, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(accent)
+            .clickable { onShare(text.trim(), color, if (withSong) songNow else null) }.padding(vertical = 14.dp)
+    )
+    if (initialText.isNotBlank() || initialSong != null) Text(
+        "Hapus catatan", color = Color(0xFFFF8A80), fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(top = 12.dp).clickable(onClick = onClear)
+    )
+}
+
+private fun Modifier.widthIn2(): Modifier = this.fillMaxWidth()

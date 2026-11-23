@@ -1,6 +1,25 @@
 package com.jimz.jimztune.ui.components
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -132,12 +151,22 @@ fun NavMenuButton(open: Boolean, badge: Int, onToggle: () -> Unit, modifier: Mod
             },
         contentAlignment = Alignment.Center
     ) {
-        Crossfade(targetState = open, animationSpec = tween(200), label = "navIcon") { isOpen ->
-            Icon(
-                if (isOpen) Icons.Rounded.Close else Icons.Rounded.Menu,
-                contentDescription = if (isOpen) "Tutup menu" else "Buka menu",
-                tint = Color.White, modifier = Modifier.size(26.dp)
-            )
+        val p by animateFloatAsState(if (open) 1f else 0f, spring(dampingRatio = 0.68f, stiffness = Spring.StiffnessMediumLow), label = "burger")
+        Canvas(Modifier.size(26.dp).graphicsLayer { rotationZ = 90f * p }) {
+            val w = size.width
+            val stroke = 2.6.dp.toPx()
+            val gap = 7.dp.toPx()
+            val cy = size.height / 2f
+            val x0 = w * 0.12f
+            val x1 = w * 0.88f
+            // atas & bawah menyatu ke tengah lalu berputar jadi silang, tengah memudar
+            rotate(45f * p, Offset(w / 2f, cy)) {
+                drawLine(Color.White, Offset(x0, cy - gap * (1f - p)), Offset(x1, cy - gap * (1f - p)), stroke, StrokeCap.Round)
+            }
+            rotate(-45f * p, Offset(w / 2f, cy)) {
+                drawLine(Color.White, Offset(x0, cy + gap * (1f - p)), Offset(x1, cy + gap * (1f - p)), stroke, StrokeCap.Round)
+            }
+            drawLine(Color.White.copy(alpha = 1f - p), Offset(x0 + (w * 0.38f) * p, cy), Offset(x1 - (w * 0.38f) * p, cy), stroke, StrokeCap.Round)
         }
         CountBadge(badge, Modifier.align(Alignment.TopEnd).padding(top = 6.dp, end = 6.dp))
     }
@@ -156,47 +185,112 @@ fun NavMenuUp(visible: Boolean, entries: List<NavEntry>, onClose: () -> Unit, mo
         Column(
             modifier = Modifier
                 .padding(bottom = 10.dp)
-                .width(244.dp)
+                .width(248.dp)
                 .navGlass(RoundedCornerShape(26.dp))
                 .animateContentSize(tween(220))
-                .heightIn(max = 420.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(vertical = 8.dp)
+                .padding(8.dp)
         ) {
             val s = sub
             if (s == null) {
-                entries.forEach { e ->
-                    MenuRow(e, arrow = e.children.isNotEmpty()) {
-                        if (e.children.isNotEmpty()) sub = e else { onClose(); e.onClick() }
-                    }
+                SlideList(entries, arrowFor = { it.children.isNotEmpty() }) { e ->
+                    if (e.children.isNotEmpty()) sub = e else { onClose(); e.onClick() }
                 }
             } else {
-                MenuRow(NavEntry(Icons.AutoMirrored.Rounded.ArrowBack, s.label, selected = true, onClick = {}), arrow = false) { sub = null }
-                s.children.forEach { c -> MenuRow(c, arrow = false) { onClose(); c.onClick() } }
+                val shown = listOf(NavEntry(Icons.AutoMirrored.Rounded.ArrowBack, s.label, selected = true, onClick = {})) + s.children
+                SlideList(shown, arrowFor = { false }) { e ->
+                    if (e === shown.first()) sub = null else { onClose(); e.onClick() }
+                }
+            }
+        }
+    }
+}
+
+private val RowH = 50.dp
+
+/** Daftar menu dengan penanda yang meluncur: tekan lalu geser naik/turun, lepas untuk memilih (sama seperti navbar bawah). */
+@Composable
+private fun SlideList(entries: List<NavEntry>, arrowFor: (NavEntry) -> Boolean, onPick: (NavEntry) -> Unit) {
+    val density = LocalDensity.current
+    val rowPx = with(density) { RowH.toPx() }
+    val accent = LocalCoverTheme.current.accent
+    val haptic = LocalHapticFeedback.current
+    var hover by remember { mutableIntStateOf(-1) }
+    var dragging by remember { mutableStateOf(false) }
+    val list by rememberUpdatedState(entries)
+    val pick by rememberUpdatedState(onPick)
+    val sel = entries.indexOfFirst { it.selected }.coerceAtLeast(0)
+    val target = if (hover >= 0) hover else sel
+    val y by animateFloatAsState(target * rowPx, spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow), label = "menuPill")
+    val pillScale by animateFloatAsState(
+        if (dragging) 1.05f else if (hover >= 0) 1.02f else 1f,
+        spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMedium), label = "menuPillScale"
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(RowH * entries.size)
+            .pointerInput(entries.size) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    fun idx(v: Float) = (v / rowPx).toInt().coerceIn(0, list.size - 1)
+                    var last = idx(down.position.y)
+                    hover = last
+                    dragging = false
+                    val slop = viewConfiguration.touchSlop
+                    while (true) {
+                        val ev = awaitPointerEvent()
+                        val ch = ev.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!ch.pressed) {
+                            list.getOrNull(last)?.let { pick(it) }
+                            break
+                        }
+                        if (!dragging && abs(ch.position.y - down.position.y) > slop) dragging = true
+                        if (dragging) {
+                            ch.consume()
+                            val i = idx(ch.position.y)
+                            if (i != last) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                last = i
+                                hover = i
+                            }
+                        }
+                    }
+                    hover = -1
+                    dragging = false
+                }
+            }
+    ) {
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(0, y.roundToInt()) }
+                .fillMaxWidth()
+                .height(RowH)
+                .graphicsLayer { scaleX = pillScale; scaleY = pillScale }
+                .clip(RoundedCornerShape(18.dp))
+                .background(Brush.verticalGradient(listOf(accent.copy(alpha = if (hover >= 0) 0.40f else 0.28f), accent.copy(alpha = if (hover >= 0) 0.24f else 0.14f))))
+                .border(0.5.dp, accent.copy(alpha = 0.3f), RoundedCornerShape(18.dp))
+        )
+        Column {
+            entries.forEachIndexed { i, e ->
+                val active = (hover >= 0 && hover == i) || (hover < 0 && e.selected)
+                MenuRow(e, active, arrowFor(e))
             }
         }
     }
 }
 
 @Composable
-private fun MenuRow(e: NavEntry, arrow: Boolean, onClick: () -> Unit) {
-    val accent = LocalCoverTheme.current.accent
+private fun MenuRow(e: NavEntry, active: Boolean, arrow: Boolean) {
+    val tint by animateColorAsState(if (active) Color.White else Color.White.copy(alpha = 0.7f), tween(220), label = "rowTint")
     Row(
-        modifier = Modifier
-            .padding(horizontal = 10.dp, vertical = 2.dp)
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(if (e.selected) accent.copy(alpha = 0.22f) else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth().height(RowH).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(e.icon, null, tint = if (e.selected) Color.White else Color.White.copy(alpha = 0.8f), modifier = Modifier.size(22.dp))
+        Icon(e.icon, null, tint = tint, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(14.dp))
         Text(
-            e.label, color = Color.White, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            fontWeight = if (e.selected) FontWeight.SemiBold else FontWeight.Normal,
+            e.label, color = tint, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
             modifier = Modifier.weight(1f)
         )
         if (e.badge > 0) {

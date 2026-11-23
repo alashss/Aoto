@@ -12,6 +12,7 @@ import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Coffee
 import androidx.compose.material.icons.rounded.Construction
 import androidx.compose.material.icons.rounded.Forum
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Gavel
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Insights
@@ -46,7 +47,7 @@ import com.jimz.jimztune.ui.theme.LocalCoverTheme
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-private enum class OwnerPage { Hub, Control, Live, Banners, Announcements, Donate, Update, Users, Stats, Failed, ChatMod, ChatRules }
+private enum class OwnerPage { Hub, Control, Live, Banners, Announcements, Donate, Update, Users, Stats, Failed, ChatMod, ChatRules, Cosmetics, SocialStats }
 
 /**
  * Panel Owner. Hanya bisa dibuka akun yang didaftarkan di tabel `owners` server.
@@ -69,6 +70,8 @@ fun OwnerPanelScreen(onBack: () -> Unit) {
         OwnerPage.Failed -> FailedPage(onBack = back)
         OwnerPage.ChatMod -> ChatModerationPage(onBack = back)
         OwnerPage.ChatRules -> ChatRulesPage(onBack = back)
+        OwnerPage.Cosmetics -> CosmeticsAdminPage(onBack = back)
+        OwnerPage.SocialStats -> SocialOverviewPage(onBack = back)
     }
 }
 
@@ -150,6 +153,10 @@ private fun HubPage(onBack: () -> Unit, onOpen: (OwnerPage) -> Unit) {
             OwnerNavRow(Icons.Rounded.Forum, "Moderasi chat global", "Hapus, bisukan, sematkan pesan") { onOpen(OwnerPage.ChatMod) }
             OwnerDivider()
             OwnerNavRow(Icons.Rounded.Gavel, "Aturan chat", "Kata terlarang, mode lambat, saklar chat") { onOpen(OwnerPage.ChatRules) }
+            OwnerDivider()
+            OwnerNavRow(Icons.Rounded.AutoAwesome, "Kosmetik", "Gift bingkai, plat nama, efek & atur level") { onOpen(OwnerPage.Cosmetics) }
+            OwnerDivider()
+            OwnerNavRow(Icons.Rounded.Insights, "Ringkasan sosial", "Online, pesan, pertemanan, kosmetik") { onOpen(OwnerPage.SocialStats) }
         }
 
         OwnerSection("Sistem")

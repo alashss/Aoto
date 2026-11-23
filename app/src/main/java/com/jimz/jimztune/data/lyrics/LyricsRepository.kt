@@ -40,8 +40,6 @@ class LyricsRepository(context: Context) {
         LyricsOvhProvider()
     )
 
-    private val aiProvider = AiLyricsProvider()
-
     private class Scored(val candidate: LyricsCandidate, val score: Double)
 
     /** Satu kunci per lagu: pemutar dan widget lirik yang meminta lagu sama bersamaan tidak mengunduh dua kali. */
@@ -106,16 +104,7 @@ class LyricsRepository(context: Context) {
             coroutineContext.cancelChildren()
         }
 
-        var options = rank(all, query).map { it.candidate.lyrics }
-        // Pilihan terakhir: semua sumber kosong, minta perkiraan dari AI (diberi label sumber "AI").
-        if (options.isEmpty()) {
-            try {
-                withTimeoutOrNull(AI_TIMEOUT_MS) { aiProvider.fetch(query) }?.let { options = listOf(it) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-            }
-        }
+        val options = rank(all, query).map { it.candidate.lyrics }
         if (options.isNotEmpty()) writeCache(song.id, options)
         return options
     }
@@ -200,6 +189,5 @@ class LyricsRepository(context: Context) {
         const val HARD_LIMIT_MS = 12_000L
         const val MAX_OPTIONS = 5
         const val PRIMARY = "LrcLib"
-        const val AI_TIMEOUT_MS = 25_000L
     }
 }

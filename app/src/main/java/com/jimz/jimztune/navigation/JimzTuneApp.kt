@@ -192,19 +192,21 @@ fun JimzTuneApp() {
 
     // Scroll ke bawah: navbar melipat (turun & memudar), mini player ikut turun dan menempel di dasar.
     // Scroll ke atas: navbar muncul lagi.
-    var barHidden by remember { mutableStateOf(false) }
+    var scrollHidden by remember { mutableStateOf(false) }
+    // Tanpa lagu tidak ada mini player, jadi navbar tidak pernah turun.
+    val barHidden = scrollHidden && hasMini
     val scrollConn = remember {
         object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
             override fun onPreScroll(
                 available: androidx.compose.ui.geometry.Offset,
                 source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
             ): androidx.compose.ui.geometry.Offset {
-                if (available.y < -14f) barHidden = true else if (available.y > 14f) barHidden = false
+                if (available.y < -14f) scrollHidden = true else if (available.y > 14f) scrollHidden = false
                 return androidx.compose.ui.geometry.Offset.Zero
             }
         }
     }
-    LaunchedEffect(currentRoute) { barHidden = false }
+    LaunchedEffect(currentRoute) { scrollHidden = false }
     val miniDrop by animateDpAsState(
         targetValue = if (barHidden) BarHeight + 4.dp else 0.dp,
         animationSpec = tween(320, easing = FastOutSlowInEasing),
