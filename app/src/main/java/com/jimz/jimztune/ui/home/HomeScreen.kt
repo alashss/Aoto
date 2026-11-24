@@ -143,7 +143,8 @@ fun HomeScreen(
                 onPlay = onPlay,
                 onOpenSearch = onOpenSearch,
                 top = top,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onOpenRanking = onOpenRanking
             )
         } else LazyColumn(
         modifier = Modifier
@@ -242,7 +243,8 @@ private fun MaintenanceHome(
     onPlay: (List<SearchItem>, Int) -> Unit,
     onOpenSearch: () -> Unit,
     top: @Composable () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenRanking: (RankKind, RankPeriod) -> Unit = { _, _ -> }
 ) {
     val overlay = LocalOverlayPadding.current
     val accent = LocalCoverTheme.current.accent
