@@ -237,7 +237,9 @@ fun PlayerScreen(
                             PaneTab(p.label, pane == p) { pane = p }
                         }
                     }
-                    Spacer(Modifier.size(48.dp))
+                    IconButton(onClick = { LockMode.active = true }) {
+                        Icon(Icons.Rounded.Lock, contentDescription = "Mode kunci layar", modifier = Modifier.size(22.dp))
+                    }
                 }
 
                 Box(
@@ -296,7 +298,7 @@ fun PlayerScreen(
                                 )
                             }
                         }
-                        PlayerPane.Lyrics -> Box(Modifier.fillMaxSize()) {
+                        PlayerPane.Lyrics -> {
                         LyricsPane(
                             state = lyrics,
                             positionMs = state.positionMs,
@@ -311,10 +313,6 @@ fun PlayerScreen(
                             translation = translation,
                             onTranslationSettingsChanged = onTranslationSettingsChanged
                         )
-                        androidx.compose.material3.IconButton(
-                            onClick = { LockMode.active = true },
-                            modifier = Modifier.align(Alignment.TopEnd)
-                        ) { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Lock, "Mode kunci layar", tint = Color.White.copy(alpha = 0.8f)) }
                         }
                         PlayerPane.Queue -> QueuePane(
                             queue = state.queue,

@@ -1,5 +1,11 @@
 # Catatan perubahan
 
+## 2.14.2
+- Chat Global: tab Pesan/Teman dihapus, bug layar terdorong saat mengetik diperbaiki (keyboard dihitung dua kali).
+- Catatan ala Instagram: lagu langsung terdengar saat catatan dibuka, lirik muncul beranimasi; pemilih lagu punya pratinjau suara.
+- Mode Kunci Layar beranimasi; tombolnya dipindah ke header pemutar agar tidak bentrok dengan pengaturan lirik.
+- Elemen peringkat di Beranda dihapus.
+
 ## 2.14.0
 - Mode Kunci Layar: tampilan ala layar kunci (jam besar, lirik berjalan, kartu pemutar dengan sebelumnya/jeda/berikutnya), layar tetap menyala. Buka dari ikon gembok di panel lirik atau Pengaturan.
 - Chat Global dirombak (kartu pesan, peringatan, pesan baru, balas, penghitung huruf, tab Global/Pesan/Teman).

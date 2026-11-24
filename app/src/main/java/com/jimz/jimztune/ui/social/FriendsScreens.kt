@@ -38,6 +38,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -440,6 +441,8 @@ private fun NoteItem(name: String, avatar: String?, userId: String?, note: Strin
 private fun NoteReplySheet(f: FriendRow, accent: Color, onPlay: (String) -> Unit, onReply: (String) -> Unit) {
     var reply by remember(f.userId) { mutableStateOf("") }
     val bg = noteColor(f.noteColor) ?: Color.White.copy(alpha = 0.14f)
+    // Seperti Instagram: lagu catatan langsung terdengar saat catatan dibuka.
+    LaunchedEffect(f.userId, f.noteSongId) { f.noteSongId?.let(onPlay) }
     Text(f.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
     Spacer(Modifier.height(14.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -458,10 +461,15 @@ private fun NoteReplySheet(f: FriendRow, accent: Color, onPlay: (String) -> Unit
             if (!f.note.isNullOrBlank()) Text(f.note ?: "", color = Color.White, fontSize = 15.sp)
         }
     }
-    if (!f.noteLyric.isNullOrBlank()) Text(
-        f.noteLyric ?: "", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth().padding(top = 18.dp, start = 12.dp, end = 12.dp)
-    )
+    if (!f.noteLyric.isNullOrBlank()) {
+        var lyricShown by remember(f.userId) { mutableStateOf(false) }
+        LaunchedEffect(f.userId) { delay(250); lyricShown = true }
+        val la by androidx.compose.animation.core.animateFloatAsState(if (lyricShown) 1f else 0f, androidx.compose.animation.core.tween(600), label = "noteLyric")
+        Text(
+            f.noteLyric ?: "", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 18.dp, start = 12.dp, end = 12.dp).graphicsLayer { alpha = la; translationY = (1f - la) * 24f }
+        )
+    }
     Spacer(Modifier.height(16.dp))
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.09f)).padding(horizontal = 16.dp, vertical = 6.dp),

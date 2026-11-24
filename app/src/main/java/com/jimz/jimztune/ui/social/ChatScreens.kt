@@ -5,6 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,7 +78,7 @@ private fun Composer(
 ) {
     val accent = LocalCoverTheme.current.accent
     Row(
-        modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
@@ -258,23 +261,24 @@ fun GlobalChatScreen(onBack: () -> Unit) {
             val v = r.value
             if (v != null) {
                 val oldLast = snap?.messages?.lastOrNull()?.id
-                val atBottom = !listState.canScrollForward
+                val atBottom = !listState.canScrollBackward
                 val newCount = if (oldLast == null) 0 else v.messages.count { it.id > oldLast }
                 snap = v; failed = null
                 if (oldLast == null || v.messages.lastOrNull()?.id != oldLast) {
-                    if (oldLast == null || atBottom) { unseen = 0; listState.scrollToItem((v.messages.size - 1).coerceAtLeast(0)) }
+                    if (oldLast == null || atBottom) { unseen = 0; listState.scrollToItem(0) }
                     else unseen += newCount
                 }
             } else if (snap == null) failed = r.error
             delay(3_000)
         }
     }
-    LaunchedEffect(listState.canScrollForward) { if (!listState.canScrollForward) unseen = 0 }
+    LaunchedEffect(listState.canScrollBackward) { if (!listState.canScrollBackward) unseen = 0 }
 
     Box(Modifier.fillMaxSize()) {
+        val imeOpen = WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
         SocialScaffold(title = "Chat Global", onBack = onBack) {
             // Peringatan
-            Row(
+            if (!imeOpen) Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF4A3A10)).padding(horizontal = 12.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -292,7 +296,7 @@ fun GlobalChatScreen(onBack: () -> Unit) {
                 Spacer(Modifier.width(8.dp))
                 Text("${pin.name}: ${pin.body}", color = Color.White, fontSize = 12.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
             }
-            if (s != null) Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (s != null && !imeOpen) Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(7.dp).clip(CircleShape).background(OnlineGreen))
                 Text("  ${s.messages.map { it.userId }.distinct().size} pengirim aktif", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
             }
@@ -302,16 +306,17 @@ fun GlobalChatScreen(onBack: () -> Unit) {
                     s == null -> Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) { Text(failed ?: "", color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center) }
                     !s.info.enabled -> Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) { Text("Chat global sedang dimatikan oleh owner.", color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center) }
                     s.messages.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text("Belum ada pesan. Jadi yang pertama! 🎉", color = Color.White.copy(alpha = 0.55f)) }
-                    else -> LazyColumn(state = listState, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(s.messages.size, key = { s.messages[it].id }) { i ->
-                            val m = s.messages[i]
+                    else -> LazyColumn(state = listState, reverseLayout = true, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val rev = s.messages.asReversed()
+                        items(rev.size, key = { rev[it].id }) { i ->
+                            val m = rev[i]
                             ChatCardRow(m, m.userId == me, accent, onLong = { actionFor = m }, onTap = { SocialNav.openProfile(m.userId) })
                         }
                     }
                 }
                 if (unseen > 0) Row(
                     Modifier.align(Alignment.BottomEnd).padding(12.dp).clip(RoundedCornerShape(50)).background(Color(0xFF2B2F3A))
-                        .clickable { scope.launch { snap?.let { listState.animateScrollToItem((it.messages.size - 1).coerceAtLeast(0)) }; unseen = 0 } }
+                        .clickable { scope.launch { listState.animateScrollToItem(0); unseen = 0 } }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -342,17 +347,8 @@ fun GlobalChatScreen(onBack: () -> Unit) {
                     sending = true
                     val err = SocialApi.chatSend(body)
                     error = err
-                    if (err == null) { text = ""; replyTo = null; SocialApi.chat().value?.let { snap = it; listState.scrollToItem((it.messages.size - 1).coerceAtLeast(0)) } }
+                    if (err == null) { text = ""; replyTo = null; SocialApi.chat().value?.let { snap = it; listState.scrollToItem(0) } }
                     sending = false
-                }
-            }
-            // Tab bawah: Global / Pesan / Teman
-            Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(top = 2.dp)) {
-                listOf("Global", "Pesan", "Teman").forEachIndexed { i, l ->
-                    Column(Modifier.weight(1f).clickable { if (i == 1) SocialNav.open(SocialPage.Inbox) else if (i == 2) SocialNav.open(SocialPage.Friends) }.padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(Modifier.width(26.dp).height(3.dp).clip(CircleShape).background(if (i == 0) accent else Color.Transparent))
-                        Text(l, color = if (i == 0) Color.White else Color.White.copy(alpha = 0.5f), fontWeight = if (i == 0) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
-                    }
                 }
             }
         }

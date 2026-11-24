@@ -103,7 +103,6 @@ fun RankingScreen(initialKind: RankKind, initialPeriod: RankPeriod, onBack: () -
                 )
             }
 
-            RankBanner(kind, accent, Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
             // Jenis peringkat
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),

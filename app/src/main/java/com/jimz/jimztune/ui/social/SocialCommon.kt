@@ -14,7 +14,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -25,6 +30,11 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,12 +62,22 @@ fun SocialScaffold(
 ) {
     val cover = LocalCoverTheme.current
     BackHandler(onBack = onBack)
+    // Beberapa HP sudah mengecilkan jendela saat keyboard muncul; kalau ime dihitung lagi, isi layar terdorong dua kali.
+    // Jadi tambahan jarak bawah hanya sebesar bagian keyboard yang memang masih menutupi kolom ini.
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val screenH = androidx.compose.ui.platform.LocalContext.current.resources.displayMetrics.heightPixels
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    val navBottom = WindowInsets.navigationBars.getBottom(density)
+    var colBottom by remember { mutableStateOf(0f) }
+    val covered = if (imeBottom > 0 && colBottom > 0f) (colBottom - (screenH - imeBottom)).coerceIn(0f, imeBottom.toFloat()) else 0f
+    val bottomPad = with(density) { (if (imeBottom > 0) covered else navBottom.toFloat()).toDp() }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0B0E14))
             .statusBarsPadding()
-            .imePadding()
+            .onGloballyPositioned { colBottom = it.boundsInWindow().bottom }
+            .padding(bottom = bottomPad)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 8.dp),
