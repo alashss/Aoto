@@ -249,12 +249,15 @@ private fun SongStage(onBack: () -> Unit, onPick: (SearchItem) -> Unit) {
     var q by remember { mutableStateOf("") }
     var items by remember { mutableStateOf<List<SearchItem>?>(null) }
     var loading by remember { mutableStateOf(false) }
-    LaunchedEffect(q) {
-        if (q.trim().length < 2) { items = null; return@LaunchedEffect }
-        delay(400)
+    var chip by remember { mutableStateOf(0) }
+    val recent = remember { AppGraph.history.load().filter { it.type == SearchType.SONG }.take(30) }
+    LaunchedEffect(q, chip) {
+        val query = if (q.trim().length >= 2) q.trim() else if (chip == 1) "lagu populer indonesia terbaru" else null
+        if (query == null) { items = null; return@LaunchedEffect }
+        if (q.isNotBlank()) delay(400)
         loading = true
         items = try {
-            AppGraph.searchRepository.search(q.trim(), SearchType.SONG, quick = true).items.filter { it.type == SearchType.SONG }.take(25)
+            AppGraph.searchRepository.search(query, SearchType.SONG, quick = true).items.filter { it.type == SearchType.SONG }.take(25)
         } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Throwable) { emptyList() }
         loading = false
     }
@@ -273,11 +276,22 @@ private fun SongStage(onBack: () -> Unit, onPick: (SearchItem) -> Unit) {
                 }
             }
         }
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Untuk Anda", "Sedang tren").forEachIndexed { i, l ->
+                Text(
+                    l, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (chip == i) Color.Black else Color.White,
+                    modifier = Modifier.clip(RoundedCornerShape(50)).background(if (chip == i) Color.White else Color.White.copy(alpha = 0.1f)).clickable { chip = i }.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+        }
         val playing = AppGraph.activity.curId?.let { id -> AppGraph.activity.curTitle?.let { t ->
             SearchItem(id, SearchType.SONG, t, AppGraph.activity.curArtist.orEmpty(), "https://i.ytimg.com/vi/$id/hqdefault.jpg")
         } }
         LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
-            if (q.isBlank() && playing != null) {
+            if (q.isBlank() && chip == 0 && recent.isNotEmpty()) {
+                items(recent, key = { "r" + it.id }) { SongRow(it, onPick) }
+            }
+            if (q.isBlank() && chip == 0 && playing != null) {
                 item { Text("Sedang diputar", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 4.dp)) }
                 item { SongRow(playing, onPick) }
             }

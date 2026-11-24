@@ -27,6 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.automirrored.rounded.Reply
+import com.jimz.jimztune.data.social.SocialPage
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Person
@@ -246,36 +248,53 @@ fun GlobalChatScreen(onBack: () -> Unit) {
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var actionFor by remember { mutableStateOf<ChatMessage?>(null) }
-    var pinOpen by remember { mutableStateOf(false) }
+    var replyTo by remember { mutableStateOf<ChatMessage?>(null) }
+    var unseen by remember { mutableStateOf(0) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
         while (true) {
             val r = SocialApi.chat()
-            if (r.value != null) {
-                val old = snap?.messages?.lastOrNull()?.id
-                snap = r.value; failed = null
-                if (old != r.value.messages.lastOrNull()?.id) listState.scrollToItem((r.value.messages.size - 1).coerceAtLeast(0))
+            val v = r.value
+            if (v != null) {
+                val oldLast = snap?.messages?.lastOrNull()?.id
+                val atBottom = !listState.canScrollForward
+                val newCount = if (oldLast == null) 0 else v.messages.count { it.id > oldLast }
+                snap = v; failed = null
+                if (oldLast == null || v.messages.lastOrNull()?.id != oldLast) {
+                    if (oldLast == null || atBottom) { unseen = 0; listState.scrollToItem((v.messages.size - 1).coerceAtLeast(0)) }
+                    else unseen += newCount
+                }
             } else if (snap == null) failed = r.error
             delay(3_000)
         }
     }
+    LaunchedEffect(listState.canScrollForward) { if (!listState.canScrollForward) unseen = 0 }
 
     Box(Modifier.fillMaxSize()) {
-        SocialScaffold(title = "Chat global", subtitle = "Ngobrol bareng semua pengguna AOTO", onBack = onBack) {
+        SocialScaffold(title = "Chat Global", onBack = onBack) {
+            // Peringatan
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF4A3A10)).padding(horizontal = 12.dp, vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("⚠", color = Color(0xFFFFC857), fontSize = 14.sp)
+                Spacer(Modifier.width(8.dp))
+                Text("Hati-hati penipuan. Jangan bagikan data pribadi, dan jaga sopan santun. Pesan diawasi owner.", color = Color(0xFFFFE9A8), fontSize = 11.sp, lineHeight = 14.sp)
+            }
             val s = snap
             val pin = s?.pinned
-            if (pin != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(RoundedCornerShape(16.dp)).background(accent.copy(alpha = 0.2f))
-                        .clickable { pinOpen = !pinOpen }.animateContentSize().padding(12.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Icon(Icons.Rounded.PushPin, null, tint = accent, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("${pin.name}: ${pin.body}", color = Color.White, fontSize = 13.sp, maxLines = if (pinOpen) 10 else 1, overflow = TextOverflow.Ellipsis)
-                }
-                Spacer(Modifier.height(4.dp))
+            if (pin != null) Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp).clip(RoundedCornerShape(12.dp)).background(accent.copy(alpha = 0.18f)).padding(10.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(Icons.Rounded.PushPin, null, tint = accent, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("${pin.name}: ${pin.body}", color = Color.White, fontSize = 12.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            }
+            if (s != null) Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(7.dp).clip(CircleShape).background(OnlineGreen))
+                Text("  ${s.messages.map { it.userId }.distinct().size} pengirim aktif", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when {
@@ -283,16 +302,21 @@ fun GlobalChatScreen(onBack: () -> Unit) {
                     s == null -> Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) { Text(failed ?: "", color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center) }
                     !s.info.enabled -> Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) { Text("Chat global sedang dimatikan oleh owner.", color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center) }
                     s.messages.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text("Belum ada pesan. Jadi yang pertama! 🎉", color = Color.White.copy(alpha = 0.55f)) }
-                    else -> LazyColumn(state = listState, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    else -> LazyColumn(state = listState, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(s.messages.size, key = { s.messages[it].id }) { i ->
                             val m = s.messages[i]
-                            val prev = s.messages.getOrNull(i - 1)
-                            val next = s.messages.getOrNull(i + 1)
-                            val first = prev == null || prev.userId != m.userId
-                            val last = next == null || next.userId != m.userId
-                            ChatBubbleRow(m, m.userId == me, first, last, accent, Modifier.padding(top = if (first && i > 0) 8.dp else 0.dp), onLong = { actionFor = m }, onTap = { SocialNav.openProfile(m.userId) })
+                            ChatCardRow(m, m.userId == me, accent, onLong = { actionFor = m }, onTap = { SocialNav.openProfile(m.userId) })
                         }
                     }
+                }
+                if (unseen > 0) Row(
+                    Modifier.align(Alignment.BottomEnd).padding(12.dp).clip(RoundedCornerShape(50)).background(Color(0xFF2B2F3A))
+                        .clickable { scope.launch { snap?.let { listState.animateScrollToItem((it.messages.size - 1).coerceAtLeast(0)) }; unseen = 0 } }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("▾ Pesan baru", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(" $unseen ", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp).clip(CircleShape).background(Color(0xFFFF4D6D)).padding(horizontal = 6.dp, vertical = 1.dp))
                 }
             }
             if (error != null) Text(error ?: "", color = Color(0xFFFFCC80), fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp))
@@ -300,22 +324,44 @@ fun GlobalChatScreen(onBack: () -> Unit) {
             val blocked = info == null || !info.enabled || info.muted
             if (info?.muted == true) Text("Kamu sedang dibisukan oleh owner.", color = Color(0xFFFF8A80), fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp))
             else if (info != null && info.slow > 0) Text("Mode lambat: ${info.slow} detik antar pesan", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, modifier = Modifier.padding(horizontal = 20.dp))
-            Composer(text, { text = it }, "Tulis ke semua orang…", !blocked, info?.maxLen ?: 300, sending, onSend = {
-                val body = text.trim()
+            val rt = replyTo
+            if (rt != null) Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF1B2028)).padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Membalas ${rt.name}", color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(rt.body.substringAfter("\n").take(70), color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Text("✕", color = Color.White.copy(alpha = 0.6f), modifier = Modifier.clickable { replyTo = null }.padding(8.dp))
+            }
+            ChatComposer(text, { text = it }, !blocked, info?.maxLen ?: 255, sending) {
+                val raw = text.trim()
+                val body = if (rt != null) "↩ ${rt.name}: ${rt.body.substringAfter("\n").take(60)}\n$raw" else raw
                 scope.launch {
                     sending = true
                     val err = SocialApi.chatSend(body)
                     error = err
-                    if (err == null) { text = ""; SocialApi.chat().value?.let { snap = it; listState.scrollToItem((it.messages.size - 1).coerceAtLeast(0)) } }
+                    if (err == null) { text = ""; replyTo = null; SocialApi.chat().value?.let { snap = it; listState.scrollToItem((it.messages.size - 1).coerceAtLeast(0)) } }
                     sending = false
                 }
-            })
+            }
+            // Tab bawah: Global / Pesan / Teman
+            Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(top = 2.dp)) {
+                listOf("Global", "Pesan", "Teman").forEachIndexed { i, l ->
+                    Column(Modifier.weight(1f).clickable { if (i == 1) SocialNav.open(SocialPage.Inbox) else if (i == 2) SocialNav.open(SocialPage.Friends) }.padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(Modifier.width(26.dp).height(3.dp).clip(CircleShape).background(if (i == 0) accent else Color.Transparent))
+                        Text(l, color = if (i == 0) Color.White else Color.White.copy(alpha = 0.5f), fontWeight = if (i == 0) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+            }
         }
         val am = actionFor
         BottomSheetLite(visible = am != null, onDismiss = { actionFor = null }) {
             if (am != null) {
                 Text(am.name, color = Color.White, fontWeight = FontWeight.Bold)
-                Text(am.body, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(vertical = 6.dp))
+                Text(am.body.substringAfter("\n"), color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(vertical = 6.dp))
+                SheetAction(Icons.AutoMirrored.Rounded.Reply, "Balas") { replyTo = am; actionFor = null }
                 SheetAction(Icons.Rounded.Person, "Lihat profil") { actionFor = null; SocialNav.openProfile(am.userId) }
                 if (am.userId != me) SheetAction(Icons.Rounded.Flag, "Laporkan ke owner", Color(0xFFFF8A80)) {
                     actionFor = null
@@ -323,6 +369,28 @@ fun GlobalChatScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ChatComposer(value: String, onValueChange: (String) -> Unit, enabled: Boolean, maxLen: Int, sending: Boolean, onSend: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(Color(0xFF1B2028)).padding(horizontal = 16.dp, vertical = 9.dp)) {
+            Box {
+                if (value.isEmpty()) Text("Silakan masukkan pesan…", color = Color.White.copy(alpha = 0.4f), fontSize = 14.sp)
+                BasicTextField(
+                    value, { onValueChange(it.take(maxLen)) }, enabled = enabled, maxLines = 4,
+                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp), cursorBrush = SolidColor(Color.White), modifier = Modifier.fillMaxWidth()
+                )
+            }
+            Text("${value.length}/$maxLen", color = Color.White.copy(alpha = 0.35f), fontSize = 10.sp, modifier = Modifier.align(Alignment.End))
+        }
+        Spacer(Modifier.width(8.dp))
+        val ready = enabled && !sending && value.isNotBlank()
+        Box(
+            Modifier.size(46.dp).clip(CircleShape).background(if (ready) Color(0xFF2196F3) else Color(0xFF2196F3).copy(alpha = 0.35f)).clickable(enabled = ready, onClick = onSend),
+            Alignment.Center
+        ) { Icon(Icons.AutoMirrored.Rounded.Send, "Kirim", tint = Color.White, modifier = Modifier.size(22.dp)) }
     }
 }
 
@@ -335,39 +403,39 @@ private fun SheetAction(icon: androidx.compose.ui.graphics.vector.ImageVector, l
     }
 }
 
+/** Kartu pesan gaya Chat Global: foto di kiri bawah, kartu gelap berisi nama, kutipan balasan, isi, dan jam di kanan bawah. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ChatBubbleRow(m: ChatMessage, mine: Boolean, first: Boolean, last: Boolean, accent: Color, modifier: Modifier, onLong: () -> Unit, onTap: () -> Unit) {
+private fun ChatCardRow(m: ChatMessage, mine: Boolean, accent: Color, onLong: () -> Unit, onTap: () -> Unit) {
     LaunchedEffect(m.userId) { CosmeticsStore.request(m.userId) }
     val eq = CosmeticsStore.map[m.userId]
-    val r = 20.dp
-    val t = 5.dp
-    val shape = if (mine) RoundedCornerShape(topStart = r, topEnd = if (first) r else t, bottomStart = r, bottomEnd = if (last) r else t)
-    else RoundedCornerShape(topStart = if (first) r else t, topEnd = r, bottomStart = if (last) r else t, bottomEnd = r)
-    val mineBrush = Brush.linearGradient(listOf(lerp(accent, Color.Black, 0.5f), lerp(lerp(accent, Color(0xFF6A3DFF), 0.35f), Color.Black, 0.35f)))
-    Row(modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start, verticalAlignment = Alignment.Bottom) {
-        if (!mine) {
-            Box(Modifier.width(if (eq?.frame != null) 50.dp else 40.dp), contentAlignment = Alignment.BottomStart) {
-                if (last) Box(Modifier.clickable(onClick = onTap)) { AvatarWithDot(m.avatar, m.name, 34.dp, null, userId = m.userId) }
-            }
+    var quote: String? = null
+    var body = m.body
+    if (body.startsWith("↩ ") && body.contains("\n")) { quote = body.substring(2).substringBefore("\n"); body = body.substringAfter("\n") }
+    val shape = RoundedCornerShape(14.dp)
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+        Box(Modifier.width(if (eq?.frame != null) 50.dp else 42.dp).clickable(onClick = onTap), contentAlignment = Alignment.BottomStart) {
+            AvatarWithDot(m.avatar, m.name, 36.dp, null, userId = m.userId)
         }
-        Column(horizontalAlignment = if (mine) Alignment.End else Alignment.Start, modifier = Modifier.weight(1f, fill = false)) {
-            if (!mine && first) Row(Modifier.padding(start = 6.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                CosmeticName(m.name, eq, color = if (m.owner) accent else Color.White.copy(alpha = 0.8f), fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
-                if (m.owner) Text(
-                    "OWNER", color = Color.Black, fontSize = 8.sp, fontWeight = FontWeight.Black,
-                    modifier = Modifier.padding(start = 6.dp).clip(RoundedCornerShape(50)).background(accent).padding(horizontal = 5.dp, vertical = 1.dp)
+        PlateBox(eq?.plate, Modifier.weight(1f, fill = false).combinedClickable(onClick = onTap, onLongClick = onLong), shape) {
+            Column(
+                Modifier.then(if (eq?.plate == null) Modifier.clip(shape).background(if (mine) accent.copy(alpha = 0.22f) else Color(0xFF1E2229)) else Modifier)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CosmeticName(m.name, eq, color = if (m.owner) accent else Color(0xFF9CCB6A), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
+                    if (m.owner) Text(
+                        "OWNER", color = Color.Black, fontSize = 8.sp, fontWeight = FontWeight.Black,
+                        modifier = Modifier.padding(start = 6.dp).clip(RoundedCornerShape(50)).background(accent).padding(horizontal = 5.dp, vertical = 1.dp)
+                    )
+                }
+                if (quote != null) Text(
+                    quote, color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(vertical = 4.dp).clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.06f)).padding(6.dp)
                 )
+                Text(body, color = Color.White, fontSize = 14.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 2.dp))
+                Text(hourText(m.createdAt), color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
             }
-            PlateBox(if (mine) null else eq?.plate, Modifier.widthIn(max = 280.dp).combinedClickable(onClick = onTap, onLongClick = onLong), shape) {
-                Text(
-                    m.body, color = Color.White, fontSize = 15.sp, lineHeight = 20.sp,
-                    modifier = Modifier
-                        .then(if (mine) Modifier.clip(shape).background(mineBrush) else if (eq?.plate == null) Modifier.clip(shape).background(Color.White.copy(alpha = 0.11f)) else Modifier)
-                        .padding(horizontal = 14.dp, vertical = 9.dp)
-                )
-            }
-            if (last) Text(hourText(m.createdAt), color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
         }
     }
 }

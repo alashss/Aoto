@@ -417,8 +417,8 @@ private fun NoteItem(name: String, avatar: String?, userId: String?, note: Strin
         if (!song.isNullOrBlank()) append("♪ ").append(song.substringBefore(" · ")).append(if (note.isNullOrBlank() && lyric.isNullOrBlank()) "" else "\n")
         if (!note.isNullOrBlank()) append(note) else if (!lyric.isNullOrBlank()) append(lyric)
     }.ifBlank { null }
-    Column(modifier = Modifier.width(80.dp).clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.height(54.dp).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+    Column(modifier = Modifier.width(88.dp).clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.height(58.dp).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
             Text(
                 text ?: "Siap untuk…", fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, lineHeight = 13.sp,
                 color = if (text == null) Color.White.copy(alpha = 0.55f) else if (bg != null) Color.White else Color.White,
@@ -430,7 +430,7 @@ private fun NoteItem(name: String, avatar: String?, userId: String?, note: Strin
         Row(Modifier.fillMaxWidth().padding(start = 12.dp).height(8.dp)) {
             Box(Modifier.offset(y = (-3).dp).size(8.dp).clip(CircleShape).background(bg ?: Color.White.copy(alpha = 0.16f)))
         }
-        AvatarWithDot(avatar, name, 58.dp, online, ring = if (text != null) bg ?: accent else null, userId = userId)
+        AvatarWithDot(avatar, name, 66.dp, online, ring = null, userId = userId)
         Spacer(Modifier.height(2.dp))
         Text(label, color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }

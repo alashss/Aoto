@@ -1,5 +1,11 @@
 # Catatan perubahan
 
+## 2.14.0
+- Mode Kunci Layar: tampilan ala layar kunci (jam besar, lirik berjalan, kartu pemutar dengan sebelumnya/jeda/berikutnya), layar tetap menyala. Buka dari ikon gembok di panel lirik atau Pengaturan.
+- Chat Global dirombak (kartu pesan, peringatan, pesan baru, balas, penghitung huruf, tab Global/Pesan/Teman).
+- Tampilan sosial memakai latar gelap polos ala Instagram; catatan lebih besar; pemilih lagu punya tab Untuk Anda / Sedang tren.
+- Animasi peringkat kini hanya di dalam kotak, dan kotaknya juga tampil di Beranda.
+
 ## 2.13.1
 - Catatan gaya Instagram: tombol lagu (cari lagu), pilih satu baris lirik, editor warna terpisah (Terapkan/Hapus), ketuk lagu di catatan teman untuk memutar.
 - Pemilihan pengguna di panel owner (Kosmetik) berupa daftar yang bisa dicentang.

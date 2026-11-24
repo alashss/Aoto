@@ -527,6 +527,7 @@ fun JimzTuneApp() {
             }
 
             com.jimz.jimztune.ui.social.SocialHost()
+            com.jimz.jimztune.ui.player.LockModeHost(player)
 
             BatteryPrompt(isPlaying = player.ui.isPlaying)
             if (showDonate && AppGraph.remote.featureOn("donate")) DonateDialog { showDonate = false }

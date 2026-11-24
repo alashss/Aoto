@@ -153,6 +153,12 @@ fun HomeScreen(
     ) {
         item { top() }
         if (AppGraph.remote.featureOn("streak")) item { com.jimz.jimztune.ui.stats.StreakCard() }
+        if (AppGraph.remote.featureOn("ranking")) item {
+            com.jimz.jimztune.ui.ranking.RankBanner(
+                com.jimz.jimztune.data.stats.RankKind.LISTEN, com.jimz.jimztune.ui.theme.LocalCoverTheme.current.accent,
+                Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+            ) { onOpenRanking(com.jimz.jimztune.data.stats.RankKind.LISTEN, com.jimz.jimztune.data.stats.RankPeriod.ALL) }
+        }
         if (maintenance.enabled && isOwner) {
             item { OwnerMaintenanceNotice() }
         }
@@ -250,6 +256,12 @@ private fun MaintenanceHome(
     ) {
         item { top() }
         if (AppGraph.remote.featureOn("streak")) item { com.jimz.jimztune.ui.stats.StreakCard() }
+        if (AppGraph.remote.featureOn("ranking")) item {
+            com.jimz.jimztune.ui.ranking.RankBanner(
+                com.jimz.jimztune.data.stats.RankKind.LISTEN, com.jimz.jimztune.ui.theme.LocalCoverTheme.current.accent,
+                Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+            ) { onOpenRanking(com.jimz.jimztune.data.stats.RankKind.LISTEN, com.jimz.jimztune.data.stats.RankPeriod.ALL) }
+        }
         item {
             val shape = RoundedCornerShape(22.dp)
             Row(

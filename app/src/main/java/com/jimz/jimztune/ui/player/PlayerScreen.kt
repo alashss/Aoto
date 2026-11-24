@@ -48,6 +48,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -295,7 +296,8 @@ fun PlayerScreen(
                                 )
                             }
                         }
-                        PlayerPane.Lyrics -> LyricsPane(
+                        PlayerPane.Lyrics -> Box(Modifier.fillMaxSize()) {
+                        LyricsPane(
                             state = lyrics,
                             positionMs = state.positionMs,
                             isPlaying = state.isPlaying,
@@ -309,6 +311,11 @@ fun PlayerScreen(
                             translation = translation,
                             onTranslationSettingsChanged = onTranslationSettingsChanged
                         )
+                        androidx.compose.material3.IconButton(
+                            onClick = { LockMode.active = true },
+                            modifier = Modifier.align(Alignment.TopEnd)
+                        ) { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Lock, "Mode kunci layar", tint = Color.White.copy(alpha = 0.8f)) }
+                        }
                         PlayerPane.Queue -> QueuePane(
                             queue = state.queue,
                             queueIndex = state.queueIndex,

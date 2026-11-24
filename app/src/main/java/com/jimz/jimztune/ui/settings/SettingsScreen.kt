@@ -182,6 +182,7 @@ fun SettingsScreen(
                 SettingRow(Icons.Rounded.GraphicEq, "Audio", "Equalizer, efek suara, kualitas", { page = "audio" }, trailing = { HubChevron() })
                 if (AppGraph.account.isOwner) {
                     RowDivider()
+                    SettingRow(Icons.Rounded.PlayCircle, "Mode kunci layar", "Lirik besar + kontrol, layar tetap menyala", { com.jimz.jimztune.ui.player.LockMode.active = true }, trailing = { HubChevron() })
                     SettingRow(Icons.Rounded.PlayCircle, "Pemutaran", "Catatan pemutar (khusus owner)", { page = "pemutaran" }, trailing = { HubChevron() })
                 }
                 RowDivider()

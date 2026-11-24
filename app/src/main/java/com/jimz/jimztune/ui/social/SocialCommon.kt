@@ -55,7 +55,7 @@ fun SocialScaffold(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(0f to cover.top, 0.5f to cover.mid, 1f to cover.bottom))
+            .background(Color(0xFF0B0E14))
             .statusBarsPadding()
             .imePadding()
     ) {

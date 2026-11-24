@@ -90,10 +90,6 @@ fun RankingScreen(initialKind: RankKind, initialPeriod: RankPeriod, onBack: () -
             .fillMaxSize()
             .background(JimzBackground)
     ) {
-        // Tiap jenis peringkat punya suasana sendiri: Mendengar = batang equalizer naik-turun, Donasi = kilau yang melayang naik.
-        androidx.compose.animation.Crossfade(targetState = kind, animationSpec = androidx.compose.animation.core.tween(500), label = "boardFx") { k ->
-            BoardBackdrop(k, accent)
-        }
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             Row(
                 modifier = Modifier.padding(start = 6.dp, end = 16.dp, top = 6.dp),
@@ -107,6 +103,7 @@ fun RankingScreen(initialKind: RankKind, initialPeriod: RankPeriod, onBack: () -
                 )
             }
 
+            RankBanner(kind, accent, Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
             // Jenis peringkat
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -427,7 +424,7 @@ private fun MyRankBar(kind: RankKind, board: RankBoard?, modifier: Modifier) {
 
 /** Latar animasi per jenis peringkat. Ringan: satu Canvas dengan satu pewaktu. */
 @Composable
-private fun BoardBackdrop(kind: RankKind, accent: Color) {
+internal fun RankFx(kind: RankKind, accent: Color, modifier: Modifier = Modifier.fillMaxSize()) {
     val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "boardFxT")
     val phase by t.animateFloat(
         initialValue = 0f,
@@ -440,7 +437,7 @@ private fun BoardBackdrop(kind: RankKind, accent: Color) {
         ),
         label = "boardPhase"
     )
-    androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+    androidx.compose.foundation.Canvas(modifier) {
         val w = size.width
         val h = size.height
         if (kind == RankKind.LISTEN) {
@@ -448,14 +445,14 @@ private fun BoardBackdrop(kind: RankKind, accent: Color) {
             val n = 22
             val gap = w / n
             val barW = gap * 0.46f
-            val region = h * 0.30f
+            val region = h * 0.85f
             for (i in 0 until n) {
                 val a = kotlin.math.sin((phase * 2f * Math.PI.toFloat()) + i * 0.62f)
                 val b = kotlin.math.sin((phase * 4f * Math.PI.toFloat()) + i * 1.3f)
                 val level = (0.30f + 0.70f * kotlin.math.abs(0.65f * a + 0.35f * b)).coerceIn(0.1f, 1f)
                 val bh = region * level
                 drawRoundRect(
-                    color = accent.copy(alpha = 0.10f + 0.08f * level),
+                    color = accent.copy(alpha = 0.22f + 0.18f * level),
                     topLeft = Offset(i * gap + (gap - barW) / 2f, region - bh),
                     size = androidx.compose.ui.geometry.Size(barW, bh),
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(barW / 2f, barW / 2f)
@@ -469,7 +466,7 @@ private fun BoardBackdrop(kind: RankKind, accent: Color) {
                 val x = ((i * 0.6180339f) % 1f) * w + kotlin.math.sin((p + i) * 6.28f) * w * 0.02f
                 val y = h * (1f - p * 0.8f)
                 val r = (4f + (i % 4) * 3f) * density
-                val alpha = (1f - p) * 0.22f * (if (p < 0.1f) p * 10f else 1f)
+                val alpha = (1f - p) * 0.55f * (if (p < 0.1f) p * 10f else 1f)
                 val col = if (i % 2 == 0) Color(0xFFFF6B9D) else Color(0xFFFFD36B)
                 drawCircle(
                     androidx.compose.ui.graphics.Brush.radialGradient(
@@ -478,6 +475,32 @@ private fun BoardBackdrop(kind: RankKind, accent: Color) {
                     radius = r * 2.2f, center = Offset(x, y)
                 )
             }
+        }
+    }
+}
+
+
+/** Kotak peringkat: animasi hanya hidup DI DALAM kotak ini (tidak keluar ke layar). */
+@Composable
+internal fun RankBanner(kind: RankKind, accent: Color, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+    val shape = RoundedCornerShape(24.dp)
+    Box(
+        modifier = modifier.fillMaxWidth().height(96.dp).clip(shape)
+            .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.30f), Color(0xFF12163A))))
+            .border(1.dp, Color.White.copy(alpha = 0.1f), shape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+    ) {
+        androidx.compose.animation.Crossfade(targetState = kind, animationSpec = androidx.compose.animation.core.tween(500), label = "boardFx") { k ->
+            RankFx(k, accent, Modifier.fillMaxSize())
+        }
+        Row(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(if (kind == RankKind.LISTEN) Icons.Rounded.Headphones else Icons.Rounded.Favorite, null, tint = Color.White, modifier = Modifier.size(30.dp))
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(if (kind == RankKind.LISTEN) "Peringkat Pendengar" else "Peringkat Donasi", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(if (kind == RankKind.LISTEN) "Siapa paling rajin mendengar" else "Terima kasih yang sudah mendukung", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+            }
+            if (onClick != null) Icon(Icons.Rounded.EmojiEvents, null, tint = Color(0xFFFFD36B), modifier = Modifier.size(26.dp))
         }
     }
 }
