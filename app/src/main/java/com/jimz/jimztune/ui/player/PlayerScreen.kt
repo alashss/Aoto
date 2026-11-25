@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.FormatQuote
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
@@ -236,6 +237,9 @@ fun PlayerScreen(
                         PlayerPane.entries.forEach { p ->
                             PaneTab(p.label, pane == p) { pane = p }
                         }
+                    }
+                    IconButton(onClick = { LyricsMode.active = true }) {
+                        Icon(Icons.Rounded.FormatQuote, contentDescription = "Mode lirik", modifier = Modifier.size(24.dp))
                     }
                     IconButton(onClick = { LockMode.active = true }) {
                         Icon(Icons.Rounded.Lock, contentDescription = "Mode kunci layar", modifier = Modifier.size(22.dp))

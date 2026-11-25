@@ -1,5 +1,12 @@
 # Catatan perubahan
 
+## 2.16.0
+- Mode Lirik baru (ikon kutip di pemutar atau Pengaturan): lirik layar penuh, potret atau lanskap.
+- Lirik catatan IG memakai komponen halaman lirik (isi per kata).
+- Kosmetik: +42 item baru, jenis baru Gelembung chat (DM dan Chat Global), banyak yang bergerak; dikelompokkan per jenis lalu rarity.
+- Profil orang: efek kosmetik punya animasi masuk; titik online tidak lagi tertutup bingkai.
+- Profil sendiri punya dua tampilan: Saya dan Publik. Butuh SQL tahap 33.
+
 ## 2.15.0
 - Layar kunci: kotak hitam di atas lirik hilang (pakai topeng pudar), lirik terisi per kata seperti halaman lirik, latar sampul kabur, kartu pemutar kini Liquid Glass (lensa pembias latar, tepi bercahaya, kilap menyapu).
 - Catatan ala Instagram: potongan lagu 4 baris + lirik beranimasi per kata, lagu diputar dari awal potongan dan diulang, catatan sendiri juga beranimasi ("Tinggalkan catatan baru" / "Hapus catatan"), catatan berlaku 24 jam. Butuh SQL tahap 32.

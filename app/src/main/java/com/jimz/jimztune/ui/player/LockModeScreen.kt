@@ -183,76 +183,7 @@ private fun LockModeScreen(player: PlayerViewModel) {
             }
 
             // Lirik berjalan: baris aktif terisi putih per kata (karaoke) seperti di halaman lirik.
-            Box(
-                Modifier.weight(1f).fillMaxWidth().padding(horizontal = 22.dp).graphicsLayer { alpha = enter }
-                    .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
-                    .drawWithContent {
-                        drawContent()
-                        // Pudar di atas dan bawah dengan topeng (bukan lapisan gelap), jadi tidak ada kotak hitam.
-                        drawRect(
-                            Brush.verticalGradient(0f to Color.Transparent, 0.10f to Color.Black, 0.86f to Color.Black, 1f to Color.Transparent),
-                            blendMode = androidx.compose.ui.graphics.BlendMode.DstIn
-                        )
-                    }
-            ) {
-                val st = player.lyrics
-                if (st is LyricsState.Ready) {
-                    val lyr = st.lyrics
-                    val lines = lyr.lines
-                    val synced = lyr.synced
-                    val prefs = AppGraph.lyricsPrefs
-                    val offset = remember(st.songId, prefs.offsetVersion) { prefs.offsetMs(st.songId) }
-                    var smoothPos by remember { androidx.compose.runtime.mutableLongStateOf(ui.positionMs) }
-                    LaunchedEffect(ui.positionMs, ui.isPlaying) {
-                        smoothPos = ui.positionMs
-                        if (!ui.isPlaying) return@LaunchedEffect
-                        val base0 = ui.positionMs
-                        val t0 = System.nanoTime()
-                        while (true) androidx.compose.runtime.withFrameMillis { smoothPos = base0 + (System.nanoTime() - t0) / 1_000_000 }
-                    }
-                    val cur by remember(lines) {
-                        androidx.compose.runtime.derivedStateOf {
-                            if (!synced) -1 else {
-                                val p = smoothPos + 180L + offset
-                                var lo = 0; var hi = lines.lastIndex; var ans = -1
-                                while (lo <= hi) { val mid = (lo + hi) / 2; if (lines[mid].timeMs <= p) { ans = mid; lo = mid + 1 } else hi = mid - 1 }
-                                ans
-                            }
-                        }
-                    }
-                    val listState = rememberLazyListState()
-                    LaunchedEffect(cur, st.songId) {
-                        if (!synced || cur < 0) return@LaunchedEffect
-                        val info = listState.layoutInfo
-                        val target = info.viewportSize.height * 0.30f
-                        val item = info.visibleItemsInfo.firstOrNull { it.index == cur }
-                        if (item != null) listState.animateScrollBy(item.offset + item.size / 2f - target, tween(650, easing = FastOutSlowInEasing))
-                        else listState.scrollToItem(cur, -target.toInt())
-                    }
-                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), userScrollEnabled = !synced, contentPadding = PaddingValues(vertical = 24.dp)) {
-                        itemsIndexed(lines) { i, l ->
-                            if (l.text.isBlank()) { Spacer(Modifier.height(14.dp)); return@itemsIndexed }
-                            val endMs = lines.getOrNull(i + 1)?.timeMs ?: (l.timeMs + 4_000L)
-                            val sweepMs = remember(l, endMs) {
-                                if (l.words.isNotEmpty()) LyricTiming.wordSweepMs(l) else LyricTiming.sweepMs(l.text, endMs - l.timeMs)
-                            }
-                            LyricRow(
-                                text = l.text, words = l.words, lineStartMs = l.timeMs, synced = synced,
-                                distance = if (synced) kotlin.math.abs(i - cur) else 1,
-                                center = false, sizeScale = 1.15f, translation = null, roman = null,
-                                animStyle = prefs.animStyle, blurOthers = prefs.blurOthers,
-                                progress = { (((smoothPos + 180L + offset) - l.timeMs).toFloat() / sweepMs).coerceIn(0f, 1f) },
-                                onClick = { if (synced) player.seekTo((l.timeMs - offset).coerceAtLeast(0L)) }
-                            )
-                        }
-                    }
-                } else Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text(
-                        when (st) { LyricsState.NotFound -> "Lirik belum ditemukan"; LyricsState.Loading, LyricsState.Idle -> "Memuat lirik…"; else -> "Lirik tidak tersedia" },
-                        color = Color.White.copy(alpha = 0.6f), fontSize = 16.sp, textAlign = TextAlign.Center
-                    )
-                }
-            }
+            LyricsFeed(player, Modifier.weight(1f).fillMaxWidth().padding(horizontal = 22.dp).graphicsLayer { alpha = enter })
 
             // Kartu pemutar
             LiquidGlass(
@@ -343,5 +274,81 @@ private fun LockBackdrop(modifier: Modifier, art: String?, accent: Color, drift:
                 drawCircle(Brush.radialGradient(listOf(Color(0xFF6A3DFF).copy(alpha = 0.30f), Color.Transparent), c2, w * 0.9f), radius = w * 0.9f, center = c2)
             }
         )
+    }
+}
+
+/** Daftar lirik berjalan (karaoke per kata) yang dipakai Mode Kunci Layar dan Mode Lirik. */
+@Composable
+internal fun LyricsFeed(player: PlayerViewModel, modifier: Modifier = Modifier, sizeScale: Float = 1.15f, center: Boolean = false) {
+    val ui = player.ui
+    Box(
+        modifier
+            .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+            .drawWithContent {
+                drawContent()
+                drawRect(
+                    Brush.verticalGradient(0f to Color.Transparent, 0.10f to Color.Black, 0.86f to Color.Black, 1f to Color.Transparent),
+                    blendMode = androidx.compose.ui.graphics.BlendMode.DstIn
+                )
+            }
+    ) {
+        val st = player.lyrics
+        if (st is LyricsState.Ready) {
+            val lyr = st.lyrics
+            val lines = lyr.lines
+            val synced = lyr.synced
+            val prefs = AppGraph.lyricsPrefs
+            val offset = remember(st.songId, prefs.offsetVersion) { prefs.offsetMs(st.songId) }
+            var smoothPos by remember { androidx.compose.runtime.mutableLongStateOf(ui.positionMs) }
+            LaunchedEffect(ui.positionMs, ui.isPlaying) {
+                smoothPos = ui.positionMs
+                if (!ui.isPlaying) return@LaunchedEffect
+                val base0 = ui.positionMs
+                val t0 = System.nanoTime()
+                while (true) androidx.compose.runtime.withFrameMillis { smoothPos = base0 + (System.nanoTime() - t0) / 1_000_000 }
+            }
+            val cur by remember(lines) {
+                androidx.compose.runtime.derivedStateOf {
+                    if (!synced) -1 else {
+                        val p = smoothPos + 180L + offset
+                        var lo = 0; var hi = lines.lastIndex; var ans = -1
+                        while (lo <= hi) { val mid = (lo + hi) / 2; if (lines[mid].timeMs <= p) { ans = mid; lo = mid + 1 } else hi = mid - 1 }
+                        ans
+                    }
+                }
+            }
+            val listState = rememberLazyListState()
+            LaunchedEffect(cur, st.songId) {
+                if (!synced || cur < 0) return@LaunchedEffect
+                val info = listState.layoutInfo
+                val target = info.viewportSize.height * 0.30f
+                val item = info.visibleItemsInfo.firstOrNull { it.index == cur }
+                if (item != null) listState.animateScrollBy(item.offset + item.size / 2f - target, tween(650, easing = FastOutSlowInEasing))
+                else listState.scrollToItem(cur, -target.toInt())
+            }
+            LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), userScrollEnabled = !synced, contentPadding = PaddingValues(vertical = 24.dp)) {
+                itemsIndexed(lines) { i, l ->
+                    if (l.text.isBlank()) { Spacer(Modifier.height(14.dp)); return@itemsIndexed }
+                    val endMs = lines.getOrNull(i + 1)?.timeMs ?: (l.timeMs + 4_000L)
+                    val sweepMs = remember(l, endMs) {
+                        if (l.words.isNotEmpty()) LyricTiming.wordSweepMs(l) else LyricTiming.sweepMs(l.text, endMs - l.timeMs)
+                    }
+                    LyricRow(
+                        text = l.text, words = l.words, lineStartMs = l.timeMs, synced = synced,
+                        distance = if (synced) kotlin.math.abs(i - cur) else 1,
+                        center = center, sizeScale = sizeScale, translation = null, roman = null,
+                        animStyle = prefs.animStyle, blurOthers = prefs.blurOthers,
+                        progress = { (((smoothPos + 180L + offset) - l.timeMs).toFloat() / sweepMs).coerceIn(0f, 1f) },
+                        onClick = { if (synced) player.seekTo((l.timeMs - offset).coerceAtLeast(0L)) }
+                    )
+                }
+            }
+        } else Box(Modifier.fillMaxSize(), Alignment.Center) {
+            Text(
+                when (st) { LyricsState.NotFound -> "Lirik belum ditemukan"; LyricsState.Loading, LyricsState.Idle -> "Memuat lirik…"; else -> "Lirik tidak tersedia" },
+                color = Color.White.copy(alpha = 0.6f), fontSize = 16.sp, textAlign = TextAlign.Center
+            )
+        }
+
     }
 }

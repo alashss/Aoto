@@ -64,8 +64,8 @@ internal fun CosmeticsAdminPage(onBack: () -> Unit) {
             if (loader.error != null) ErrorRow(loader.error ?: "", loader::reload) else LoadingRow()
             return@OwnerScaffold
         }
-        ChipRow(listOf("Bingkai", "Plat nama", "Efek"), kind) { kind = it }
-        val key = listOf("frame", "plate", "effect")[kind]
+        ChipRow(listOf("Bingkai", "Plat nama", "Efek", "Gelembung"), kind) { kind = it }
+        val key = listOf("frame", "plate", "effect", "bubble")[kind]
         OwnerSection(kindLabel(key))
         GroupCard {
             all.filter { it.kind == key }.forEachIndexed { i, it ->

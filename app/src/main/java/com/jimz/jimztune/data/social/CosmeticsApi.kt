@@ -12,8 +12,8 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 
-data class Equipped(val frame: String? = null, val plate: String? = null, val effect: String? = null) {
-    val any: Boolean get() = frame != null || plate != null || effect != null
+data class Equipped(val frame: String? = null, val plate: String? = null, val effect: String? = null, val bubble: String? = null) {
+    val any: Boolean get() = frame != null || plate != null || effect != null || bubble != null
     val gold: Boolean get() = frame == "frame_gold" || plate == "plate_gold" || effect == "fx_sparkle"
 }
 
@@ -26,7 +26,7 @@ data class CosmeticsCatalog(val level: Int, val equipped: Equipped, val items: L
 data class HolderRow(val userId: String, val name: String, val username: String?)
 
 private fun JSONObject.s(k: String): String? = if (isNull(k)) null else optString(k).takeIf { it.isNotBlank() }
-private fun eq(o: JSONObject?) = Equipped(o?.s("frame"), o?.s("plate"), o?.s("effect"))
+private fun eq(o: JSONObject?) = Equipped(o?.s("frame"), o?.s("plate"), o?.s("effect"), o?.s("bubble"))
 
 object CosmeticsApi {
     private suspend fun rpc(name: String, body: JSONObject = JSONObject()): Res<String> {
@@ -54,7 +54,11 @@ object CosmeticsApi {
     }
 
     suspend fun equip(e: Equipped): String? {
-        val r = rpc("cosmetics_equip", JSONObject().put("p_frame", e.frame ?: "").put("p_plate", e.plate ?: "").put("p_effect", e.effect ?: ""))
+        var r = rpc("cosmetics_equip_v2", JSONObject().put("p_frame", e.frame ?: "").put("p_plate", e.plate ?: "").put("p_effect", e.effect ?: "").put("p_bubble", e.bubble ?: ""))
+        // SQL tahap 33 belum dipasang: simpan tiga jenis lama saja.
+        if (r.error != null && r.error.contains("cosmetics_equip_v2", true)) {
+            r = rpc("cosmetics_equip", JSONObject().put("p_frame", e.frame ?: "").put("p_plate", e.plate ?: "").put("p_effect", e.effect ?: ""))
+        }
         if (r.error == null) CosmeticsStore.put(AppGraph.auth.session?.userId ?: "", e)
         return r.error
     }

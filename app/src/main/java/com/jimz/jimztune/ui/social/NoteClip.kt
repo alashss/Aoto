@@ -91,7 +91,17 @@ fun ClipView(lines: List<ClipLine>, clockMs: Long, size: TextUnit, modifier: Mod
             targetState = idx,
             transitionSpec = { (slideInVertically(tween(380)) { it / 2 } + fadeIn(tween(380))) togetherWith (slideOutVertically(tween(260)) { -it / 2 } + fadeOut(tween(220))) },
             label = "clipLine"
-        ) { i -> KaraokeWords(lines[i.coerceIn(0, lines.lastIndex)].text, if (i == idx) progress else 1f, size) }
+        ) { i ->
+            val ln = lines[i.coerceIn(0, lines.lastIndex)]
+            val p = if (i == idx) progress else 1f
+            // Persis komponen halaman lirik: isi per kata dengan gaya animasi yang sama.
+            com.jimz.jimztune.ui.player.LyricRow(
+                text = ln.text, words = emptyList(), lineStartMs = ln.ms, synced = true, distance = 0, center = true,
+                sizeScale = size.value / 16f, translation = null, roman = null,
+                animStyle = com.jimz.jimztune.AppGraph.lyricsPrefs.animStyle, blurOthers = false,
+                progress = { p }, onClick = {}
+            )
+        }
     }
 }
 

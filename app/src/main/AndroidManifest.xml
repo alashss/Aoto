@@ -23,6 +23,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard"
             android:theme="@style/Theme.JimzTune.Splash">
             <!-- TAHAP 13: tujuan kembali setelah login Google / konfirmasi email / reset password -->
             <intent-filter>

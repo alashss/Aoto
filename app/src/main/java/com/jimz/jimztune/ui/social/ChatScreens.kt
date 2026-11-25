@@ -123,8 +123,10 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
     var lastSeen by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
 
+    val me = AppGraph.auth.session?.userId
     LaunchedEffect(userId) {
         CosmeticsStore.request(userId)
+        if (me != null) CosmeticsStore.request(me)
         while (true) {
             SocialApi.dmThread(userId).value?.let { fresh ->
                 if (fresh.lastOrNull()?.id != msgs?.lastOrNull()?.id || msgs == null) msgs = fresh
@@ -186,7 +188,7 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
                         if (!m.mine) {
                             Box(Modifier.width(32.dp)) { if (lastOfGroup) AvatarWithDot(avatar, name, 26.dp, null, userId = userId) }
                         }
-                        Bubble(m, firstOfGroup, lastOfGroup, isLast = next == null, modifier = Modifier.weight(1f))
+                        Bubble(m, firstOfGroup, lastOfGroup, isLast = next == null, modifier = Modifier.weight(1f), bubbleId = CosmeticsStore.map[if (m.mine) me ?: userId else userId]?.bubble)
                     }
                 }
             }
@@ -209,7 +211,7 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
 }
 
 @Composable
-private fun Bubble(m: DmMessage, first: Boolean, last: Boolean, isLast: Boolean, modifier: Modifier = Modifier) {
+private fun Bubble(m: DmMessage, first: Boolean, last: Boolean, isLast: Boolean, modifier: Modifier = Modifier, bubbleId: String? = null) {
     val accent = LocalCoverTheme.current.accent
     val mine = m.mine
     val big = m.body == "❤️"
@@ -240,12 +242,9 @@ private fun Bubble(m: DmMessage, first: Boolean, last: Boolean, isLast: Boolean,
                 bottomStart = if (!mine && !last) tight else r, bottomEnd = if (mine && !last) tight else r
             )
             val mineBrush = Brush.linearGradient(listOf(Color(0xFF8A4DFF), Color(0xFF3D7BFF)), Offset(0f, 0f), Offset(0f, 1200f))
-            Text(
-                body, color = Color.White, fontSize = 15.sp,
-                modifier = Modifier.widthIn(max = 290.dp).clip(shape)
-                    .then(if (mine) Modifier.background(mineBrush) else Modifier.background(Color(0xFF262626)))
-                    .padding(horizontal = 14.dp, vertical = 9.dp)
-            )
+            CosmeticBubble(bubbleId, shape, Modifier.widthIn(max = 290.dp), if (mine) mineBrush else androidx.compose.ui.graphics.SolidColor(Color(0xFF262626))) {
+                Text(body, color = bubbleTextColor(bubbleId) ?: Color.White, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
+            }
         }
         if (last || isLast) Text(
             hourText(m.createdAt) + if (mine && m.read && isLast) "  ·  Dilihat" else "",
@@ -430,7 +429,29 @@ private fun ChatCardRow(m: ChatMessage, mine: Boolean, accent: Color, onLong: ()
         Box(Modifier.width(if (eq?.frame != null) 50.dp else 42.dp).clickable(onClick = onTap), contentAlignment = Alignment.BottomStart) {
             AvatarWithDot(m.avatar, m.name, 36.dp, null, userId = m.userId)
         }
-        PlateBox(eq?.plate, Modifier.weight(1f, fill = false).combinedClickable(onClick = onTap, onLongClick = onLong), shape) {
+        val tapMod = Modifier.weight(1f, fill = false).combinedClickable(onClick = onTap, onLongClick = onLong)
+        if (eq?.bubble != null) {
+            CosmeticBubble(eq.bubble, shape, tapMod) {
+                Column(
+                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CosmeticName(m.name, eq, color = if (m.owner) accent else Color(0xFF9CCB6A), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
+                        if (m.owner) Text(
+                            "OWNER", color = Color.Black, fontSize = 8.sp, fontWeight = FontWeight.Black,
+                            modifier = Modifier.padding(start = 6.dp).clip(RoundedCornerShape(50)).background(accent).padding(horizontal = 5.dp, vertical = 1.dp)
+                        )
+                    }
+                    if (quote != null) Text(
+                        quote, color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(vertical = 4.dp).clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.06f)).padding(6.dp)
+                    )
+                    Text(body, color = Color.White, fontSize = 14.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 2.dp))
+                    Text(hourText(m.createdAt), color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp, modifier = Modifier.align(Alignment.End).padding(top = 2.dp))
+                }
+
+            }
+        } else PlateBox(eq?.plate, tapMod, shape) {
             Column(
                 Modifier.then(if (eq?.plate == null) Modifier.clip(shape).background(if (mine) accent.copy(alpha = 0.22f) else Color(0xFF1E2229)) else Modifier)
                     .padding(horizontal = 12.dp, vertical = 8.dp)

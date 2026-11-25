@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.LaunchedEffect
+import com.jimz.jimztune.data.social.CosmeticsStore
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -112,20 +115,23 @@ fun SocialScaffold(
 /** Foto profil dengan titik hijau kalau online dan bingkai kosmetik (kalau [userId] diisi). */
 @Composable
 fun AvatarWithDot(url: String?, name: String, size: Dp, online: Boolean?, ring: Color? = null, userId: String? = null) {
-    FramedAvatar(size, userId) {
-        Box(modifier = Modifier.size(size)) {
-            RankAvatar(url, name, size, ring = ring)
-            if (online == true) {
-                val dot = size * 0.26f
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(dot)
-                        .clip(CircleShape)
-                        .background(OnlineGreen)
-                        .border(2.dp, Color(0xFF12163A), CircleShape)
-                )
-            }
+    if (userId != null) LaunchedEffect(userId) { CosmeticsStore.request(userId) }
+    val framed = userId?.let { CosmeticsStore.map[it]?.frame } != null
+    Box(Modifier.size(size)) {
+        FramedAvatar(size, userId) { RankAvatar(url, name, size, ring = ring) }
+        // Titik digambar SETELAH bingkai dan digeser keluar cincin, supaya tidak tertutup kosmetik.
+        if (online == true) {
+            val dot = size * (if (framed) 0.28f else 0.26f)
+            val shift = if (framed) size * 0.14f else 0.dp
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = shift, y = shift)
+                    .size(dot)
+                    .clip(CircleShape)
+                    .background(OnlineGreen)
+                    .border(2.dp, Color(0xFF12163A), CircleShape)
+            )
         }
     }
 }

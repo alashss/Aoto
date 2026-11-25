@@ -88,6 +88,32 @@ import java.util.Locale
  */
 @Composable
 fun ProfileScreen(onBack: () -> Unit, onEdit: () -> Unit) {
+    var publicView by remember { mutableStateOf(false) }
+    val me = AppGraph.auth.session?.userId
+    Box(Modifier.fillMaxSize()) {
+        androidx.compose.animation.Crossfade(publicView, animationSpec = androidx.compose.animation.core.tween(280), label = "profileMode") { pub ->
+            if (pub && me != null) com.jimz.jimztune.ui.social.ProfileViewScreen(me, onBack)
+            else PrivateProfileScreen(onBack, onEdit)
+        }
+        // Dua tampilan: "Saya" (pribadi, dengan statistik dan pengaturan) dan "Publik" (persis seperti yang dilihat orang lain).
+        Row(
+            Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 10.dp)
+                .clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.55f)).padding(3.dp)
+        ) {
+            listOf(false to "Saya", true to "Publik").forEach { (v, label) ->
+                val sel = publicView == v
+                val bg by androidx.compose.animation.animateColorAsState(if (sel) Color.White else Color.Transparent, label = "modeBg")
+                Text(
+                    label, color = if (sel) Color.Black else Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clip(RoundedCornerShape(50)).background(bg).clickable { publicView = v }.padding(horizontal = 18.dp, vertical = 7.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrivateProfileScreen(onBack: () -> Unit, onEdit: () -> Unit) {
     val auth = AppGraph.auth
     val store = AppGraph.profile
     val cloud = AppGraph.cloud

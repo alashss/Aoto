@@ -159,7 +159,7 @@ private fun ProfileBody(p: UserProfile, busy: Boolean, info: String?, onInfoShow
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x99000000)))))
                 }
             }
-            ProfileEffect(eq?.effect)
+            ProfileEffect(eq?.effect, entrance = true)
             Box(modifier = Modifier.align(Alignment.BottomStart).padding(start = 28.dp, bottom = 10.dp)) {
                 AvatarWithDot(p.avatar, p.name, 88.dp, p.online, ring = accent, userId = p.id)
             }
