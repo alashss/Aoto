@@ -1,5 +1,10 @@
 # Catatan perubahan
 
+## 2.15.0
+- Layar kunci: kotak hitam di atas lirik hilang (pakai topeng pudar), lirik terisi per kata seperti halaman lirik, latar sampul kabur, kartu pemutar kini Liquid Glass (lensa pembias latar, tepi bercahaya, kilap menyapu).
+- Catatan ala Instagram: potongan lagu 4 baris + lirik beranimasi per kata, lagu diputar dari awal potongan dan diulang, catatan sendiri juga beranimasi ("Tinggalkan catatan baru" / "Hapus catatan"), catatan berlaku 24 jam. Butuh SQL tahap 32.
+- Chat (DM) bergaya Instagram: header dengan foto, gelembung gradasi ungu-biru dan abu gelap, foto lawan bicara di sisi gelembung, penanda waktu, kolom ketik berbentuk pil.
+
 ## 2.14.2
 - Chat Global: tab Pesan/Teman dihapus, bug layar terdorong saat mengetik diperbaiki (keyboard dihitung dua kali).
 - Catatan ala Instagram: lagu langsung terdengar saat catatan dibuka, lirik muncul beranimasi; pemilih lagu punya pratinjau suara.

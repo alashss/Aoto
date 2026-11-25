@@ -228,6 +228,30 @@ object SocialApi {
             .put("p_song_id", songId ?: JSONObject.NULL).put("p_lyric", lyric ?: JSONObject.NULL)
     )
 
+    /** Catatan dengan potongan lirik panjang. Kalau SQL tahap 32 belum dipasang, jatuh ke v3 dengan satu baris saja. */
+    suspend fun setNoteV4(text: String, color: String?, song: String?, songId: String?, lyric: String?): String? {
+        val err = rpcDo(
+            "set_note_v4",
+            JSONObject().put("p_body", text).put("p_color", color ?: JSONObject.NULL).put("p_song", song ?: JSONObject.NULL)
+                .put("p_song_id", songId ?: JSONObject.NULL).put("p_lyric", lyric ?: JSONObject.NULL)
+        ) ?: return null
+        if (!err.contains("set_note_v4", true) && !err.contains("function", true)) return err
+        val first = lyric?.lines()?.firstOrNull()?.substringAfter('|')?.take(80)
+        return setNoteV3(text, color, song, songId, first)
+    }
+
+    class MyNote(val body: String, val color: String?, val song: String?, val songId: String?, val lyric: String?)
+
+    /** Catatan milik sendiri (masih berlaku 24 jam). null = tidak ada atau SQL tahap 32 belum dipasang. */
+    suspend fun myNote(): MyNote? {
+        val r = rpc("my_note").value ?: return null
+        if (r.trim() == "null" || r.isBlank()) return null
+        return try {
+            val o = JSONObject(r)
+            MyNote(o.optString("body"), o.s("color"), o.s("song"), o.s("song_id"), o.s("lyric"))
+        } catch (_: Exception) { null }
+    }
+
     suspend fun setNoteV2(text: String, color: String?, song: String?): String? = rpcDo(
         "set_note_v2",
         JSONObject().put("p_body", text).put("p_color", color ?: JSONObject.NULL).put("p_song", song ?: JSONObject.NULL)

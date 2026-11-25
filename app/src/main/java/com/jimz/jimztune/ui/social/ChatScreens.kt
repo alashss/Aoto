@@ -33,6 +33,8 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.Reply
 import com.jimz.jimztune.data.social.SocialPage
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PushPin
@@ -60,6 +62,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jimz.jimztune.util.TimeUtil
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.animation.togetherWith
 import com.jimz.jimztune.AppGraph
 import com.jimz.jimztune.data.social.ChatMessage
 import com.jimz.jimztune.data.social.ChatSnapshot
@@ -76,35 +81,30 @@ private fun Composer(
     value: String, onValueChange: (String) -> Unit, placeholder: String, enabled: Boolean, maxLen: Int,
     sending: Boolean, onSend: () -> Unit, onHeart: (() -> Unit)? = null
 ) {
-    val accent = LocalCoverTheme.current.accent
+    val ready = enabled && !sending && value.isNotBlank()
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(28.dp)).background(Color(0xFF262626)).padding(start = 18.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            Modifier.weight(1f).clip(RoundedCornerShape(26.dp)).background(Color.White.copy(alpha = 0.10f)).padding(horizontal = 18.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(Modifier.weight(1f)) {
-                if (value.isEmpty()) Text(placeholder, color = Color.White.copy(alpha = 0.42f), fontSize = 15.sp)
-                BasicTextField(
-                    value = value, onValueChange = { onValueChange(it.take(maxLen)) }, enabled = enabled, maxLines = 5,
-                    textStyle = TextStyle(color = Color.White, fontSize = 15.sp), cursorBrush = SolidColor(Color.White),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+        Box(Modifier.weight(1f).padding(vertical = 6.dp)) {
+            if (value.isEmpty()) Text(placeholder, color = Color.White.copy(alpha = 0.5f), fontSize = 15.sp)
+            BasicTextField(
+                value = value, onValueChange = { onValueChange(it.take(maxLen)) }, enabled = enabled, maxLines = 5,
+                textStyle = TextStyle(color = Color.White, fontSize = 15.sp), cursorBrush = SolidColor(Color.White),
+                modifier = Modifier.fillMaxWidth()
+            )
         }
-        Spacer(Modifier.width(8.dp))
-        val ready = enabled && !sending && value.isNotBlank()
-        if (ready || onHeart == null) {
-            Box(
-                modifier = Modifier.size(46.dp).clip(CircleShape).background(if (ready) accent else Color.White.copy(alpha = 0.1f))
-                    .clickable(enabled = ready, onClick = onSend),
-                contentAlignment = Alignment.Center
-            ) { Icon(Icons.AutoMirrored.Rounded.Send, "Kirim", tint = if (ready) Color.Black else Color.White.copy(alpha = 0.4f), modifier = Modifier.size(22.dp)) }
-        } else {
-            Box(Modifier.size(46.dp).clip(CircleShape).clickable(enabled = enabled && !sending, onClick = onHeart), contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.Favorite, "Kirim hati", tint = Color(0xFFFF4D6D), modifier = Modifier.size(28.dp))
+        androidx.compose.animation.AnimatedContent(
+            targetState = ready || onHeart == null,
+            transitionSpec = { (androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn()) togetherWith (androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut()) },
+            label = "composerAction"
+        ) { sendMode ->
+            if (sendMode) Text(
+                "Kirim", color = if (ready) Color(0xFF4F8CFF) else Color.White.copy(alpha = 0.3f), fontWeight = FontWeight.Bold, fontSize = 15.sp,
+                modifier = Modifier.clip(CircleShape).clickable(enabled = ready, onClick = onSend).padding(horizontal = 12.dp, vertical = 8.dp)
+            ) else Box(Modifier.size(40.dp).clip(CircleShape).clickable(enabled = enabled && !sending, onClick = onHeart!!), contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.FavoriteBorder, "Kirim hati", tint = Color.White, modifier = Modifier.size(26.dp))
             }
         }
     }
@@ -143,8 +143,9 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
     SocialScaffold(
         title = name,
         subtitle = if (online == true) "Aktif sekarang" else lastSeen?.let { "Aktif ${agoText(it)}" },
-        onBack = onBack,
-        actions = { Box(Modifier.clickable { SocialNav.openProfile(userId) }) { AvatarWithDot(avatar, name, 38.dp, online, userId = userId) } }
+        onBack = onBack, plainBack = true,
+        leading = { Box(Modifier.clickable { SocialNav.openProfile(userId) }) { AvatarWithDot(avatar, name, 38.dp, online, userId = userId) } },
+        actions = { Icon(Icons.Rounded.Info, "Lihat profil", tint = Color.White, modifier = Modifier.size(32.dp).clip(CircleShape).clickable { SocialNav.openProfile(userId) }.padding(4.dp)) }
     ) {
         val eq = CosmeticsStore.map[userId]
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -174,8 +175,18 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
                     val firstOfGroup = prev == null || prev.mine != m.mine
                     val lastOfGroup = next == null || next.mine != m.mine
                     val gap = if (firstOfGroup && prev != null) 10.dp else 2.dp
-                    Column(Modifier.fillMaxWidth().padding(top = gap)) {
-                        Bubble(m, firstOfGroup, lastOfGroup, isLast = next == null)
+                    val t = TimeUtil.parse(m.createdAt)
+                    val tp = prev?.let { TimeUtil.parse(it.createdAt) }
+                    val showTime = t != null && (tp == null || t - tp > 60 * 60 * 1000L)
+                    if (showTime && t != null) Text(
+                        dayStamp(t), color = Color.White.copy(alpha = 0.45f), fontSize = 11.sp, textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 8.dp)
+                    )
+                    Row(Modifier.fillMaxWidth().padding(top = if (showTime) 0.dp else gap), verticalAlignment = Alignment.Bottom) {
+                        if (!m.mine) {
+                            Box(Modifier.width(32.dp)) { if (lastOfGroup) AvatarWithDot(avatar, name, 26.dp, null, userId = userId) }
+                        }
+                        Bubble(m, firstOfGroup, lastOfGroup, isLast = next == null, modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -198,7 +209,7 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
 }
 
 @Composable
-private fun Bubble(m: DmMessage, first: Boolean, last: Boolean, isLast: Boolean) {
+private fun Bubble(m: DmMessage, first: Boolean, last: Boolean, isLast: Boolean, modifier: Modifier = Modifier) {
     val accent = LocalCoverTheme.current.accent
     val mine = m.mine
     val big = m.body == "❤️"
@@ -208,11 +219,17 @@ private fun Bubble(m: DmMessage, first: Boolean, last: Boolean, isLast: Boolean)
         quote = body.substringAfter("💬 “").substringBefore("”\n")
         body = body.substringAfter("”\n")
     }
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
-        if (quote != null) Text(
-            "Membalas catatan: $quote", color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp, fontStyle = FontStyle.Italic, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.widthIn(max = 260.dp).padding(bottom = 2.dp, start = 6.dp, end = 6.dp)
-        )
+    Column(modifier.fillMaxWidth(), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
+        if (quote != null) {
+            Text(
+                if (mine) "Kamu membalas catatan" else "Membalas catatanmu", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp,
+                modifier = Modifier.padding(bottom = 3.dp, start = 6.dp, end = 6.dp)
+            )
+            Text(
+                quote, color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 240.dp).padding(bottom = 3.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xFF1C1C1C)).padding(horizontal = 14.dp, vertical = 8.dp)
+            )
+        }
         if (big) {
             Text("❤️", fontSize = 44.sp)
         } else {
@@ -222,11 +239,11 @@ private fun Bubble(m: DmMessage, first: Boolean, last: Boolean, isLast: Boolean)
                 topStart = if (!mine && !first) tight else r, topEnd = if (mine && !first) tight else r,
                 bottomStart = if (!mine && !last) tight else r, bottomEnd = if (mine && !last) tight else r
             )
-            val mineBrush = Brush.linearGradient(listOf(lerp(accent, Color.Black, 0.5f), lerp(accent, Color(0xFF6A3DFF), 0.35f).let { lerp(it, Color.Black, 0.35f) }))
+            val mineBrush = Brush.linearGradient(listOf(Color(0xFF8A4DFF), Color(0xFF3D7BFF)), Offset(0f, 0f), Offset(0f, 1200f))
             Text(
                 body, color = Color.White, fontSize = 15.sp,
                 modifier = Modifier.widthIn(max = 290.dp).clip(shape)
-                    .then(if (mine) Modifier.background(mineBrush) else Modifier.background(Color.White.copy(alpha = 0.12f)))
+                    .then(if (mine) Modifier.background(mineBrush) else Modifier.background(Color(0xFF262626)))
                     .padding(horizontal = 14.dp, vertical = 9.dp)
             )
         }
@@ -434,4 +451,16 @@ private fun ChatCardRow(m: ChatMessage, mine: Boolean, accent: Color, onLong: ()
             }
         }
     }
+}
+
+
+private fun dayStamp(ms: Long): String {
+    val now = java.time.LocalDate.now()
+    val d = java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneId.systemDefault())
+    val day = when (d.toLocalDate()) {
+        now -> "Hari ini"
+        now.minusDays(1) -> "Kemarin"
+        else -> d.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy", java.util.Locale("id", "ID")))
+    }
+    return day + " " + TimeUtil.formatHour(ms)
 }

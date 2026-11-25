@@ -58,6 +58,8 @@ fun SocialScaffold(
     onBack: () -> Unit,
     subtitle: String? = null,
     actions: @Composable RowScope.() -> Unit = {},
+    leading: (@Composable () -> Unit)? = null,
+    plainBack: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val cover = LocalCoverTheme.current
@@ -83,8 +85,12 @@ fun SocialScaffold(
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            GlassIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Kembali", onClick = onBack)
-            Spacer(Modifier.width(14.dp))
+            if (plainBack) androidx.compose.material3.Icon(
+                Icons.AutoMirrored.Rounded.ArrowBack, "Kembali", tint = Color.White,
+                modifier = Modifier.size(34.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable(onClick = onBack).padding(4.dp)
+            ) else GlassIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Kembali", onClick = onBack)
+            Spacer(Modifier.width(if (plainBack) 8.dp else 14.dp))
+            if (leading != null) { leading(); Spacer(Modifier.width(10.dp)) }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,

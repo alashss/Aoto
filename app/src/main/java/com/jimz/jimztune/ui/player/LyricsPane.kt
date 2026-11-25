@@ -435,7 +435,7 @@ private fun LyricsList(
  * Baris lain makin jauh makin redup, mengecil, dan buram.
  */
 @Composable
-private fun LyricRow(
+internal fun LyricRow(
     text: String,
     words: List<LyricWord>,
     lineStartMs: Long,

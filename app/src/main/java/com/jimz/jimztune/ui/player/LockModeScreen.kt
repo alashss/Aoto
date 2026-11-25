@@ -44,6 +44,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import com.jimz.jimztune.ui.components.LiquidGlass
+import com.jimz.jimztune.AppGraph
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -146,20 +153,10 @@ private fun LockModeScreen(player: PlayerViewModel) {
     var drag by remember { mutableStateOf(0f) }
     val dragAnim by animateFloatAsState(drag, spring(stiffness = Spring.StiffnessMedium), label = "drag")
     val base = Color(0xFF0A0A0E)
+    val backdrop: @Composable (Modifier) -> Unit = { m -> LockBackdrop(m, song.thumbnailUrl, cover.accent, drift) }
     Box(
         Modifier.fillMaxSize().background(base)
             .graphicsLayer { translationY = dragAnim; alpha = (1f + dragAnim / 900f).coerceIn(0.2f, 1f) }
-            .drawBehind {
-                val w = size.width; val h = size.height
-                drawCircle(
-                    Brush.radialGradient(listOf(cover.accent.copy(alpha = 0.55f), Color.Transparent), Offset(w * (0.2f + 0.5f * drift), h * (0.18f + 0.1f * drift)), w * 0.95f),
-                    radius = w * 0.95f, center = Offset(w * (0.2f + 0.5f * drift), h * (0.18f + 0.1f * drift))
-                )
-                drawCircle(
-                    Brush.radialGradient(listOf(Color(0xFF6A3DFF).copy(alpha = 0.30f), Color.Transparent), Offset(w * (0.85f - 0.5f * drift), h * (0.75f - 0.1f * drift)), w * 0.9f),
-                    radius = w * 0.9f, center = Offset(w * (0.85f - 0.5f * drift), h * (0.75f - 0.1f * drift))
-                )
-            }
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
                     onDragStart = { drag = 0f },
@@ -169,6 +166,7 @@ private fun LockModeScreen(player: PlayerViewModel) {
                 )
             }
     ) {
+        backdrop(Modifier.fillMaxSize())
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
             Column(
                 Modifier.graphicsLayer { alpha = enter; translationY = (1f - enter) * -60f },
@@ -184,30 +182,67 @@ private fun LockModeScreen(player: PlayerViewModel) {
                 }
             }
 
-            // Lirik berjalan
-            Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 22.dp).graphicsLayer { alpha = enter }) {
+            // Lirik berjalan: baris aktif terisi putih per kata (karaoke) seperti di halaman lirik.
+            Box(
+                Modifier.weight(1f).fillMaxWidth().padding(horizontal = 22.dp).graphicsLayer { alpha = enter }
+                    .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+                    .drawWithContent {
+                        drawContent()
+                        // Pudar di atas dan bawah dengan topeng (bukan lapisan gelap), jadi tidak ada kotak hitam.
+                        drawRect(
+                            Brush.verticalGradient(0f to Color.Transparent, 0.10f to Color.Black, 0.86f to Color.Black, 1f to Color.Transparent),
+                            blendMode = androidx.compose.ui.graphics.BlendMode.DstIn
+                        )
+                    }
+            ) {
                 val st = player.lyrics
                 if (st is LyricsState.Ready) {
-                    val lines = st.lyrics.lines
-                    val synced = st.lyrics.synced
-                    val cur = if (synced) lines.indexOfLast { it.timeMs <= ui.positionMs + 150 }.coerceAtLeast(0) else 0
-                    val listState = rememberLazyListState()
-                    LaunchedEffect(cur, st.songId, lines.size) {
-                        if (lines.isNotEmpty()) listState.animateScrollToItem((cur - 1).coerceAtLeast(0))
+                    val lyr = st.lyrics
+                    val lines = lyr.lines
+                    val synced = lyr.synced
+                    val prefs = AppGraph.lyricsPrefs
+                    val offset = remember(st.songId, prefs.offsetVersion) { prefs.offsetMs(st.songId) }
+                    var smoothPos by remember { androidx.compose.runtime.mutableLongStateOf(ui.positionMs) }
+                    LaunchedEffect(ui.positionMs, ui.isPlaying) {
+                        smoothPos = ui.positionMs
+                        if (!ui.isPlaying) return@LaunchedEffect
+                        val base0 = ui.positionMs
+                        val t0 = System.nanoTime()
+                        while (true) androidx.compose.runtime.withFrameMillis { smoothPos = base0 + (System.nanoTime() - t0) / 1_000_000 }
                     }
-                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), userScrollEnabled = !synced) {
+                    val cur by remember(lines) {
+                        androidx.compose.runtime.derivedStateOf {
+                            if (!synced) -1 else {
+                                val p = smoothPos + 180L + offset
+                                var lo = 0; var hi = lines.lastIndex; var ans = -1
+                                while (lo <= hi) { val mid = (lo + hi) / 2; if (lines[mid].timeMs <= p) { ans = mid; lo = mid + 1 } else hi = mid - 1 }
+                                ans
+                            }
+                        }
+                    }
+                    val listState = rememberLazyListState()
+                    LaunchedEffect(cur, st.songId) {
+                        if (!synced || cur < 0) return@LaunchedEffect
+                        val info = listState.layoutInfo
+                        val target = info.viewportSize.height * 0.30f
+                        val item = info.visibleItemsInfo.firstOrNull { it.index == cur }
+                        if (item != null) listState.animateScrollBy(item.offset + item.size / 2f - target, tween(650, easing = FastOutSlowInEasing))
+                        else listState.scrollToItem(cur, -target.toInt())
+                    }
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), userScrollEnabled = !synced, contentPadding = PaddingValues(vertical = 24.dp)) {
                         itemsIndexed(lines) { i, l ->
-                            val dist = if (synced) kotlin.math.abs(i - cur) else 1
-                            val active = synced && i == cur
-                            val k by animateFloatAsState(if (active) 1f else 0f, spring(dampingRatio = 0.7f, stiffness = 180f), label = "ly$i")
-                            val dim = (0.42f - 0.08f * (dist - 1)).coerceAtLeast(0.15f)
-                            Text(
-                                l.text.ifBlank { "♪" },
-                                color = Color.White.copy(alpha = dim + (1f - dim) * k),
-                                fontSize = 26.sp, lineHeight = 32.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 9.dp)
-                                    .graphicsLayer { val sc = 0.9f + 0.1f * k; scaleX = sc; scaleY = sc; transformOrigin = TransformOrigin(0f, 0.5f) }
+                            if (l.text.isBlank()) { Spacer(Modifier.height(14.dp)); return@itemsIndexed }
+                            val endMs = lines.getOrNull(i + 1)?.timeMs ?: (l.timeMs + 4_000L)
+                            val sweepMs = remember(l, endMs) {
+                                if (l.words.isNotEmpty()) LyricTiming.wordSweepMs(l) else LyricTiming.sweepMs(l.text, endMs - l.timeMs)
+                            }
+                            LyricRow(
+                                text = l.text, words = l.words, lineStartMs = l.timeMs, synced = synced,
+                                distance = if (synced) kotlin.math.abs(i - cur) else 1,
+                                center = false, sizeScale = 1.15f, translation = null, roman = null,
+                                animStyle = prefs.animStyle, blurOthers = prefs.blurOthers,
+                                progress = { (((smoothPos + 180L + offset) - l.timeMs).toFloat() / sweepMs).coerceIn(0f, 1f) },
+                                onClick = { if (synced) player.seekTo((l.timeMs - offset).coerceAtLeast(0L)) }
                             )
                         }
                     }
@@ -217,16 +252,14 @@ private fun LockModeScreen(player: PlayerViewModel) {
                         color = Color.White.copy(alpha = 0.6f), fontSize = 16.sp, textAlign = TextAlign.Center
                     )
                 }
-                Box(Modifier.fillMaxWidth().height(36.dp).background(Brush.verticalGradient(listOf(Color(0x990A0A0E), Color.Transparent))))
             }
 
             // Kartu pemutar
-            Column(
-                Modifier.fillMaxWidth().padding(horizontal = 14.dp)
-                    .graphicsLayer { alpha = enter; translationY = (1f - enter) * 120f }
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(Color.White.copy(alpha = 0.10f)).border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(26.dp)).padding(14.dp)
+            LiquidGlass(
+                Modifier.fillMaxWidth().padding(horizontal = 14.dp).graphicsLayer { alpha = enter; translationY = (1f - enter) * 120f },
+                RoundedCornerShape(30.dp), backdrop
             ) {
+            Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AsyncImage(
                         song.thumbnailUrl, null,
@@ -265,6 +298,7 @@ private fun LockModeScreen(player: PlayerViewModel) {
                     PressIcon(Icons.Rounded.SkipNext, "Berikutnya", 34.dp) { player.next() }
                 }
             }
+            }
             Icon(Icons.Rounded.KeyboardArrowUp, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.padding(top = 8.dp).size(22.dp).graphicsLayer { translationY = -6f * bob })
             Text("Geser ke atas untuk membuka", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
             Box(Modifier.padding(top = 8.dp, bottom = 10.dp).width(120.dp).height(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.8f)))
@@ -287,4 +321,27 @@ private fun PressBox(size: androidx.compose.ui.unit.Dp, onClick: () -> Unit, con
 @Composable
 private fun PressIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, desc: String, size: androidx.compose.ui.unit.Dp, onClick: () -> Unit) {
     PressBox(size + 14.dp, onClick) { Icon(icon, desc, tint = Color.White, modifier = Modifier.size(size)) }
+}
+
+/** Latar layar kunci: sampul lagu yang dikaburkan, ditambah cahaya warna yang bergerak pelan. Dipakai juga sebagai isi lensa kaca. */
+@Composable
+private fun LockBackdrop(modifier: Modifier, art: String?, accent: Color, drift: Float) {
+    Box(modifier.background(Color(0xFF0A0A0E))) {
+        if (android.os.Build.VERSION.SDK_INT >= 31 && art != null) {
+            AsyncImage(
+                art, null, Modifier.fillMaxSize().graphicsLayer { scaleX = 1.5f; scaleY = 1.5f }.blur(48.dp),
+                contentScale = ContentScale.Crop, alpha = 0.55f,
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix().apply { setToSaturation(1.6f) })
+            )
+        }
+        Box(
+            Modifier.fillMaxSize().drawBehind {
+                val w = size.width; val h = size.height
+                val c1 = Offset(w * (0.2f + 0.5f * drift), h * (0.18f + 0.1f * drift))
+                val c2 = Offset(w * (0.85f - 0.5f * drift), h * (0.75f - 0.1f * drift))
+                drawCircle(Brush.radialGradient(listOf(accent.copy(alpha = 0.50f), Color.Transparent), c1, w * 0.95f), radius = w * 0.95f, center = c1)
+                drawCircle(Brush.radialGradient(listOf(Color(0xFF6A3DFF).copy(alpha = 0.30f), Color.Transparent), c2, w * 0.9f), radius = w * 0.9f, center = c2)
+            }
+        )
+    }
 }

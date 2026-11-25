@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -284,6 +285,8 @@ fun InboxScreen(onBack: () -> Unit) {
     var myColor by remember { mutableStateOf<String?>(null) }
     var mySong by remember { mutableStateOf<String?>(null) }
     var myLyric by remember { mutableStateOf<String?>(null) }
+    var mySongId by remember { mutableStateOf<String?>(null) }
+    var showMine by remember { mutableStateOf(false) }
     val player: com.jimz.jimztune.player.PlayerViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val me = AppGraph.auth.session?.userId
     val myProfile = AppGraph.profile.profile
@@ -291,7 +294,11 @@ fun InboxScreen(onBack: () -> Unit) {
     LaunchedEffect(Unit) {
         while (true) {
             friends = SocialApi.friends().value ?: friends ?: emptyList()
-            if (me != null) SocialApi.profile(me).value?.let { myNote = it.note.orEmpty() }
+            if (!showMine && !editNote) {
+                val mn = SocialApi.myNote()
+                if (mn != null) { myNote = mn.body; myColor = mn.color; mySong = mn.song; mySongId = mn.songId; myLyric = mn.lyric }
+                else if (me != null) SocialApi.profile(me).value?.let { myNote = it.note.orEmpty() }
+            }
             SocialNav.refreshBadges()
             delay(5_000)
         }
@@ -324,7 +331,7 @@ fun InboxScreen(onBack: () -> Unit) {
                     NoteItem(
                         myProfile?.displayName ?: "Kamu", myProfile?.avatarUrl, me, myNote.ifBlank { null }, myColor, mySong, myLyric, null,
                         "Catatan Anda", accent
-                    ) { editNote = true }
+                    ) { if (myNote.isNotBlank() || !mySong.isNullOrBlank()) showMine = true else editNote = true }
                 }
                 items(list.filter { !it.note.isNullOrBlank() || !it.noteSong.isNullOrBlank() }, key = { "n" + it.userId }) { f ->
                     NoteItem(f.name, f.avatar, f.userId, f.note, f.noteColor, f.noteSong, f.noteLyric, f.online, f.name.substringBefore(' '), accent) { viewNote = f }
@@ -377,9 +384,7 @@ fun InboxScreen(onBack: () -> Unit) {
         // Lihat catatan teman + balas cepat
         val vn = viewNote
         BottomSheetLite(visible = vn != null, onDismiss = { viewNote = null }) {
-            if (vn != null) NoteReplySheet(vn, accent, onPlay = { id ->
-                player.play(listOf(com.jimz.jimztune.data.model.SearchItem(id, com.jimz.jimztune.data.model.SearchType.SONG, (vn.noteSong ?: "").substringBefore(" · "), (vn.noteSong ?: "").substringAfter(" · ", ""), "https://i.ytimg.com/vi/$id/hqdefault.jpg")), 0)
-            }) { reply ->
+            if (vn != null) NoteReplySheet(vn, accent, player) { reply ->
                 scope.launch {
                     val body = "💬 “${vn.note.orEmpty().ifBlank { vn.noteLyric ?: vn.noteSong.orEmpty() }.take(60)}”\n$reply"
                     SocialApi.dmSend(vn.userId, body.take(500))
@@ -387,6 +392,19 @@ fun InboxScreen(onBack: () -> Unit) {
                     SocialNav.open(SocialPage.Dm(vn.userId, vn.name, vn.avatar))
                 }
             }
+        }
+        BottomSheetLite(visible = showMine, onDismiss = { showMine = false }) {
+            if (showMine) MyNoteSheet(
+                myNote, myColor, mySong, mySongId, myLyric, player,
+                onNew = { showMine = false; editNote = true },
+                onDelete = {
+                    showMine = false
+                    scope.launch {
+                        SocialNav.message = SocialApi.setNoteV4("", null, null, null, null) ?: "Catatan dihapus"
+                        myNote = ""; myColor = null; mySong = null; mySongId = null; myLyric = null
+                    }
+                }
+            )
         }
         androidx.compose.animation.AnimatedVisibility(
             visible = editNote,
@@ -399,8 +417,9 @@ fun InboxScreen(onBack: () -> Unit) {
                 onShare = { t, c, sg, sid, ly ->
                     editNote = false
                     scope.launch {
-                        SocialNav.message = SocialApi.setNoteV3(t, c, sg, sid, ly) ?: "Catatan dibagikan"
-                        myNote = t; myColor = c; mySong = sg; myLyric = ly
+                        val err = SocialApi.setNoteV4(t, c, sg, sid, ly)
+                        SocialNav.message = err ?: "Catatan dibagikan"
+                        if (err == null) { myNote = t; myColor = c; mySong = sg; mySongId = sid; myLyric = ly; showMine = true }
                     }
                 }
             )
@@ -414,19 +433,21 @@ private fun noteColor(hex: String?): Color? = hex?.let { parseHex(it, Color.Unsp
 @Composable
 private fun NoteItem(name: String, avatar: String?, userId: String?, note: String?, color: String?, song: String?, lyric: String?, online: Boolean?, label: String, accent: Color, onClick: () -> Unit) {
     val bg = noteColor(color)
-    val text = buildString {
-        if (!song.isNullOrBlank()) append("♪ ").append(song.substringBefore(" · ")).append(if (note.isNullOrBlank() && lyric.isNullOrBlank()) "" else "\n")
-        if (!note.isNullOrBlank()) append(note) else if (!lyric.isNullOrBlank()) append(lyric)
-    }.ifBlank { null }
+    val hasSong = !song.isNullOrBlank()
+    val empty = !hasSong && note.isNullOrBlank()
     Column(modifier = Modifier.width(88.dp).clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.height(58.dp).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-            Text(
-                text ?: "Siap untuk…", fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, lineHeight = 13.sp,
-                color = if (text == null) Color.White.copy(alpha = 0.55f) else if (bg != null) Color.White else Color.White,
-                modifier = Modifier.clip(RoundedCornerShape(18.dp))
-                    .background(bg ?: Color.White.copy(alpha = if (text == null) 0.08f else 0.16f))
-                    .padding(horizontal = 9.dp, vertical = 6.dp)
-            )
+        Box(Modifier.height(62.dp).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+            Column(
+                Modifier.clip(RoundedCornerShape(18.dp)).background(bg ?: Color.White.copy(alpha = if (empty) 0.08f else 0.16f)).padding(horizontal = 9.dp, vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (hasSong) {
+                    NoteSongPill(song!!.substringBefore(" · "), Modifier, 10.sp)
+                    Text(song.substringAfter(" · ", ""), color = Color.White.copy(alpha = 0.72f), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (!note.isNullOrBlank()) Text(note, color = Color.White, fontSize = 11.sp, maxLines = if (hasSong) 1 else 3, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, lineHeight = 13.sp)
+                else if (empty) Text("Siap untuk…", color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp)
+            }
         }
         Row(Modifier.fillMaxWidth().padding(start = 12.dp).height(8.dp)) {
             Box(Modifier.offset(y = (-3).dp).size(8.dp).clip(CircleShape).background(bg ?: Color.White.copy(alpha = 0.16f)))
@@ -437,39 +458,32 @@ private fun NoteItem(name: String, avatar: String?, userId: String?, note: Strin
     }
 }
 
+private fun noteSongItem(id: String?, label: String?): com.jimz.jimztune.data.model.SearchItem? = id?.let {
+    com.jimz.jimztune.data.model.SearchItem(
+        it, com.jimz.jimztune.data.model.SearchType.SONG, label.orEmpty().substringBefore(" · "), label.orEmpty().substringAfter(" · ", ""),
+        "https://i.ytimg.com/vi/$it/hqdefault.jpg"
+    )
+}
+
+/** Catatan teman: lagu langsung diputar dari awal potongan, liriknya bergulir per kata, lalu bisa dibalas. */
 @Composable
-private fun NoteReplySheet(f: FriendRow, accent: Color, onPlay: (String) -> Unit, onReply: (String) -> Unit) {
+private fun NoteReplySheet(f: FriendRow, accent: Color, player: com.jimz.jimztune.player.PlayerViewModel, onReply: (String) -> Unit) {
     var reply by remember(f.userId) { mutableStateOf("") }
-    val bg = noteColor(f.noteColor) ?: Color.White.copy(alpha = 0.14f)
-    // Seperti Instagram: lagu catatan langsung terdengar saat catatan dibuka.
-    LaunchedEffect(f.userId, f.noteSongId) { f.noteSongId?.let(onPlay) }
+    val bg = noteColor(f.noteColor) ?: Color(0xFF2B3050)
+    val song = remember(f.noteSongId, f.noteSong) { noteSongItem(f.noteSongId, f.noteSong) }
+    val clip = remember(f.noteLyric) { NoteClip.decode(f.noteLyric) }
+    val clock = rememberNoteClipClock(song, clip, player)
     Text(f.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
     Spacer(Modifier.height(14.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
         AvatarWithDot(f.avatar, f.name, 64.dp, f.online, userId = f.userId)
         Spacer(Modifier.width(10.dp))
-        Column(
-            Modifier.weight(1f, fill = false).clip(RoundedCornerShape(24.dp)).background(bg).padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            if (!f.noteSong.isNullOrBlank()) Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable(enabled = f.noteSongId != null) { f.noteSongId?.let(onPlay) }
-            ) {
-                Icon(if (f.noteSongId != null) Icons.Rounded.PlayArrow else Icons.Rounded.MusicNote, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                Text(" " + (f.noteSong ?: ""), color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
+        Column(Modifier.weight(1f, fill = false).clip(RoundedCornerShape(24.dp)).background(bg).padding(horizontal = 16.dp, vertical = 12.dp)) {
+            if (!f.noteSong.isNullOrBlank()) NoteSongPill(f.noteSong ?: "", Modifier, 13.sp)
             if (!f.note.isNullOrBlank()) Text(f.note ?: "", color = Color.White, fontSize = 15.sp)
         }
     }
-    if (!f.noteLyric.isNullOrBlank()) {
-        var lyricShown by remember(f.userId) { mutableStateOf(false) }
-        LaunchedEffect(f.userId) { delay(250); lyricShown = true }
-        val la by androidx.compose.animation.core.animateFloatAsState(if (lyricShown) 1f else 0f, androidx.compose.animation.core.tween(600), label = "noteLyric")
-        Text(
-            f.noteLyric ?: "", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = 18.dp, start = 12.dp, end = 12.dp).graphicsLayer { alpha = la; translationY = (1f - la) * 24f }
-        )
-    }
+    if (clip.isNotEmpty()) ClipView(clip, clock, 19.sp, Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(top = 18.dp, start = 12.dp, end = 12.dp))
     Spacer(Modifier.height(16.dp))
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.09f)).padding(horizontal = 16.dp, vertical = 6.dp),
@@ -482,5 +496,31 @@ private fun NoteReplySheet(f: FriendRow, accent: Color, onPlay: (String) -> Unit
         listOf("🔥", "😂", "😍").forEach { e -> Text(e, fontSize = 22.sp, modifier = Modifier.clickable { onReply(e) }.padding(horizontal = 4.dp)) }
         if (reply.isNotBlank()) Icon(Icons.Rounded.Check, "Kirim", tint = accent, modifier = Modifier.clickable { onReply(reply.trim()) }.padding(6.dp))
         else Icon(Icons.Rounded.Favorite, "Suka", tint = Color.White, modifier = Modifier.clickable { onReply("❤️") }.padding(6.dp))
+    }
+}
+
+/** Catatan sendiri (seperti Instagram): potongan lagu diputar dengan lirik beranimasi, lalu "Tinggalkan catatan baru" / "Hapus catatan". */
+@Composable
+private fun MyNoteSheet(
+    note: String, color: String?, song: String?, songId: String?, lyric: String?,
+    player: com.jimz.jimztune.player.PlayerViewModel, onNew: () -> Unit, onDelete: () -> Unit
+) {
+    val item = remember(songId, song) { noteSongItem(songId, song) }
+    val clip = remember(lyric) { NoteClip.decode(lyric) }
+    val clock = rememberNoteClipClock(item, clip, player)
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        if (item != null) com.jimz.jimztune.ui.components.SongImage(item.thumbnailUrl, item.id, Modifier.size(84.dp), CircleShape)
+        if (!song.isNullOrBlank()) NoteSongPill(song, Modifier.padding(top = 10.dp), 14.sp)
+        if (note.isNotBlank()) Text(
+            note, color = Color.White, fontSize = 15.sp, textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 10.dp).clip(RoundedCornerShape(20.dp)).background(noteColor(color) ?: Color(0xFF2B3050)).padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        if (clip.isNotEmpty()) ClipView(clip, clock, 19.sp, Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(top = 16.dp, start = 12.dp, end = 12.dp))
+        Text("Dibagikan kepada teman · Sekarang", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, modifier = Modifier.padding(top = 14.dp))
+        Text(
+            "Tinggalkan catatan baru", color = Color.White, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF4F5BFF)).clickable(onClick = onNew).padding(vertical = 14.dp)
+        )
+        Text("Hapus catatan", color = Color(0xFF8FA0FF), fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable(onClick = onDelete).padding(vertical = 16.dp))
     }
 }

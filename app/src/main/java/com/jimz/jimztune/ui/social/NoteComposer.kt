@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.basicMarquee
@@ -144,7 +145,7 @@ fun NoteComposer(
             when (st) {
                 "color" -> ColorStage(text, color, onBack = { stage = "edit" }, onApply = { color = it; stage = "edit" }, onClear = { color = null; stage = "edit" })
                 "song" -> SongStage(player, onBack = { stage = "edit" }, onPick = { song = it; lyric = null; stage = "lyric" })
-                "lyric" -> LyricStage(song, onBack = { stage = "song" }, onPick = { lyric = it; stage = "edit" })
+                "lyric" -> LyricStage(song, player, onBack = { stage = "song" }, onPick = { lyric = it; stage = "edit" })
                 else -> EditStage(
                     name, avatar, userId, text, { text = it }, color, song, lyric,
                     onClose = onClose, onPalette = { stage = "color" }, onSong = { stage = "song" }, onLyric = { stage = "lyric" },
@@ -200,11 +201,15 @@ private fun EditStage(
                         cursorBrush = SolidColor(Color.White), modifier = Modifier.fillMaxWidth()
                     )
                 }
-                if (!lyric.isNullOrBlank()) KaraokeLine(lyric, 13.sp, Modifier.padding(top = 4.dp))
+                if (!lyric.isNullOrBlank()) {
+                    val cl = remember(lyric) { NoteClip.decode(lyric) }
+                    ClipView(cl, rememberLoopClock(cl), 13.sp, Modifier.padding(top = 4.dp))
+                }
             }
             Box(Modifier.padding(top = 4.dp).size(10.dp).clip(CircleShape).background(bg))
             Box {
-                AvatarWithDot(avatar, name, 110.dp, null, userId = userId)
+                if (song != null) SongImage(song.thumbnailUrl, song.id, Modifier.size(110.dp), CircleShape)
+                else AvatarWithDot(avatar, name, 110.dp, null, userId = userId)
                 Box(
                     Modifier.align(Alignment.BottomEnd).size(34.dp).clip(CircleShape).background(Color(0xFF1B1F33)).border(2.dp, NoteBg, CircleShape).clickable(onClick = onPalette),
                     Alignment.Center
@@ -406,35 +411,53 @@ private fun SongRow(s: SearchItem, selected: Boolean, onPick: (SearchItem) -> Un
 // ============================================================ pilih satu baris lirik
 
 @Composable
-private fun LyricStage(song: SearchItem?, onBack: () -> Unit, onPick: (String?) -> Unit) {
-    var lines by remember(song?.id) { mutableStateOf<List<String>?>(null) }
+private fun LyricStage(song: SearchItem?, player: com.jimz.jimztune.player.PlayerViewModel, onBack: () -> Unit, onPick: (String?) -> Unit) {
+    var lines by remember(song?.id) { mutableStateOf<List<ClipLine>?>(null) }
+    var start by remember(song?.id) { mutableStateOf<Int?>(null) }
     LaunchedEffect(song?.id) {
         if (song == null) { lines = emptyList(); return@LaunchedEffect }
         lines = try {
-            val opts = AppGraph.lyricsRepo.get(song, durSec(song.durationText))
-            opts.firstOrNull()?.lines.orEmpty().map { it.text.trim() }.filter { it.length in 3..80 }.distinct().take(120)
+            val lyr = AppGraph.lyricsRepo.get(song, durSec(song.durationText)).firstOrNull()
+            val raw = lyr?.lines.orEmpty()
+            val synced = lyr?.synced == true
+            raw.mapIndexedNotNull { i, l ->
+                val t = l.text.trim()
+                if (t.length in 2..70) ClipLine(if (synced) l.timeMs else -1L, t) else null
+            }.take(200)
         } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Throwable) { emptyList() }
     }
+    val l = lines
+    val sel = start?.let { i -> l?.drop(i)?.take(NoteClip.MAX_LINES).orEmpty() }.orEmpty()
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Kembali", tint = Color.White, modifier = Modifier.size(28.dp).clickable(onClick = onBack))
             Column(Modifier.padding(start = 14.dp).weight(1f)) {
-                Text("Pilih satu baris lirik", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text("Pilih potongan lagu", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 if (song != null) Text(noteSongLabel(song), color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Text("Lewati", color = LocalCoverTheme.current.accent, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onPick(null) }.padding(8.dp))
         }
-        val l = lines
-        if (l == null) Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = Color.White) }
-        else if (l.isEmpty()) Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) {
-            Text("Lirik lagu ini tidak ditemukan. Catatan tetap bisa dibagikan tanpa lirik.", color = Color.White.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-        } else LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(l) { line ->
+        Text("Ketuk baris untuk mulai dari sana. Maksimal ${NoteClip.MAX_LINES} baris akan dimainkan berulang di catatanmu.", color = Color.White.copy(alpha = 0.55f), fontSize = 12.sp, modifier = Modifier.padding(horizontal = 18.dp, vertical = 2.dp))
+        if (l == null) Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) { CircularProgressIndicator(color = Color.White) }
+        else if (l.isEmpty()) Box(Modifier.weight(1f).fillMaxWidth().padding(32.dp), Alignment.Center) {
+            Text("Lirik lagu ini tidak ditemukan. Catatan tetap bisa dibagikan, lagunya tetap terdengar.", color = Color.White.copy(alpha = 0.6f), textAlign = TextAlign.Center)
+        } else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            itemsIndexed(l) { i, line ->
+                val inSel = start != null && i >= start!! && i < start!! + NoteClip.MAX_LINES
+                val a by androidx.compose.animation.animateColorAsState(if (inSel) Color(0xFF4F5BFF).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.07f), tween(220), label = "lsel")
                 Text(
-                    line, color = Color.White, fontSize = 16.sp,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.07f)).clickable { onPick(line) }.padding(horizontal = 16.dp, vertical = 14.dp)
+                    line.text, color = Color.White, fontSize = 16.sp, fontWeight = if (inSel) FontWeight.SemiBold else FontWeight.Normal,
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(a)
+                        .clickable { start = i; if (line.ms >= 0) player.seekTo(line.ms) }.padding(horizontal = 16.dp, vertical = 13.dp)
                 )
             }
+        }
+        androidx.compose.animation.AnimatedVisibility(visible = sel.isNotEmpty()) {
+            Text(
+                "Gunakan ${sel.size} baris", color = Color.White, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(50)).background(Color(0xFF4F5BFF))
+                    .clickable { onPick(NoteClip.encode(sel)) }.padding(vertical = 14.dp)
+            )
         }
     }
 }
