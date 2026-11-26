@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -98,7 +99,7 @@ private fun LyricsModeScreen(player: PlayerViewModel) {
     val accent = cover.accent
     val land = LyricsMode.landscape
     Box(
-        Modifier.fillMaxSize().background(Color(0xFF0A0A0E)).drawBehind {
+        Modifier.fillMaxSize().background(Color(0xFF0A0A0E)).pointerInput(Unit) { androidx.compose.foundation.gestures.detectTapGestures { } }.drawBehind {
             drawCircle(Brush.radialGradient(listOf(accent.copy(alpha = 0.45f), Color.Transparent), Offset(size.width * 0.2f, size.height * 0.15f), size.width * 0.9f), size.width * 0.9f, Offset(size.width * 0.2f, size.height * 0.15f))
             drawCircle(Brush.radialGradient(listOf(Color(0xFF6A3DFF).copy(alpha = 0.28f), Color.Transparent), Offset(size.width * 0.9f, size.height * 0.85f), size.width * 0.8f), size.width * 0.8f, Offset(size.width * 0.9f, size.height * 0.85f))
         }

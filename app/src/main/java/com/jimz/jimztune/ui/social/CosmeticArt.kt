@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -58,6 +59,7 @@ val Gold = Color(0xFFE2B007)
 val GoldDark = Color(0xFF9A6B00)
 
 fun rarityColor(r: String): Color = when (r) {
+    "mythic" -> Color(0xFFFF2D44)
     "legendary" -> Color(0xFFFFC857)
     "epic" -> Color(0xFFC77DFF)
     "rare" -> Color(0xFF4FC3F7)
@@ -65,6 +67,7 @@ fun rarityColor(r: String): Color = when (r) {
 }
 
 fun rarityLabel(r: String): String = when (r) {
+    "mythic" -> "Raja Iblis"
     "legendary" -> "Legendaris"
     "epic" -> "Epik"
     "rare" -> "Langka"
@@ -79,7 +82,7 @@ fun kindLabel(k: String): String = when (k) {
 }
 
 val CosmeticKinds = listOf("frame", "plate", "effect", "bubble")
-val RarityOrder = listOf("legendary", "epic", "rare", "common")
+val RarityOrder = listOf("mythic", "legendary", "epic", "rare", "common")
 
 private fun rnd(i: Int, k: Int): Float {
     val x = sin(i * 127.1 + k * 311.7) * 43758.5453
@@ -247,6 +250,7 @@ private fun DrawScope.drawFrame(id: String, t: Float) {
                 drawPath(Path().apply { moveTo(ox + nx, oy + ny); lineTo(ix, iy); lineTo(ox - nx, oy - ny); close() }, Color.White)
             }
         }
+        "frame_demon" -> drawDemonFrame(t, c, sw, rr)
         else -> FrameSpecs[id]?.let { drawSpecFrame(it, t, c, ar, sw, rr) }
     }
 }
@@ -270,6 +274,58 @@ private val FrameSpecs = mapOf(
     "frame_galaxy" to FrameSpec(listOf(Color(0xFF1A0B4A), Color(0xFF6A3DFF), Color(0xFFD63DFF), Color(0xFF29B6F6)), 1, 1),
     "frame_royal" to FrameSpec(listOf(Color(0xFF4A148C), Color(0xFFFFD54F), Color(0xFF7B1FA2), Color(0xFFFFE9A0)), 1, 1)
 )
+
+/** Bingkai raja iblis: cincin api merah-ungu yang berputar, lidah api berkobar, sepasang tanduk melengkung di atas. */
+private fun DrawScope.drawDemonFrame(t: Float, c: Offset, sw: Float, rr: Float) {
+    val tau = (2 * PI).toFloat()
+    // aura gelap berdenyut
+    val pulse = 0.6f + 0.4f * abs(sin(t * tau))
+    for (k in 3 downTo 1) drawCircle(Color(0xFFB3001B).copy(alpha = 0.10f * pulse), rr, c, style = Stroke(sw * (1.2f + k * 0.9f)))
+    // cincin
+    val cols = listOf(Color(0xFF1A0208), Color(0xFFE0102A), Color(0xFF7B1FD1), Color(0xFFFF6A3D), Color(0xFF1A0208))
+    val sweep = Brush.sweepGradient(*cols.mapIndexed { i, col -> i / 4f to col }.toTypedArray(), center = c)
+    rotate(t * 360f, c) { drawCircle(sweep, rr, c, style = Stroke(sw * 0.95f)) }
+    drawCircle(Color.White.copy(alpha = 0.12f), rr - sw * 0.35f, c, style = Stroke(sw * 0.12f))
+    // lidah api
+    val n = 20
+    for (i in 0 until n) {
+        val a = tau * i / n + t * tau * 0.15f
+        val ux = cos(a); val uy = sin(a)
+        val tx = -uy; val ty = ux
+        val hgt = sw * (1.5f + 1.1f * abs(sin(t * tau * 3f + i * 1.7f)))
+        val bx = c.x + ux * (rr + sw * 0.2f); val by = c.y + uy * (rr + sw * 0.2f)
+        val half = sw * 0.38f
+        val tipX = bx + ux * hgt + tx * sw * 0.25f * sin(t * tau * 4f + i)
+        val tipY = by + uy * hgt + ty * sw * 0.25f * sin(t * tau * 4f + i)
+        val path = Path().apply {
+            moveTo(bx - tx * half, by - ty * half)
+            quadraticBezierTo(bx - tx * half * 0.9f + ux * hgt * 0.55f, by - ty * half * 0.9f + uy * hgt * 0.55f, tipX, tipY)
+            quadraticBezierTo(bx + tx * half * 0.9f + ux * hgt * 0.55f, by + ty * half * 0.9f + uy * hgt * 0.55f, bx + tx * half, by + ty * half)
+            close()
+        }
+        drawPath(path, Brush.linearGradient(listOf(Color(0xFFFFB34A).copy(alpha = 0.95f), Color(0xFFE0102A).copy(alpha = 0.8f), Color(0xFF3A0A5E).copy(alpha = 0.0f)), Offset(bx, by), Offset(tipX, tipY)))
+    }
+    // tanduk
+    for (sg in listOf(-1f, 1f)) {
+        val ang = (Math.toRadians(32.0)).toFloat() * sg
+        val bx = c.x + sin(ang) * rr; val by = c.y - cos(ang) * rr
+        val tipX = c.x + sg * rr * 0.92f; val tipY = c.y - rr * 1.55f
+        val horn = Path().apply {
+            moveTo(bx - sg * sw * 0.9f, by + sw * 0.1f)
+            quadraticBezierTo(bx + sg * sw * 0.2f, by - rr * 0.55f, tipX, tipY)
+            quadraticBezierTo(bx + sg * sw * 1.3f, by - rr * 0.42f, bx + sg * sw * 0.9f, by + sw * 0.35f)
+            close()
+        }
+        drawPath(horn, Brush.linearGradient(listOf(Color(0xFF0B0105), Color(0xFF5E0A18), Color(0xFFFFB199)), Offset(bx, by), Offset(tipX, tipY)))
+        drawPath(horn, Color(0xFFFF5A4A).copy(alpha = 0.7f), style = Stroke(sw * 0.1f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+    // percik bara
+    for (k in 0 until 6) {
+        val p = (t * (0.6f + 0.1f * k) + k / 6f) % 1f
+        val a = tau * (k / 6f) + 1f
+        drawCircle(Color(0xFFFFC857).copy(alpha = 1f - p), sw * 0.14f, Offset(c.x + cos(a) * (rr + sw * 1.4f * p + sw), c.y + sin(a) * (rr + sw * 1.4f * p + sw) - p * sw * 2f))
+    }
+}
 
 private fun DrawScope.heart(c: Offset, r: Float, color: Color) {
     drawCircle(color, r * 0.55f, Offset(c.x - r * 0.5f, c.y - r * 0.25f))
@@ -398,7 +454,8 @@ private val PlateSpecs = mapOf(
     "plate_lava" to PlateSpec(listOf(Color(0xFF1A0505), Color(0xFFB3200D), Color(0xFFFF9F1A)), 4),
     "plate_aurora" to PlateSpec(listOf(Color(0xFF06222B), Color(0xFF12A88A), Color(0xFF8A5CFF)), 1),
     "plate_cyber" to PlateSpec(listOf(Color(0xFF14082E), Color(0xFFB0189E), Color(0xFF14D6F0)), 3),
-    "plate_royal" to PlateSpec(listOf(Color(0xFF2A0A4A), Color(0xFF7B2FBF), Color(0xFFE2B007)), 1)
+    "plate_royal" to PlateSpec(listOf(Color(0xFF2A0A4A), Color(0xFF7B2FBF), Color(0xFFE2B007)), 1),
+    "plate_demon" to PlateSpec(listOf(Color(0xFF0A0106), Color(0xFF6E0A1A), Color(0xFFD4142B), Color(0xFF3A0A5E)), 6)
 )
 
 private fun DrawScope.drawSpecPlate(spec: PlateSpec, t: Float) {
@@ -418,6 +475,20 @@ private fun DrawScope.drawSpecPlate(spec: PlateSpec, t: Float) {
         4 -> for (i in 0 until 10) {
             val y = (t * (0.5f + rnd(i, 4)) + rnd(i, 5)) % 1f
             drawCircle(Color(0xFFFFC857).copy(alpha = 1f - y), 1.5f + 2.5f * rnd(i, 6), Offset(w * rnd(i, 7), h * (1f - y)))
+        }
+        6 -> {
+            for (i in 0 until 14) {
+                val y = (t * (0.5f + rnd(i, 4)) + rnd(i, 5)) % 1f
+                drawCircle(Color(0xFFFF8A3D).copy(alpha = 1f - y), 1.4f + 2.4f * rnd(i, 6), Offset(w * rnd(i, 7), h * (1f - y)))
+            }
+            // retakan petir ungu yang berkedip
+            if (sin(t * 55f) > 0.35f) {
+                var x = w * (0.2f + 0.6f * ((t * 7f) % 1f))
+                var y = 0f
+                val path = Path().apply { moveTo(x, y) }
+                for (k in 1..5) { x += (rnd(k, 8) - 0.5f) * h * 0.9f; y = h * k / 5f; path.lineTo(x, y) }
+                drawPath(path, Color(0xFFC58BFF).copy(alpha = 0.9f), style = Stroke(1.8f, cap = StrokeCap.Round))
+            }
         }
         5 -> for (i in 0 until 8) {
             val y = (t * (0.3f + 0.4f * rnd(i, 1)) + rnd(i, 2)) % 1f
@@ -501,6 +572,26 @@ fun ProfileEffect(effect: String?, modifier: Modifier = Modifier, entrance: Bool
                 val col = listOf(Color(0xFFFFD23F), Color(0xFFFF5A8A), Color(0xFF4FC3F7), Color(0xFF8CFF6B), Color(0xFFC77DFF))[i % 5]
                 rotate(y * 540f + i * 30f, Offset(x, h * y)) { drawRect(col, Offset(x - 3.dp.toPx(), h * y - 2.dp.toPx()), Size(6.dp.toPx(), 4.dp.toPx())) }
             }
+            "fx_demon" -> {
+                // asap gelap naik
+                for (i in 0 until 7) {
+                    val y = (t * (0.18f + 0.2f * rnd(i, 1)) + rnd(i, 2)) % 1f
+                    drawCircle(Color(0xFF2A0A3E).copy(alpha = 0.30f * (1f - y)), 26.dp.toPx() * (0.6f + y), Offset(w * rnd(i, 3) + sin((y * 2f + i) * PI.toFloat()) * 14.dp.toPx(), h * (1.05f - y)))
+                }
+                // bara
+                for (i in 0 until 24) {
+                    val y = (t * (0.35f + 0.6f * rnd(i, 4)) + rnd(i, 5)) % 1f
+                    val x = w * rnd(i, 6) + sin((y * 3f + i) * PI.toFloat()) * 8.dp.toPx()
+                    drawCircle(Color(0xFFFF8A3D).copy(alpha = 0.9f * (1f - y)), 1.2.dp.toPx() + 2.2.dp.toPx() * rnd(i, 7), Offset(x, h * (1f - y)))
+                }
+                // kilat ungu sesekali
+                if (sin(t * 2f * PI.toFloat() * 3f) > 0.93f) {
+                    var x = w * (0.25f + 0.5f * ((t * 5f) % 1f))
+                    val path = Path().apply { moveTo(x, 0f) }
+                    for (k in 1..6) { x += (rnd(k, 9) - 0.5f) * w * 0.18f; path.lineTo(x, h * 0.5f * k / 6f) }
+                    drawPath(path, Color(0xFFC58BFF), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
+                }
+            }
             "fx_matrix" -> for (i in 0 until 16) {
                 val head = (t * (0.7f + 0.8f * rnd(i, 1)) * 2f + rnd(i, 2)) % 1.4f
                 val x = w * (i + 0.5f) / 16f
@@ -529,6 +620,7 @@ private fun effectColor(id: String): Color = when (id) {
     "fx_hearts" -> Color(0xFFFF5A8A)
     "fx_fireflies" -> Color(0xFFD7FF4D)
     "fx_confetti" -> Color(0xFFFFD23F)
+    "fx_demon" -> Color(0xFFE0102A)
     else -> Color(0xFF00FF66)
 }
 
@@ -549,6 +641,7 @@ val BubbleSpecs = mapOf(
     "bubble_lava" to BubbleSpec(listOf(Color(0xFF7A0F0F), Color(0xFFFF5A1F)), anim = 1),
     "bubble_aurora" to BubbleSpec(listOf(Color(0xFF00C9A7), Color(0xFF845EC2), Color(0xFFFF6F91)), anim = 3),
     "bubble_galaxy" to BubbleSpec(listOf(Color(0xFF0B0C2A), Color(0xFF4B2A9A), Color(0xFFB5179E)), border = Color(0x66FFFFFF), anim = 3),
+    "bubble_demon" to BubbleSpec(listOf(Color(0xFF14020A), Color(0xFF7A0A1E), Color(0xFFD4142B)), text = Color(0xFFFFE3D0), border = Color(0xFFFF3B30), anim = 5),
     "bubble_gold" to BubbleSpec(listOf(Color(0xFF8A6410), Color(0xFFE2B007), Color(0xFFFFE9A0)), text = Color(0xFF2B1D00), anim = 1)
 )
 
@@ -569,14 +662,14 @@ fun CosmeticBubble(id: String?, shape: Shape, modifier: Modifier = Modifier, fal
                 Brush.linearGradient(spec.colors + spec.colors.first(), Offset(w * (t * 2f - 1f), 0f), Offset(w * (t * 2f), h), androidx.compose.ui.graphics.TileMode.Mirror)
             else Brush.linearGradient(spec.colors, Offset(0f, 0f), Offset(w, h))
             drawRect(brush)
-            if (spec.anim == 1) {
+            if (spec.anim == 1 || spec.anim == 5) {
                 val x = ((t * 1.6f) % 1.6f - 0.3f) * w
                 drawRect(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.30f), Color.Transparent), startX = x - w * 0.15f, endX = x + w * 0.15f))
             }
             drawContent()
             val b = spec.border
             if (b != null) {
-                val a = if (spec.anim == 2) 0.45f + 0.55f * abs(sin(t * 2 * PI.toFloat())) else 1f
+                val a = if (spec.anim == 2 || spec.anim == 5) 0.45f + 0.55f * abs(sin(t * 2 * PI.toFloat())) else 1f
                 val r = (shape as? RoundedCornerShape)?.let { 22.dp.toPx() } ?: 16.dp.toPx()
                 drawRoundRect(b.copy(alpha = b.alpha * a), cornerRadius = androidx.compose.ui.geometry.CornerRadius(r), style = Stroke(1.4.dp.toPx()))
             }

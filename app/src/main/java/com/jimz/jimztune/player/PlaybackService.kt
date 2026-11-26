@@ -100,9 +100,13 @@ class PlaybackService : MediaSessionService() {
         btCallback = cb
     }
 
+    private var screenReceiver: BroadcastReceiver? = null
+
     override fun onCreate() {
         super.onCreate()
         AppGraph.init(applicationContext)
+        screenReceiver = com.jimz.jimztune.util.LockScreenLyrics.ScreenReceiver { session?.player?.isPlaying == true }
+        registerReceiver(screenReceiver, IntentFilter(Intent.ACTION_SCREEN_ON))
 
         val http = DefaultHttpDataSource.Factory()
             .setUserAgent("Mozilla/5.0 (Windows NT 10.0; rv:128.0) Gecko/20100101 Firefox/128.0")
@@ -547,6 +551,8 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        screenReceiver?.let { try { unregisterReceiver(it) } catch (_: Exception) { } }
+        screenReceiver = null
         btCallback?.let { (getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager)?.unregisterAudioDeviceCallback(it) }
         btCallback = null
         cancelRetry()

@@ -126,7 +126,8 @@ object CosmeticsStore {
             while (pending.isNotEmpty()) {
                 val batch = pending.take(100)
                 pending.removeAll(batch.toSet())
-                val got = CosmeticsApi.of(batch) ?: continue
+                val got = CosmeticsApi.of(batch)
+                if (got == null) { batch.forEach { asked.remove(it) }; continue }
                 batch.forEach { map[it] = got[it] ?: Equipped() }
             }
         }

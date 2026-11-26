@@ -1,3 +1,9 @@
+## 2.17.0
+- Lirik di layar kunci asli: saklar di Pengaturan + izin tampil di atas aplikasi lain; muncul saat layar dinyalakan.
+- Kosmetik Raja Iblis (bingkai, plat, efek, gelembung) khusus owner; lencana owner bertema iblis dengan sayap.
+- Catatan orang lain tidak lagi menampilkan mini player; sentuhan tidak lagi tembus ke layar belakang.
+- Kosmetik profil otomatis dicoba ulang bila gagal dimuat.
+
 # Catatan perubahan
 
 ## 2.16.0

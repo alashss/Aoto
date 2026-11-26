@@ -132,7 +132,7 @@ fun NoteComposer(
     var lyric by remember { mutableStateOf<String?>(null) }
 
     BackHandler { if (stage == "edit") onClose() else stage = if (stage == "lyric") "song" else "edit" }
-    Box(Modifier.fillMaxSize().background(NoteBg)) {
+    Box(Modifier.fillMaxSize().background(NoteBg).blockTouches()) {
         AnimatedContent(
             targetState = stage,
             transitionSpec = {

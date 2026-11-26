@@ -170,7 +170,7 @@ private fun ProfileBody(p: UserProfile, busy: Boolean, info: String?, onInfoShow
                 CosmeticName(p.name, eq, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
                 if (p.isOwner) {
                     Spacer(Modifier.width(8.dp))
-                    Icon(Icons.Rounded.Security, "Owner", tint = accent, modifier = Modifier.size(20.dp))
+                    OwnerBadge(Modifier, 20.dp)
                 }
             }
             }

@@ -87,6 +87,7 @@ class MainActivity : ComponentActivity() {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
+        handleLockIntent(intent)
         // Aplikasi dibuka dari tautan jimztune://auth (login Google / konfirmasi email) saat belum berjalan.
         if (savedInstanceState == null) handleAuthIntent(intent)
 
@@ -130,7 +131,25 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        handleLockIntent(intent)
         handleAuthIntent(intent)
+    }
+
+    private fun handleLockIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra(com.jimz.jimztune.util.LockScreenLyrics.EXTRA, false) != true) return
+        intent.removeExtra(com.jimz.jimztune.util.LockScreenLyrics.EXTRA)
+        com.jimz.jimztune.util.LockScreenLyrics.showOverKeyguard(this)
+        com.jimz.jimztune.ui.player.LockMode.active = true
+    }
+
+    // Setelah pengguna membuka kunci (sidik jari / PIN), tutup mode kunci layar.
+    private val userPresent = object : android.content.BroadcastReceiver() {
+        override fun onReceive(c: android.content.Context, i: Intent) {
+            if (com.jimz.jimztune.util.LockScreenLyrics.fromKeyguard) {
+                com.jimz.jimztune.ui.player.LockMode.active = false
+                com.jimz.jimztune.util.LockScreenLyrics.leaveKeyguard(this@MainActivity, false)
+            }
+        }
     }
 
     private fun handleAuthIntent(intent: Intent?) {
@@ -150,11 +169,13 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         // Aktifkan koneksi realtime + penanda "online" selama aplikasi terlihat.
         AppGraph.setAppVisible(true)
+        androidx.core.content.ContextCompat.registerReceiver(this, userPresent, android.content.IntentFilter(Intent.ACTION_USER_PRESENT), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
     }
 
     override fun onStop() {
         super.onStop()
         AppGraph.setAppVisible(false)
+        try { unregisterReceiver(userPresent) } catch (_: Exception) { }
     }
 
     override fun onResume() {

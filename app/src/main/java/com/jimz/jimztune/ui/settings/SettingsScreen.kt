@@ -183,6 +183,37 @@ fun SettingsScreen(
                 if (AppGraph.account.isOwner) {
                     RowDivider()
                     SettingRow(Icons.Rounded.PlayCircle, "Mode lirik", "Lirik layar penuh, bisa potret atau lanskap", { com.jimz.jimztune.ui.player.LyricsMode.active = true }, trailing = { HubChevron() })
+                    run {
+                        val ctx = androidx.compose.ui.platform.LocalContext.current
+                        var lsOn by remember { mutableStateOf(com.jimz.jimztune.util.LockScreenLyrics.enabled(ctx) && com.jimz.jimztune.util.LockScreenLyrics.canDraw(ctx)) }
+                        // Kembali dari layar izin: aktifkan otomatis bila izin sudah diberikan.
+                        androidx.compose.runtime.DisposableEffect(Unit) {
+                            val obs = androidx.lifecycle.LifecycleEventObserver { _, ev ->
+                                if (ev == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                                    val want = com.jimz.jimztune.util.LockScreenLyrics.enabled(ctx)
+                                    lsOn = want && com.jimz.jimztune.util.LockScreenLyrics.canDraw(ctx)
+                                }
+                            }
+                            val lo = (ctx as? androidx.lifecycle.LifecycleOwner)?.lifecycle
+                            lo?.addObserver(obs)
+                            onDispose { lo?.removeObserver(obs) }
+                        }
+                        SettingRow(
+                            Icons.Rounded.Lock, "Lirik di layar kunci",
+                            if (lsOn) "Aktif: saat layar menyala dan musik main, lirik muncul di layar kunci" else "Butuh izin \"tampil di atas aplikasi lain\"",
+                            null,
+                            trailing = {
+                                Switch(checked = lsOn, onCheckedChange = { on ->
+                                    if (!on) { com.jimz.jimztune.util.LockScreenLyrics.set(ctx, false); lsOn = false }
+                                    else {
+                                        com.jimz.jimztune.util.LockScreenLyrics.set(ctx, true)
+                                        if (com.jimz.jimztune.util.LockScreenLyrics.canDraw(ctx)) lsOn = true
+                                        else ctx.startActivity(com.jimz.jimztune.util.LockScreenLyrics.overlaySettings(ctx))
+                                    }
+                                })
+                            }
+                        )
+                    }
                     SettingRow(Icons.Rounded.PlayCircle, "Mode kunci layar", "Lirik besar + kontrol, layar tetap menyala", { com.jimz.jimztune.ui.player.LockMode.active = true }, trailing = { HubChevron() })
                     SettingRow(Icons.Rounded.PlayCircle, "Pemutaran", "Catatan pemutar (khusus owner)", { page = "pemutaran" }, trailing = { HubChevron() })
                 }

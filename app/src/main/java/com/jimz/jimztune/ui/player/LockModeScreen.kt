@@ -92,6 +92,7 @@ import com.jimz.jimztune.player.PlayerViewModel
 import com.jimz.jimztune.ui.theme.LocalCoverTheme
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
+import androidx.compose.ui.platform.LocalContext
 import java.util.Date
 import java.util.Locale
 
@@ -111,6 +112,10 @@ private fun fmt(ms: Long): String {
  */
 @Composable
 fun LockModeHost(player: PlayerViewModel) {
+    val act = LocalContext.current as? android.app.Activity
+    LaunchedEffect(LockMode.active) {
+        if (!LockMode.active && act != null) com.jimz.jimztune.util.LockScreenLyrics.leaveKeyguard(act, true)
+    }
     AnimatedVisibility(
         visible = LockMode.active && player.ui.current != null,
         enter = fadeIn(tween(300)),

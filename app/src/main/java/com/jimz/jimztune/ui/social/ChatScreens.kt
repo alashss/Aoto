@@ -437,10 +437,7 @@ private fun ChatCardRow(m: ChatMessage, mine: Boolean, accent: Color, onLong: ()
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CosmeticName(m.name, eq, color = if (m.owner) accent else Color(0xFF9CCB6A), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
-                        if (m.owner) Text(
-                            "OWNER", color = Color.Black, fontSize = 8.sp, fontWeight = FontWeight.Black,
-                            modifier = Modifier.padding(start = 6.dp).clip(RoundedCornerShape(50)).background(accent).padding(horizontal = 5.dp, vertical = 1.dp)
-                        )
+                        if (m.owner) OwnerBadge(Modifier.padding(start = 4.dp), 15.dp)
                     }
                     if (quote != null) Text(
                         quote, color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
@@ -458,10 +455,7 @@ private fun ChatCardRow(m: ChatMessage, mine: Boolean, accent: Color, onLong: ()
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CosmeticName(m.name, eq, color = if (m.owner) accent else Color(0xFF9CCB6A), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
-                    if (m.owner) Text(
-                        "OWNER", color = Color.Black, fontSize = 8.sp, fontWeight = FontWeight.Black,
-                        modifier = Modifier.padding(start = 6.dp).clip(RoundedCornerShape(50)).background(accent).padding(horizontal = 5.dp, vertical = 1.dp)
-                    )
+                    if (m.owner) OwnerBadge(Modifier.padding(start = 4.dp), 15.dp)
                 }
                 if (quote != null) Text(
                     quote, color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,

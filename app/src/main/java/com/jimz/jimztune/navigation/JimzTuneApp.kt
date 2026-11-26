@@ -15,6 +15,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -176,7 +177,8 @@ fun JimzTuneApp() {
 
     // Tinggi area yang tertutup navbar kaca (+ mini player kalau ada), supaya daftar bisa digulir melewatinya.
     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val hasMini = player.ui.current != null
+    // Saat potongan lagu catatan diputar, kartu mini pemutar disembunyikan.
+    val hasMini = player.ui.current != null && !com.jimz.jimztune.ui.social.NoteAudio.active
     // Warna latar mengikuti cover lagu yang sedang diputar (biru bawaan kalau belum ada lagu).
     // Hanya mengikuti sampul kalau latar aplikasi dipilih "Ikuti lagu"; selain itu warna tema tetap.
     val cover = rememberCoverTheme(
@@ -523,7 +525,7 @@ fun JimzTuneApp() {
                 enter = slideInHorizontally(tween(360, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(240)),
                 exit = slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { it } + fadeOut(tween(200))
             ) {
-                OwnerPanelScreen(onBack = { showOwner = false })
+                Box(Modifier.fillMaxSize().pointerInput(Unit) { androidx.compose.foundation.gestures.detectTapGestures { } }) { OwnerPanelScreen(onBack = { showOwner = false }) }
             }
 
             com.jimz.jimztune.ui.social.SocialHost()

@@ -29,7 +29,7 @@ fun SocialHost() {
         }
     }
     val top = SocialNav.stack.lastOrNull() ?: return
-    Box(Modifier.fillMaxSize().background(Color(0xFF0B0E1F))) {
+    Box(Modifier.fillMaxSize().background(Color(0xFF0B0E1F)).blockTouches()) {
         AnimatedContent(
             targetState = top,
             transitionSpec = { (slideInHorizontally { it / 4 } + fadeIn()) togetherWith (fadeOut()) },

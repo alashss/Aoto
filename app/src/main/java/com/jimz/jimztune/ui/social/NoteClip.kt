@@ -30,6 +30,11 @@ import com.jimz.jimztune.data.model.SearchItem
 import com.jimz.jimztune.player.PlayerViewModel
 import kotlinx.coroutines.delay
 
+/** Penanda bahwa potongan lagu catatan sedang diputar (kartu mini pemutar disembunyikan selama itu). */
+object NoteAudio {
+    var active by androidx.compose.runtime.mutableStateOf(false)
+}
+
 /** Satu baris lirik di dalam potongan catatan: [ms] = waktu baris itu di lagu aslinya. */
 data class ClipLine(val ms: Long, val text: String)
 
@@ -147,7 +152,9 @@ fun rememberNoteClipClock(song: SearchItem?, lines: List<ClipLine>, player: Play
         while (true) withFrameMillis { smooth = base + (System.nanoTime() - t0) / 1_000_000 }
     }
     DisposableEffect(song?.id) {
-        onDispose { if (song != null && player.ui.current?.id == song.id && player.ui.isPlaying) player.togglePlay() }
+        if (song != null) NoteAudio.active = true
+        onDispose {
+            NoteAudio.active = false if (song != null && player.ui.current?.id == song.id && player.ui.isPlaying) player.togglePlay() }
     }
     return if (onSong) smooth else (start ?: 0L)
 }
