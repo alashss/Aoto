@@ -44,6 +44,9 @@ import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.ViewAgenda
+import com.jimz.jimztune.ui.components.SortMode
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.LibraryMusic
@@ -252,7 +255,7 @@ private fun SongList(
     emptyTitle: String,
     emptyBody: String,
     extraHeader: (@Composable () -> Unit)? = null,
-    barTrailing: @Composable RowScope.() -> Unit = {},
+    barEntries: List<com.jimz.jimztune.ui.components.BarEntry> = emptyList(),
     sortKey: String? = null,
     extraMenu: (SearchItem) -> List<Pair<String, () -> Unit>> = { emptyList() }
 ) {
@@ -267,9 +270,14 @@ private fun SongList(
             onPlayAll = { onPlay(shown, 0) },
             onShuffle = { onPlay(shown.shuffled(), 0) },
             trailing = {
-                if (sortKey != null) SortButton(sortMode, setSort)
-                barTrailing()
-                ViewModeButton()
+                val viewEntry = com.jimz.jimztune.ui.components.BarEntry(
+                    if (LibraryView.grid) "Tampilan daftar" else "Tampilan kotak",
+                    if (LibraryView.grid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView
+                ) { LibraryView.toggle() }
+                com.jimz.jimztune.ui.components.BarMenuButton(
+                    actions = barEntries + viewEntry,
+                    sort = if (sortKey != null) SortMode.entries.map { m -> com.jimz.jimztune.ui.components.BarEntry(m.label, null, m == sortMode) { setSort(m) } } else emptyList()
+                )
             }
         )
         extraHeader?.invoke()
@@ -463,21 +471,21 @@ private fun PlaylistTab(
                     emptyIcon = Icons.Rounded.LibraryMusic,
                     emptyTitle = "Playlist kosong",
                     emptyBody = "Simpan lagu lewat menu ⋮ di hasil pencarian atau pemutar.",
-                    barTrailing = {
-                        DownloadAllIconButton(open.songs)
-                        if (open.songs.size > 1) CompactIconButton(Icons.Rounded.SwapVert, "Atur urutan", onClick = { reordering = true })
-                        CompactIconButton(Icons.Rounded.Add, "Tambah lagu", onClick = { showAddSongs = true })
-                        if (com.jimz.jimztune.AppConfig.SHARE_ENABLED) CompactIconButton(
-                            Icons.Rounded.Share,
-                            "Bagikan playlist",
-                            onClick = {
-                                if (open.songs.isEmpty()) {
-                                    android.widget.Toast.makeText(context, "Playlist masih kosong", android.widget.Toast.LENGTH_SHORT).show()
-                                } else {
-                                    com.jimz.jimztune.data.share.ShareLinks.sharePlaylist(context, open.id, open.name, open.songs, libraryPlaylistShareText(open.name, open.songs))
-                                }
-                            }
-                        )
+                    barEntries = buildList {
+                        val uniq = open.songs.distinctBy { it.id }
+                        val remaining = uniq.count { !AppGraph.downloads.isDownloaded(it.id) }
+                        if (uniq.isNotEmpty()) add(com.jimz.jimztune.ui.components.BarEntry(
+                            if (remaining == 0) "Semua sudah diunduh" else "Unduh semua ($remaining)", Icons.Rounded.Download
+                        ) {
+                            if (remaining == 0) android.widget.Toast.makeText(context, "Semua lagu sudah tersimpan untuk offline", android.widget.Toast.LENGTH_SHORT).show()
+                            else android.widget.Toast.makeText(context, "Mengunduh ${AppGraph.downloads.downloadAll(uniq)} lagu…", android.widget.Toast.LENGTH_SHORT).show()
+                        })
+                        add(com.jimz.jimztune.ui.components.BarEntry("Tambah lagu", Icons.Rounded.Add) { showAddSongs = true })
+                        if (open.songs.size > 1) add(com.jimz.jimztune.ui.components.BarEntry("Atur urutan", Icons.Rounded.SwapVert) { reordering = true })
+                        if (com.jimz.jimztune.AppConfig.SHARE_ENABLED) add(com.jimz.jimztune.ui.components.BarEntry("Bagikan playlist", Icons.Rounded.Share) {
+                            if (open.songs.isEmpty()) android.widget.Toast.makeText(context, "Playlist masih kosong", android.widget.Toast.LENGTH_SHORT).show()
+                            else com.jimz.jimztune.data.share.ShareLinks.sharePlaylist(context, open.id, open.name, open.songs, libraryPlaylistShareText(open.name, open.songs))
+                        })
                     },
                     extraMenu = { s -> listOf("Hapus dari playlist" to { library.removeFromPlaylist(open.id, s.id) }) }
                 )
@@ -728,6 +736,17 @@ private fun LikedPlaylistRow(
 }
 
 @Composable
+private fun DlMenu(mode: SortMode, set: (SortMode) -> Unit) {
+    com.jimz.jimztune.ui.components.BarMenuButton(
+        actions = listOf(com.jimz.jimztune.ui.components.BarEntry(
+            if (LibraryView.grid) "Tampilan daftar" else "Tampilan kotak",
+            if (LibraryView.grid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView
+        ) { LibraryView.toggle() }),
+        sort = SortMode.entries.map { m -> com.jimz.jimztune.ui.components.BarEntry(m.label, null, m == mode) { set(m) } }
+    )
+}
+
+@Composable
 private fun DownloadsTab(currentId: String?, onPlay: (List<SearchItem>, Int) -> Unit) {
     val downloads = AppGraph.downloads
     val active = downloads.active.values.toList()
@@ -759,7 +778,7 @@ private fun DownloadsTab(currentId: String?, onPlay: (List<SearchItem>, Int) -> 
                 PlayAllBar(
                     onPlayAll = { onPlay(shownSongs, 0) },
                     onShuffle = { onPlay(shownSongs.shuffled(), 0) },
-                    trailing = { SortButton(dlMode, setDlMode); ViewModeButton() }
+                    trailing = { DlMenu(dlMode, setDlMode) }
                 )
             }
         }
@@ -800,7 +819,7 @@ private fun DownloadsTab(currentId: String?, onPlay: (List<SearchItem>, Int) -> 
                 PlayAllBar(
                     onPlayAll = { onPlay(shownSongs, 0) },
                     onShuffle = { onPlay(shownSongs.shuffled(), 0) },
-                    trailing = { SortButton(dlMode, setDlMode); ViewModeButton() }
+                    trailing = { DlMenu(dlMode, setDlMode) }
                 )
             }
             itemsIndexed(shownSongs, key = { _, s -> s.id }) { index, song ->

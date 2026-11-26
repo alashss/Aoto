@@ -106,7 +106,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
                 Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(24.dp))
                     .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.40f), Color(0xFF12163A))))
             ) {
-                ProfileEffect(eq?.effect)
+                ProfileEffect(eq?.effect, Modifier.matchParentSize())
                 Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                     AvatarWithDot(profile?.avatarUrl, profile?.displayName ?: "Kamu", 64.dp, null, userId = me)
                     Spacer(Modifier.width(if (eq?.frame != null) 22.dp else 14.dp))

@@ -17,7 +17,15 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -94,6 +102,39 @@ fun SongGrid(
         item(span = { GridItemSpan(maxLineSpan) }) { Column(Modifier.padding(horizontal = 0.dp)) { header() } }
         itemsIndexed(songs, key = { _, s -> s.id }) { i, s ->
             SongGridTile(s, s.id == currentId, onClick = { onPlay(songs, i) })
+        }
+    }
+}
+
+/** Satu baris di menu ⋮ bilah daftar. [checked] menampilkan centang (untuk pilihan urutan). */
+class BarEntry(val label: String, val icon: ImageVector? = null, val checked: Boolean = false, val onClick: () -> Unit)
+
+/** Satu tombol ⋮ yang memuat semua aksi daftar: unduh, urutkan, tampilan, tambah, bagikan, dst. */
+@Composable
+fun BarMenuButton(actions: List<BarEntry>, sortTitle: String? = null, sort: List<BarEntry> = emptyList()) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        CompactIconButton(Icons.Rounded.MoreVert, "Menu", onClick = { open = true })
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            actions.forEach { e ->
+                DropdownMenuItem(
+                    text = { Text(e.label) },
+                    leadingIcon = e.icon?.let { ic -> { Icon(ic, null) } },
+                    onClick = { open = false; e.onClick() }
+                )
+            }
+            if (sort.isNotEmpty()) {
+                HorizontalDivider()
+                Text(sortTitle ?: "Urutkan", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+                sort.forEach { e ->
+                    DropdownMenuItem(
+                        text = { Text(e.label) },
+                        trailingIcon = { if (e.checked) Icon(Icons.Rounded.Check, null) },
+                        onClick = { open = false; e.onClick() }
+                    )
+                }
+            }
         }
     }
 }

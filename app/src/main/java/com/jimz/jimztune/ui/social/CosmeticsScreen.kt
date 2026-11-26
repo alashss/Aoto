@@ -85,7 +85,7 @@ fun CosmeticsScreen(onBack: () -> Unit) {
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(24.dp))
                 .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.40f), Color(0xFF12163A))))
         ) {
-            ProfileEffect(eq.effect)
+            ProfileEffect(eq.effect, Modifier.matchParentSize())
             Column(Modifier.fillMaxWidth().padding(vertical = 18.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 FramedAvatar(86.dp, equipped = eq) { RankAvatar(profile?.avatarUrl, profile?.displayName ?: "Kamu", 86.dp) }
                 Spacer(Modifier.height(16.dp))

@@ -32,7 +32,9 @@ import kotlinx.coroutines.delay
 
 /** Penanda bahwa potongan lagu catatan sedang diputar (kartu mini pemutar disembunyikan selama itu). */
 object NoteAudio {
-    var active by androidx.compose.runtime.mutableStateOf(false)
+    /** Jumlah sheet catatan yang sedang memutar; kartu mini disembunyikan selama > 0 (termasuk saat lagu dikembalikan). */
+    var count by androidx.compose.runtime.mutableStateOf(0)
+    val active: Boolean get() = count > 0
 }
 
 /** Satu baris lirik di dalam potongan catatan: [ms] = waktu baris itu di lagu aslinya. */
@@ -133,7 +135,6 @@ fun rememberNoteClipClock(song: SearchItem?, lines: List<ClipLine>, player: Play
     val end = NoteClip.endMs(lines) + 500L
     LaunchedEffect(song?.id, start) {
         if (song == null) return@LaunchedEffect
-        if (player.ui.current?.id != song.id) player.play(listOf(song), 0)
         if (start != null) {
             var tries = 0
             while (tries < 150 && !(player.ui.current?.id == song.id && player.ui.durationMs > 0L)) { delay(100); tries++ }
@@ -152,10 +153,9 @@ fun rememberNoteClipClock(song: SearchItem?, lines: List<ClipLine>, player: Play
         while (true) withFrameMillis { smooth = base + (System.nanoTime() - t0) / 1_000_000 }
     }
     DisposableEffect(song?.id) {
-        if (song != null) NoteAudio.active = true
+        if (song != null) { NoteAudio.count++; player.beginNoteClip(song) }
         onDispose {
-            NoteAudio.active = false
-            if (song != null && player.ui.current?.id == song.id && player.ui.isPlaying) player.togglePlay()
+            if (song != null) player.endNoteClip { NoteAudio.count = (NoteAudio.count - 1).coerceAtLeast(0) }
         }
     }
     return if (onSong) smooth else (start ?: 0L)

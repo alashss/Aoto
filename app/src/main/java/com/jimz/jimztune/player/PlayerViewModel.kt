@@ -317,6 +317,55 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ------------------------------------------------------------------ potongan lagu catatan
+
+    private class NoteSnap(
+        val items: List<androidx.media3.common.MediaItem>, val index: Int, val pos: Long, val playing: Boolean,
+        val shuffle: Boolean, val repeat: Int, val source: String?
+    )
+    private var noteSnap: NoteSnap? = null
+    private var noteDepth = 0
+
+    /** Memutar lagu catatan teman dan mengingat apa yang sedang kita dengar, supaya bisa dilanjutkan setelahnya. */
+    fun beginNoteClip(song: SearchItem) = withController { c ->
+        if (noteDepth == 0) {
+            noteSnap = if (c.mediaItemCount > 0) NoteSnap(
+                (0 until c.mediaItemCount).map { c.getMediaItemAt(it) }, c.currentMediaItemIndex,
+                c.currentPosition.coerceAtLeast(0), c.isPlaying, c.shuffleModeEnabled, c.repeatMode, queueSourceId
+            ) else null
+        }
+        noteDepth++
+        if (c.currentMediaItem?.mediaId != song.id) {
+            StreamResolver.prefetch(song.id)
+            c.shuffleModeEnabled = false
+            c.repeatMode = Player.REPEAT_MODE_OFF
+            c.setMediaItems(listOf(song.toMediaItem()), 0, 0L)
+            c.prepare()
+        }
+        c.play()
+    }
+
+    /** Selesai melihat catatan: kembalikan lagu / antrean / posisi kita seperti semula (atau hening bila tadinya tidak memutar). */
+    fun endNoteClip(onDone: () -> Unit = {}) = withController { c ->
+        noteDepth = (noteDepth - 1).coerceAtLeast(0)
+        if (noteDepth > 0) { onDone(); return@withController }
+        val s = noteSnap
+        noteSnap = null
+        if (s != null) {
+            c.setMediaItems(s.items, s.index.coerceIn(0, s.items.lastIndex), s.pos)
+            c.shuffleModeEnabled = s.shuffle
+            c.repeatMode = s.repeat
+            c.prepare()
+            if (s.playing) c.play() else c.pause()
+            queueSourceId = s.source
+        } else {
+            queueSourceId = null
+            c.stop()
+            c.clearMediaItems()
+        }
+        onDone()
+    }
+
     /** Menghentikan pemutaran dan mengosongkan antrean (dipakai saat aplikasi dikunci dari jauh). */
     fun stop() = withController { c ->
         queueSourceId = null

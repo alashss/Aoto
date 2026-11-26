@@ -1,3 +1,8 @@
+## 2.17.2
+- Kosmetik: pratinjau tidak lagi membengkak menutupi layar saat efek dipilih (tombol jadi bisa ditekan lagi).
+- Catatan teman: lagu kita dijeda lalu dilanjutkan persis seperti semula setelah keluar; kartu mini tidak tersisa.
+- Isi playlist: semua aksi (unduh, urutkan, tampilan, tambah, atur urutan, bagikan) digabung di satu tombol ⋮.
+
 ## 2.17.1
 - Perbaikan build 2.17.0.
 - Tautan bagikan playlist (pencarian / disukai) kini tautan Aoto; tombol bagikan di playlist disukai.
