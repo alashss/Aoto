@@ -52,7 +52,7 @@ object StreamResolver {
     /** NewPipe gagal baru-baru ini: sampai kapan cadangan tidak perlu menunggu NewPipe. */
     @Volatile private var newPipeDownUntil = 0L
     private fun isNewPipeDown() = newPipeDownUntil > System.currentTimeMillis()
-    private const val NEWPIPE_HEAD_START_MS = 2_500L
+    private const val NEWPIPE_HEAD_START_MS = 1_200L
 
     /**
      * Menghangatkan sambungan (DNS + TLS) ke YouTube dan menyiapkan NewPipe di latar belakang, supaya pencarian lagu PERTAMA
@@ -230,7 +230,8 @@ object StreamResolver {
                     // Jangan terima URL yang ditolak server (403): dulu ini baru ketahuan setelah pemutar gagal,
                     // lalu mengulang dari awal dan memakan 5–15 detik.
                     val group2 = p.name == "Piped" || p.name == "Invidious"
-                    if (!group2 && !Http.probe(url, userAgentFor(url))) {
+                    // NewPipe tidak dicek dulu (hemat satu putaran jaringan); bila ditolak, pemutar otomatis pindah sumber.
+                    if (!group2 && p.name != "NewPipe" && !Http.probe(url, userAgentFor(url))) {
                         if (p.name != "NewPipe") weakUntil[p.name] = System.currentTimeMillis() + 20 * 60_000L
                         throw IOException("URL ditolak server (403)")
                     }

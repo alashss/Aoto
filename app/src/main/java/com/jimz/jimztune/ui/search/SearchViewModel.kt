@@ -193,6 +193,8 @@ class SearchViewModel : ViewModel() {
                     SearchUiState.Success(lyricResults(q), "Lirik")
                 } else {
                     val result = repo.search(q, type)
+                    // Siapkan alamat audio 3 hasil teratas: ketukan pertama langsung berbunyi.
+                    result.items.filter { it.type == SearchType.SONG }.take(3).forEach { com.jimz.jimztune.data.stream.StreamResolver.prefetch(it.id) }
                     SearchUiState.Success(result.items, result.source)
                 }
             } catch (e: CancellationException) {

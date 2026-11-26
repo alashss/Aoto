@@ -95,7 +95,8 @@ class HomeViewModel : ViewModel() {
             }
             cache.write(shelves.associate { it.title to it.items })
             // Siapkan alamat audio 2 lagu teratas, jadi ketukan pertama langsung berbunyi.
-            shelves.firstOrNull()?.items?.take(2)?.forEach { StreamResolver.prefetch(it.id) }
+            shelves.firstOrNull()?.items?.take(4)?.forEach { StreamResolver.prefetch(it.id) }
+            AppGraph.history.items.take(2).forEach { StreamResolver.prefetch(it.id) }
         }
     }
 

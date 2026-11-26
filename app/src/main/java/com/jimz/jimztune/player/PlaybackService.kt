@@ -171,7 +171,7 @@ class PlaybackService : MediaSessionService() {
 
         // Mulai memutar setelah 0,6 detik audio terisi (bawaan 2,5 detik), dan 2,5 detik setelah macet (bawaan 5 detik).
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(25_000, 60_000, 600, 2_500)
+            .setBufferDurationsMs(25_000, 60_000, 350, 2_000)
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 

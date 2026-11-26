@@ -136,6 +136,8 @@ fun FriendsScreen(onBack: () -> Unit) {
     LaunchedEffect(reload) {
         friends = SocialApi.friends().value ?: friends ?: emptyList()
         reqs = SocialApi.requests().value ?: reqs
+        // Siapkan alamat audio lagu catatan teman supaya langsung berbunyi saat dibuka.
+        friends?.mapNotNull { it.noteSongId }?.distinct()?.take(6)?.forEach { com.jimz.jimztune.data.stream.StreamResolver.prefetch(it) }
     }
     LaunchedEffect(query) {
         if (query.trim().length < 2) { results = null; return@LaunchedEffect }

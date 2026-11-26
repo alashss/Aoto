@@ -1,3 +1,6 @@
+## 2.17.3
+- Lagu mulai lebih cepat: NewPipe tanpa uji awal, cadangan tidak menunggu lama, penyangga awal lebih kecil, dan alamat audio disiapkan lebih dulu untuk hasil pencarian, beranda, dan catatan teman.
+
 ## 2.17.2
 - Kosmetik: pratinjau tidak lagi membengkak menutupi layar saat efek dipilih (tombol jadi bisa ditekan lagi).
 - Catatan teman: lagu kita dijeda lalu dilanjutkan persis seperti semula setelah keluar; kartu mini tidak tersisa.
