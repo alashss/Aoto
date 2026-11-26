@@ -71,6 +71,14 @@ class LibraryStore(context: Context) {
         return !liked
     }
 
+    /** Playlist yang baru diubah / dipakai pindah ke urutan paling atas. */
+    fun bump(id: String) {
+        val p = playlists.firstOrNull { it.id == id } ?: return
+        if (playlists.firstOrNull()?.id == id) return
+        playlists = listOf(p) + playlists.filter { it.id != id }
+        save()
+    }
+
     fun playlist(id: String?): Playlist? = if (id == null) null else playlists.firstOrNull { it.id == id }
 
     fun createPlaylist(name: String, first: SearchItem? = null, color: Int = 0): Playlist {
@@ -80,7 +88,7 @@ class LibraryStore(context: Context) {
             listOfNotNull(first),
             color
         )
-        playlists = playlists + p
+        playlists = listOf(p) + playlists
         save()
         return p
     }
@@ -88,7 +96,7 @@ class LibraryStore(context: Context) {
     /** Membuat playlist baru berisi [songs] sekaligus (hasil impor dari layanan lain). */
     fun importPlaylist(name: String, songs: List<SearchItem>): Playlist {
         val p = Playlist(UUID.randomUUID().toString(), name.trim().ifEmpty { "Playlist impor" }, songs.distinctBy { it.id })
-        playlists = playlists + p
+        playlists = listOf(p) + playlists
         save()
         return p
     }
@@ -148,6 +156,7 @@ class LibraryStore(context: Context) {
         val target = playlist(id) ?: return false
         if (target.songs.any { it.id == song.id }) return false
         playlists = playlists.map { if (it.id == id) it.copy(songs = it.songs + song) else it }
+        bump(id)
         save()
         return true
     }
@@ -159,6 +168,7 @@ class LibraryStore(context: Context) {
         val kept = ordered.filter { it.id in ids }.distinctBy { it.id }
         val rest = cur.songs.filter { s -> kept.none { it.id == s.id } }
         playlists = playlists.map { if (it.id == id) it.copy(songs = kept + rest) else it }
+        bump(id)
         save()
     }
 
@@ -183,6 +193,7 @@ class LibraryStore(context: Context) {
         val add = s.songs.filter { it.id !in have }.distinctBy { it.id }
         if (add.isNotEmpty()) {
             playlists = playlists.map { if (it.id == targetId) it.copy(songs = it.songs + add) else it }
+            bump(targetId)
             save()
         }
         return add.size
@@ -190,6 +201,7 @@ class LibraryStore(context: Context) {
 
     fun removeFromPlaylist(id: String, songId: String) {
         playlists = playlists.map { if (it.id == id) it.copy(songs = it.songs.filter { s -> s.id != songId }) else it }
+        bump(id)
         save()
     }
 

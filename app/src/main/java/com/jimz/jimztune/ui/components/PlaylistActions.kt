@@ -100,7 +100,7 @@ fun sharePlaylistRef(context: Context, ref: SearchItem) {
         Toast.makeText(context, "Fitur bagikan sedang dimatikan", Toast.LENGTH_SHORT).show()
         return
     }
-    context.shareText(ref.title, searchPlaylistShareText(ref.title.ifBlank { "Playlist" }, ref.id))
+    com.jimz.jimztune.data.share.ShareLinks.shareSearchPlaylist(context, ref, searchPlaylistShareText(ref.title.ifBlank { "Playlist" }, ref.id))
 }
 
 /**

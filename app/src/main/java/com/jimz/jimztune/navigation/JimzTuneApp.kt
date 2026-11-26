@@ -16,6 +16,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -525,7 +526,7 @@ fun JimzTuneApp() {
                 enter = slideInHorizontally(tween(360, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(240)),
                 exit = slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { it } + fadeOut(tween(200))
             ) {
-                Box(Modifier.fillMaxSize().pointerInput(Unit) { androidx.compose.foundation.gestures.detectTapGestures { } }) { OwnerPanelScreen(onBack = { showOwner = false }) }
+                Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { } }) { OwnerPanelScreen(onBack = { showOwner = false }) }
             }
 
             com.jimz.jimztune.ui.social.SocialHost()

@@ -85,6 +85,9 @@ import com.jimz.jimztune.ui.components.ScreenHeader
 import com.jimz.jimztune.ui.components.SegmentedTabs
 import com.jimz.jimztune.ui.components.SongListRow
 import com.jimz.jimztune.ui.components.CompactIconButton
+import com.jimz.jimztune.ui.components.LibraryView
+import com.jimz.jimztune.ui.components.SongGrid
+import com.jimz.jimztune.ui.components.ViewModeButton
 import com.jimz.jimztune.ui.components.SortButton
 import com.jimz.jimztune.ui.components.rememberSortMode
 import com.jimz.jimztune.ui.components.sortSongs
@@ -259,18 +262,24 @@ private fun SongList(
     }
     val (sortMode, setSort) = rememberSortMode(sortKey ?: "none")
     val shown = remember(songs, sortMode, sortKey) { if (sortKey == null) songs else sortSongs(songs, sortMode) }
+    val listHeader: @Composable () -> Unit = {
+        PlayAllBar(
+            onPlayAll = { onPlay(shown, 0) },
+            onShuffle = { onPlay(shown.shuffled(), 0) },
+            trailing = {
+                if (sortKey != null) SortButton(sortMode, setSort)
+                barTrailing()
+                ViewModeButton()
+            }
+        )
+        extraHeader?.invoke()
+    }
+    if (LibraryView.grid) {
+        SongGrid(shown, currentId, onPlay, LocalOverlayPadding.current, listHeader)
+        return
+    }
     LazyColumn(contentPadding = PaddingValues(bottom = LocalOverlayPadding.current)) {
-        item {
-            PlayAllBar(
-                onPlayAll = { onPlay(shown, 0) },
-                onShuffle = { onPlay(shown.shuffled(), 0) },
-                trailing = {
-                    if (sortKey != null) SortButton(sortMode, setSort)
-                    barTrailing()
-                }
-            )
-            extraHeader?.invoke()
-        }
+        item { listHeader() }
         itemsIndexed(shown, key = { _, s -> s.id }) { index, song ->
             SongListRow(
                 song = song,
@@ -300,6 +309,7 @@ private fun PlaylistTab(
     var reordering by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     val open = library.playlist(openId)
+    androidx.compose.runtime.LaunchedEffect(openId) { if (openId != null && !openId.startsWith("smart:")) library.bump(openId) }
     var showMerge by remember { mutableStateOf(false) }
 
     if (openId != null && openId.startsWith("smart:")) {
@@ -707,6 +717,10 @@ private fun LikedPlaylistRow(
                 overflow = TextOverflow.Ellipsis
             )
         }
+        val ctx = LocalContext.current
+        IconButton(onClick = { com.jimz.jimztune.ui.components.sharePlaylistRef(ctx, ref) }) {
+            Icon(Icons.Rounded.Share, contentDescription = "Bagikan", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         IconButton(onClick = onUnlike) {
             Icon(Icons.Rounded.Favorite, contentDescription = "Batal suka playlist", tint = LikeColor)
         }
@@ -730,6 +744,27 @@ private fun DownloadsTab(currentId: String?, onPlay: (List<SearchItem>, Int) -> 
     val (dlMode, setDlMode) = rememberSortMode("downloads")
     val shownSongs = remember(songs.toList(), dlMode) { sortSongs(songs.toList(), dlMode) }
 
+    if (LibraryView.grid && songs.isNotEmpty()) {
+        SongGrid(shownSongs, currentId, onPlay, LocalOverlayPadding.current) {
+            Column {
+                if (active.isNotEmpty()) {
+                    Text("Sedang diunduh", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp))
+                    active.forEach { ActiveRow(it) }
+                }
+                Text(
+                    "${songs.size} lagu tersimpan · $sizeText",
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                )
+                PlayAllBar(
+                    onPlayAll = { onPlay(shownSongs, 0) },
+                    onShuffle = { onPlay(shownSongs.shuffled(), 0) },
+                    trailing = { SortButton(dlMode, setDlMode); ViewModeButton() }
+                )
+            }
+        }
+        return
+    }
     LazyColumn(contentPadding = PaddingValues(bottom = LocalOverlayPadding.current)) {
         if (active.isNotEmpty()) {
             item {
@@ -765,7 +800,7 @@ private fun DownloadsTab(currentId: String?, onPlay: (List<SearchItem>, Int) -> 
                 PlayAllBar(
                     onPlayAll = { onPlay(shownSongs, 0) },
                     onShuffle = { onPlay(shownSongs.shuffled(), 0) },
-                    trailing = { SortButton(dlMode, setDlMode) }
+                    trailing = { SortButton(dlMode, setDlMode); ViewModeButton() }
                 )
             }
             itemsIndexed(shownSongs, key = { _, s -> s.id }) { index, song ->

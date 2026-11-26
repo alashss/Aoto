@@ -1,0 +1,99 @@
+package com.jimz.jimztune.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.ViewAgenda
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.jimz.jimztune.AppGraph
+import com.jimz.jimztune.data.model.SearchItem
+import com.jimz.jimztune.ui.theme.LocalCoverTheme
+
+/** Pilihan tampilan daftar lagu di Koleksi: baris (daftar) atau kotak persegi (grid). Diingat antar sesi. */
+object LibraryView {
+    private val prefs get() = AppGraph.appContext.getSharedPreferences("jimztune_view", android.content.Context.MODE_PRIVATE)
+    var grid by mutableStateOf(runCatching { prefs.getBoolean("grid", false) }.getOrDefault(false))
+        private set
+    fun toggle() { grid = !grid; prefs.edit().putBoolean("grid", grid).apply() }
+}
+
+/** Tombol pengganti tampilan daftar / kotak. */
+@Composable
+fun ViewModeButton() {
+    CompactIconButton(
+        if (LibraryView.grid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
+        if (LibraryView.grid) "Tampilan daftar" else "Tampilan kotak",
+        onClick = { LibraryView.toggle() }
+    )
+}
+
+/** Satu kotak lagu: cover persegi, judul, artis, menu ⋮ di pojok. */
+@Composable
+fun SongGridTile(song: SearchItem, playing: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val accent = LocalCoverTheme.current.accent
+    val shape = RoundedCornerShape(16.dp)
+    Column(modifier.clip(shape).clickable(onClick = onClick).padding(4.dp)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(shape).background(MaterialTheme.colorScheme.surfaceVariant)) {
+            AsyncImage(song.thumbnailUrl, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            if (playing) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)), contentAlignment = Alignment.Center) { MiniEqualizer(color = accent) }
+            Box(Modifier.align(Alignment.TopEnd).padding(2.dp).clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.35f))) {
+                SongMenuButton(song)
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(song.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+            color = if (playing) accent else MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(song.subtitle.substringBefore(" • "), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** Grid 3 kolom; [header] mengisi satu baris penuh di atas. */
+@Composable
+fun SongGrid(
+    songs: List<SearchItem>,
+    currentId: String?,
+    onPlay: (List<SearchItem>, Int) -> Unit,
+    bottomPadding: androidx.compose.ui.unit.Dp,
+    header: @Composable () -> Unit = {}
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = bottomPadding),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) { Column(Modifier.padding(horizontal = 0.dp)) { header() } }
+        itemsIndexed(songs, key = { _, s -> s.id }) { i, s ->
+            SongGridTile(s, s.id == currentId, onClick = { onPlay(songs, i) })
+        }
+    }
+}

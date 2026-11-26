@@ -154,7 +154,9 @@ fun rememberNoteClipClock(song: SearchItem?, lines: List<ClipLine>, player: Play
     DisposableEffect(song?.id) {
         if (song != null) NoteAudio.active = true
         onDispose {
-            NoteAudio.active = false if (song != null && player.ui.current?.id == song.id && player.ui.isPlaying) player.togglePlay() }
+            NoteAudio.active = false
+            if (song != null && player.ui.current?.id == song.id && player.ui.isPlaying) player.togglePlay()
+        }
     }
     return if (onSong) smooth else (start ?: 0L)
 }

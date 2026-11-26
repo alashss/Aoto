@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
@@ -172,7 +173,7 @@ fun HomeScreen(
                 when {
                     quick.loading -> PlaceholderRows()
                     quick.failed -> RetryRow(vm::load)
-                    else -> QuickPicks(quick.items.take(12), currentId, onPlay)
+                    else -> QuickPicks(quick.items.take(28), currentId, onPlay)
                 }
             }
         }
@@ -191,11 +192,13 @@ fun HomeScreen(
             }
         }
 
-        items(vm.shelves.drop(1)) { shelf ->
+        itemsIndexed(vm.shelves.drop(1)) { idx, shelf ->
             SectionTitle(shelf.title)
             when {
                 shelf.loading -> PlaceholderCards()
                 shelf.failed -> RetryRow(vm::load)
+                // Selang-seling: kartu besar, lalu daftar dua baris yang padat supaya lebih banyak lagu terlihat.
+                idx % 2 == 1 && shelf.items.size >= 6 -> CompactTwoRows(shelf.items, currentId, onPlay)
                 else -> SongRow(shelf.items, currentId, onPlay)
             }
         }
@@ -636,38 +639,97 @@ private fun SongRow(songs: List<SearchItem>, currentId: String?, onPlay: (List<S
 
 @Composable
 private fun SongCard(song: SearchItem, playing: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(20.dp)
     Column(
         modifier = Modifier
-            .width(148.dp)
+            .width(160.dp)
             .clip(shape)
             .clickable(onClick = onClick)
     ) {
-        AsyncImage(
-            model = song.thumbnailUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(148.dp)
+        Box(
+            Modifier
+                .size(160.dp)
+                .shadow(10.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
                 .clip(shape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
-        )
+        ) {
+            AsyncImage(
+                model = song.thumbnailUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
+                Modifier.fillMaxSize()
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)), startY = 200f))
+            )
+            Box(
+                Modifier.align(Alignment.BottomEnd).padding(8.dp).size(32.dp)
+                    .clip(CircleShape).background(Color.White.copy(alpha = if (playing) 0.95f else 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (playing) com.jimz.jimztune.ui.components.MiniEqualizer(color = Color.Black)
+                else androidx.compose.material3.Icon(
+                    androidx.compose.material.icons.Icons.Rounded.PlayArrow, null,
+                    tint = Color.White, modifier = Modifier.size(20.dp)
+                )
+            }
+        }
         Spacer(Modifier.height(8.dp))
         Text(
             song.title,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             color = if (playing) JimzBlueSoft else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 2.dp)
         )
         Text(
             song.subtitle.substringBefore(" • "),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 2.dp)
         )
+    }
+}
+
+/** Daftar padat dua baris yang bisa digeser ke samping: memuat dua kali lebih banyak lagu per layar. */
+@Composable
+private fun CompactTwoRows(songs: List<SearchItem>, currentId: String?, onPlay: (List<SearchItem>, Int) -> Unit) {
+    LazyHorizontalGrid(
+        rows = GridCells.Fixed(2),
+        modifier = Modifier.height(148.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        gridItemsIndexed(songs.take(30)) { index, song ->
+            val playing = song.id == currentId
+            Row(
+                modifier = Modifier
+                    .width(270.dp).height(70.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(if (playing) JimzBlueSoft.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.06f))
+                    .clickable { onPlay(songs, index) }
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model = song.thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(song.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                        color = if (playing) JimzBlueSoft else MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(song.subtitle.substringBefore(" • "), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
     }
 }
 

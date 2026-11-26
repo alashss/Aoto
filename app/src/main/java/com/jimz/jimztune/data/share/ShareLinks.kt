@@ -114,6 +114,25 @@ object ShareLinks {
         }
     }
 
+    /** Bagikan playlist hasil pencarian / disukai sebagai tautan Aoto (bukan tautan YouTube Music). */
+    fun shareSearchPlaylist(context: Context, ref: SearchItem, fallbackText: String) {
+        if (!AppConfig.SHARE_ENABLED) return
+        Toast.makeText(context, "Membuat tautan…", Toast.LENGTH_SHORT).show()
+        scope.launch {
+            val title = ref.title.ifBlank { "Playlist" }
+            val songs = try {
+                val page = try { AppGraph.detail.playlistAll(ref.id) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { AppGraph.detail.album(ref.id) }
+                page.tracks.filter { it.type == SearchType.SONG }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { emptyList() }
+            val code = if (songs.isEmpty()) null else create(context, "yt:" + ref.id, title, songs)
+            if (code != null) context.shareText(title, message(title, songs.size, code))
+            else {
+                Toast.makeText(context, "Tautan belum bisa dibuat, dibagikan sebagai teks", Toast.LENGTH_SHORT).show()
+                context.shareText(title, fallbackText)
+            }
+        }
+    }
+
     /** Bagikan satu lagu sebagai tautan. Gagal / offline: kembali ke tautan YouTube Music. */
     fun shareSong(context: Context, song: SearchItem, fallbackText: String) {
         if (!AppConfig.SHARE_ENABLED) return

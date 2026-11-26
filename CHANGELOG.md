@@ -1,3 +1,10 @@
+## 2.17.1
+- Perbaikan build 2.17.0.
+- Tautan bagikan playlist (pencarian / disukai) kini tautan Aoto; tombol bagikan di playlist disukai.
+- Favorit, Riwayat, Unduhan: pilihan tampilan daftar atau kotak.
+- Playlist yang baru diubah / dibuka pindah ke atas.
+- Beranda: kartu lagu baru, daftar dua baris, lebih banyak lagu.
+
 ## 2.17.0
 - Lirik di layar kunci asli: saklar di Pengaturan + izin tampil di atas aplikasi lain; muncul saat layar dinyalakan.
 - Kosmetik Raja Iblis (bingkai, plat, efek, gelembung) khusus owner; lencana owner bertema iblis dengan sayap.

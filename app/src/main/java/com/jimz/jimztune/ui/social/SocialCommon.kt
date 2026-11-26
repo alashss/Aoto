@@ -41,6 +41,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -57,7 +58,7 @@ val OnlineGreen = Color(0xFF3DDC84)
 
 /** Kerangka halaman sosial: latar mengikuti tema sampul, tombol kembali, aksi di kanan. */
 /** Menahan sentuhan di area kosong supaya tidak tembus ke layar di belakang (mis. memutar lagu dari daftar di bawahnya). */
-fun Modifier.blockTouches(): Modifier = this.pointerInput(Unit) { androidx.compose.foundation.gestures.detectTapGestures { } }
+fun Modifier.blockTouches(): Modifier = this.pointerInput(Unit) { detectTapGestures { } }
 
 @Composable
 fun SocialScaffold(
