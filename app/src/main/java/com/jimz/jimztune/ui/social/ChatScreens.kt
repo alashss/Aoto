@@ -270,6 +270,8 @@ fun GlobalChatScreen(onBack: () -> Unit) {
     var replyTo by remember { mutableStateOf<ChatMessage?>(null) }
     var unseen by remember { mutableStateOf(0) }
     val listState = rememberLazyListState()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val imageLoader = coil.Coil.imageLoader(ctx)
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -280,6 +282,11 @@ fun GlobalChatScreen(onBack: () -> Unit) {
                 val atBottom = !listState.canScrollBackward
                 val newCount = if (oldLast == null) 0 else v.messages.count { it.id > oldLast }
                 snap = v; failed = null
+                // Muat foto & kosmetik pengirim lebih dulu (sebelum baris tampil) supaya tidak "menyusul" satu per satu.
+                v.messages.distinctBy { it.userId }.forEach { m ->
+                    com.jimz.jimztune.data.social.CosmeticsStore.request(m.userId)
+                    if (!m.avatar.isNullOrBlank()) imageLoader.enqueue(coil.request.ImageRequest.Builder(ctx).data(m.avatar).size(160).memoryCacheKey("av|${m.avatar}|" + 160).build())
+                }
                 if (oldLast == null || v.messages.lastOrNull()?.id != oldLast) {
                     if (oldLast == null || atBottom) { unseen = 0; listState.scrollToItem(0) }
                     else unseen += newCount

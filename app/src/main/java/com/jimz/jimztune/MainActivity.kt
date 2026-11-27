@@ -63,6 +63,12 @@ class MainActivity : ComponentActivity() {
                     if (Build.VERSION.SDK_INT >= 28) add(coil.decode.ImageDecoderDecoder.Factory())
                     else add(coil.decode.GifDecoder.Factory())
                 }
+                // Foto profil / banner sering dikirim dengan header no-cache: abaikan supaya tersimpan & langsung tampil.
+                .respectCacheHeaders(false)
+                .memoryCache { coil.memory.MemoryCache.Builder(applicationContext).maxSizePercent(0.25).build() }
+                .diskCache { coil.disk.DiskCache.Builder().directory(java.io.File(cacheDir, "img_cache")).maxSizeBytes(150L * 1024 * 1024).build() }
+                .crossfade(false)
+                .allowRgb565(true)
                 .build()
         )
         // Paling awal: catat crash apa pun supaya penyebabnya bisa dibaca di layar berikutnya.

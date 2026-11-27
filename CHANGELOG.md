@@ -1,3 +1,11 @@
+## 2.18.0
+- Efek profil memenuhi seluruh halaman: kuat di awal, lalu menipis jadi partikel jarang. Efek baru "Badai Es".
+- Foto profil & gambar lebih cepat (cache disk, ukuran decode, muat lebih dulu di chat global).
+- Foto lagu di catatan tidak lagi punya ruang kosong.
+- Kartu mini tidak sempat muncul saat melihat catatan; lagu catatan mulai langsung dari potongan.
+- Grid kotak dirapikan, plus mode kotak untuk playlist.
+- Pencarian dan lirik lebih cepat (batas tunggu lebih pendek, lirik disiapkan lebih awal, hasil pencarian diingat).
+
 ## 2.17.3
 - Lagu mulai lebih cepat: NewPipe tanpa uji awal, cadangan tidak menunggu lama, penyangga awal lebih kecil, dan alamat audio disiapkan lebih dulu untuk hasil pencarian, beranda, dan catatan teman.
 

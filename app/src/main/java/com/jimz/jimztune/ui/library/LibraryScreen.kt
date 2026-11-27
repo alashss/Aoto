@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -356,7 +357,38 @@ private fun PlaylistTab(
 
     if (open == null) {
         val smartLists = remember { SmartLists.build() }
-        LazyColumn(contentPadding = PaddingValues(bottom = LocalOverlayPadding.current)) {
+        if (LibraryView.grid) {
+            androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = LocalOverlayPadding.current),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }
+                item(span = { span() }) {
+                    Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        NewPlaylistButton(modifier = Modifier.weight(1f), onClick = { showCreate = true })
+                        ViewModeButton()
+                    }
+                }
+                item(span = { span() }) { ImportPlaylistButton(onClick = { showImport = true }) }
+                item(span = { span() }) { ListLabel("Playlist cerdas") }
+                gridItems(smartLists, key = { "smart_" + it.id }) { sm ->
+                    PlaylistTile(sm.title, "${sm.songs.size} lagu · ${sm.hint}", { sz -> Box(Modifier.size(sz).clip(RoundedCornerShape(18.dp)).cardSurface(RoundedCornerShape(18.dp)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.AutoAwesome, null, tint = LocalCoverTheme.current.accent, modifier = Modifier.size(42.dp)) } }) { onOpen("smart:" + sm.id) }
+                }
+                if (library.playlists.isNotEmpty()) item(span = { span() }) { ListLabel("Playlist saya") }
+                gridItems(library.playlists, key = { it.id }) { p ->
+                    PlaylistTile(p.name, "${p.songs.size} lagu", { sz -> PlaylistCover(p, size = sz, radius = 18.dp) }) { onOpen(p.id) }
+                }
+                if (library.likedPlaylists.isNotEmpty()) item(span = { span() }) { ListLabel("Playlist disukai") }
+                gridItems(library.likedPlaylists, key = { "liked_" + it.id }) { ref ->
+                    PlaylistTile(ref.title.ifBlank { "Playlist" }, ref.subtitle.substringBefore(" • "), { sz ->
+                        AsyncImage(ref.thumbnailUrl, null, contentScale = ContentScale.Crop, modifier = Modifier.size(sz).clip(RoundedCornerShape(18.dp)))
+                    }) { openDetail(ref) }
+                }
+            }
+        } else LazyColumn(contentPadding = PaddingValues(bottom = LocalOverlayPadding.current)) {
             item {
                 NewPlaylistButton(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
@@ -588,6 +620,19 @@ private fun PlaylistTab(
                 onOpen(null)
             }
         )
+    }
+}
+
+/** Kotak playlist untuk mode grid: sampul persegi besar, nama, jumlah lagu. */
+@Composable
+private fun PlaylistTile(title: String, subtitle: String, cover: @Composable (androidx.compose.ui.unit.Dp) -> Unit, onClick: () -> Unit) {
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick)) {
+        Column {
+            cover(maxWidth)
+            Spacer(Modifier.height(6.dp))
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }
 

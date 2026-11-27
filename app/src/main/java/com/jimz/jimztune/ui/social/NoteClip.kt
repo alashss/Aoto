@@ -138,7 +138,7 @@ fun rememberNoteClipClock(song: SearchItem?, lines: List<ClipLine>, player: Play
         if (start != null) {
             var tries = 0
             while (tries < 150 && !(player.ui.current?.id == song.id && player.ui.durationMs > 0L)) { delay(100); tries++ }
-            player.seekTo(start)
+            if (kotlin.math.abs(player.ui.positionMs - start) > 1500L) player.seekTo(start)
         }
     }
     val ui = player.ui
@@ -152,10 +152,21 @@ fun rememberNoteClipClock(song: SearchItem?, lines: List<ClipLine>, player: Play
         val t0 = System.nanoTime()
         while (true) withFrameMillis { smooth = base + (System.nanoTime() - t0) / 1_000_000 }
     }
-    DisposableEffect(song?.id) {
-        if (song != null) { NoteAudio.count++; player.beginNoteClip(song) }
-        onDispose {
-            if (song != null) player.endNoteClip { NoteAudio.count = (NoteAudio.count - 1).coerceAtLeast(0) }
+    // Kartu mini disembunyikan SEJAK komposisi pertama (bukan setelah frame pertama), jadi tidak sempat berkedip muncul.
+    remember(song?.id) {
+        object : androidx.compose.runtime.RememberObserver {
+            private var live = false
+            private var counted = false
+            init { if (song != null) { NoteAudio.count++; counted = true } }
+            override fun onRemembered() { live = true; if (song != null) player.beginNoteClip(song, start ?: 0L) }
+            override fun onForgotten() { finish() }
+            override fun onAbandoned() { finish() }
+            private fun finish() {
+                if (!counted) return
+                counted = false
+                if (live && song != null) player.endNoteClip { NoteAudio.count = (NoteAudio.count - 1).coerceAtLeast(0) }
+                else NoteAudio.count = (NoteAudio.count - 1).coerceAtLeast(0)
+            }
         }
     }
     return if (onSong) smooth else (start ?: 0L)

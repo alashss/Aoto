@@ -83,7 +83,7 @@ class LyricsRepository(context: Context) {
             var lrcLibDone = false
             while (pending > 0) {
                 // LrcLib adalah sumber utama: jangan berhenti sebelum LrcLib selesai menjawab (atau batas waktu habis).
-                val limit = if (lrcLibDone) minOf(hardEnd, graceEnd) else hardEnd
+                val limit = if (lrcLibDone || graceEnd != Long.MAX_VALUE) minOf(hardEnd, graceEnd) else hardEnd
                 val remaining = limit - System.currentTimeMillis()
                 if (remaining <= 0) break
                 val (name, batch) = withTimeoutOrNull(remaining) { channel.receive() } ?: break
@@ -94,9 +94,9 @@ class LyricsRepository(context: Context) {
                 if (best != null && graceEnd == Long.MAX_VALUE) {
                     val l = best.candidate.lyrics
                     val wait = when {
-                        l.wordSynced -> 1_500L
-                        l.synced -> 3_000L
-                        else -> 5_000L
+                        l.wordSynced -> 350L
+                        l.synced -> 900L
+                        else -> 2_500L
                     }
                     graceEnd = System.currentTimeMillis() + wait
                 }
@@ -128,6 +128,8 @@ class LyricsRepository(context: Context) {
             .take(MAX_OPTIONS)
 
     // ------------------------------------------------------------------ cache
+
+    fun hasCache(id: String): Boolean = fileFor(id).exists()
 
     private fun fileFor(id: String) = File(dir, id.replace(Regex("[^A-Za-z0-9_-]"), "_") + ".json")
 
@@ -185,8 +187,8 @@ class LyricsRepository(context: Context) {
     }
 
     private companion object {
-        const val PROVIDER_TIMEOUT_MS = 11_000L
-        const val HARD_LIMIT_MS = 12_000L
+        const val PROVIDER_TIMEOUT_MS = 7_000L
+        const val HARD_LIMIT_MS = 8_000L
         const val MAX_OPTIONS = 5
         const val PRIMARY = "LrcLib"
     }

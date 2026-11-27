@@ -51,7 +51,22 @@ class SearchRepository(
     /**
      * [quick] = hanya sumber utama (dipakai rak Beranda supaya tidak menembak semua sumber sekaligus).
      */
+    private class Memo(val at: Long, val result: SearchResult)
+    private val memo = java.util.concurrent.ConcurrentHashMap<String, Memo>()
+
     suspend fun search(query: String, type: SearchType, quick: Boolean = false, fastest: Boolean = false): SearchResult {
+        // Pencarian yang sama dalam 5 menit langsung dijawab dari ingatan.
+        val key = "${type.name}|${quick}|${fastest}|${query.trim().lowercase()}"
+        memo[key]?.takeIf { System.currentTimeMillis() - it.at < 5 * 60_000L }?.let { return it.result }
+        val r = searchNet(query, type, quick, fastest)
+        if (r.items.isNotEmpty()) {
+            if (memo.size > 60) memo.clear()
+            memo[key] = Memo(System.currentTimeMillis(), r)
+        }
+        return r
+    }
+
+    private suspend fun searchNet(query: String, type: SearchType, quick: Boolean, fastest: Boolean): SearchResult {
         val now = System.currentTimeMillis()
         // [fastest] = hanya YouTube Music dan langsung kembali begitu ada hasil (tanpa menunggu sumber lain).
         // Dipakai impor playlist: ratusan lagu dicari berturut-turut, jadi menunggu 2 detik per lagu sangat terasa.
@@ -193,7 +208,7 @@ class SearchRepository(
     private companion object {
         val QUICK_SOURCES = setOf("YouTube Music", "YouTube")
         const val FASTEST_SOURCE = "YouTube Music"
-        const val HARD_LIMIT_MS = 9_000L
-        const val GRACE_MS = 2_200L
+        const val HARD_LIMIT_MS = 6_000L
+        const val GRACE_MS = 700L
     }
 }

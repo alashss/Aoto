@@ -140,7 +140,7 @@ class SearchViewModel : ViewModel() {
             return
         }
         suggestJob = viewModelScope.launch {
-            delay(250)
+            delay(120)
             suggestions = repo.suggestions(t)
         }
     }

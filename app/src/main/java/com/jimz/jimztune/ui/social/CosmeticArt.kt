@@ -509,9 +509,39 @@ fun ProfileEffect(effect: String?, modifier: Modifier = Modifier, entrance: Bool
     // Saat profil orang dibuka: gelombang kejut berwarna dari atas, lalu partikel muncul perlahan.
     val intro = remember(effect, entrance) { androidx.compose.animation.core.Animatable(if (entrance) 0f else 1f) }
     LaunchedEffect(effect, entrance) { if (entrance) intro.animateTo(1f, tween(1700, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
+    // Umur efek (0 -> 1 selama 6 detik): di awal efek penuh + pinggiran layar berkilau, lalu menipis jadi sisa partikel jarang.
+    val age = remember(effect, entrance) { androidx.compose.animation.core.Animatable(if (entrance) 0f else 1f) }
+    LaunchedEffect(effect, entrance) { if (entrance) age.animateTo(1f, tween(6000, easing = androidx.compose.animation.core.LinearEasing)) }
     Canvas(modifier.fillMaxSize().graphicsLayer { alpha = (intro.value * 2.5f).coerceIn(0f, 1f) }) {
         val w = size.width
         val h = size.height
+        val a01 = age.value
+        // kerapatan partikel: 1 di awal, turun mulus ke 0,3 (sisa)
+        val dens = if (!entrance) 1f else (1f - 0.7f * ((a01 - 0.35f) / 0.4f).coerceIn(0f, 1f))
+        // pinggiran layar menyala sesuai warna efek, lalu hilang
+        if (entrance && a01 < 0.7f) {
+            val va = (1f - a01 / 0.7f)
+            val ec = effectColor(effect)
+            drawRect(Brush.radialGradient(listOf(Color.Transparent, ec.copy(alpha = 0.28f * va)), center = Offset(w / 2f, h / 2f), radius = maxOf(w, h) * 0.75f))
+            if (effect == "fx_frost") {
+                // kristal es merambat dari tepi
+                val reach = (a01 / 0.25f).coerceIn(0f, 1f) * 60.dp.toPx() * va
+                for (k in 0 until 18) {
+                    val x = w * (k + 0.5f) / 18f
+                    val l = reach * (0.4f + 0.6f * rnd(k, 31))
+                    val tri = Path().apply { moveTo(x - 9.dp.toPx(), 0f); lineTo(x, l); lineTo(x + 9.dp.toPx(), 0f); close() }
+                    drawPath(tri, Color(0xFFDFF6FF).copy(alpha = 0.55f * va))
+                    val tri2 = Path().apply { moveTo(x - 9.dp.toPx(), h); lineTo(x, h - l); lineTo(x + 9.dp.toPx(), h); close() }
+                    drawPath(tri2, Color(0xFFDFF6FF).copy(alpha = 0.45f * va))
+                }
+                for (k in 0 until 26) {
+                    val y = h * (k + 0.5f) / 26f
+                    val l = reach * (0.3f + 0.7f * rnd(k, 32))
+                    drawPath(Path().apply { moveTo(0f, y - 8.dp.toPx()); lineTo(l, y); lineTo(0f, y + 8.dp.toPx()); close() }, Color(0xFFCFF1FF).copy(alpha = 0.5f * va))
+                    drawPath(Path().apply { moveTo(w, y - 8.dp.toPx()); lineTo(w - l, y); lineTo(w, y + 8.dp.toPx()); close() }, Color(0xFFCFF1FF).copy(alpha = 0.5f * va))
+                }
+            }
+        }
         if (entrance && intro.value < 1f) {
             val col = effectColor(effect)
             val p = intro.value
@@ -521,44 +551,44 @@ fun ProfileEffect(effect: String?, modifier: Modifier = Modifier, entrance: Bool
             }
         }
         when (effect) {
-            "fx_sparkle" -> for (i in 0 until 22) {
+            "fx_sparkle" -> for (i in 0 until ((22 * dens).toInt().coerceAtLeast(2))) {
                 val a = abs(sin((t * 2f + rnd(i, 1)) * PI.toFloat()))
                 star(Offset(w * rnd(i, 2), h * rnd(i, 3)), 4.dp.toPx() + 8.dp.toPx() * rnd(i, 4) * a, (if (i % 3 == 0) Color.White else Gold).copy(alpha = a))
             }
-            "fx_bubbles" -> for (i in 0 until 16) {
+            "fx_bubbles" -> for (i in 0 until ((16 * dens).toInt().coerceAtLeast(2))) {
                 val y = (t * (0.5f + rnd(i, 1)) + rnd(i, 2)) % 1f
                 val r = 4.dp.toPx() + 10.dp.toPx() * rnd(i, 3)
                 val x = w * rnd(i, 4) + sin((y * 6f + i) * PI.toFloat()) * 8.dp.toPx()
                 drawCircle(Color(0xFF9BE7FF).copy(alpha = 0.55f * (1f - y)), r, Offset(x, h * (1f - y)), style = Stroke(1.6.dp.toPx()))
                 drawCircle(Color.White.copy(alpha = 0.35f * (1f - y)), r * 0.25f, Offset(x - r * 0.3f, h * (1f - y) - r * 0.3f))
             }
-            "fx_petals" -> for (i in 0 until 14) {
+            "fx_petals" -> for (i in 0 until ((14 * dens).toInt().coerceAtLeast(2))) {
                 val y = (t * (0.35f + 0.5f * rnd(i, 1)) + rnd(i, 2)) % 1f
                 val x = w * rnd(i, 3) + sin((y * 3f + rnd(i, 5)) * 2f * PI.toFloat()) * 18.dp.toPx()
                 rotate(y * 360f * (if (i % 2 == 0) 1f else -1f), Offset(x, h * y)) {
                     drawOval(Color(0xFFFF9FC6).copy(alpha = 0.85f), Offset(x - 5.dp.toPx(), h * y - 3.dp.toPx()), Size(10.dp.toPx(), 6.dp.toPx()))
                 }
             }
-            "fx_snow" -> for (i in 0 until 26) {
+            "fx_snow" -> for (i in 0 until ((26 * dens).toInt().coerceAtLeast(2))) {
                 val y = (t * (0.25f + 0.5f * rnd(i, 1)) + rnd(i, 2)) % 1f
                 val x = w * rnd(i, 3) + sin((y * 3f + i) * PI.toFloat()) * 10.dp.toPx()
                 drawCircle(Color.White.copy(alpha = 0.85f), 1.5.dp.toPx() + 2.5.dp.toPx() * rnd(i, 4), Offset(x, h * y))
             }
-            "fx_rain" -> for (i in 0 until 30) {
+            "fx_rain" -> for (i in 0 until ((30 * dens).toInt().coerceAtLeast(2))) {
                 val y = (t * (1.6f + 1.2f * rnd(i, 1)) * 2f + rnd(i, 2)) % 1f
                 val x = w * rnd(i, 3) + y * 14.dp.toPx()
                 drawLine(Color(0xFF8CC8FF).copy(alpha = 0.55f), Offset(x, h * y), Offset(x - 3.dp.toPx(), h * y + 12.dp.toPx()), 1.4.dp.toPx())
             }
-            "fx_stars" -> for (i in 0 until 26) {
+            "fx_stars" -> for (i in 0 until ((26 * dens).toInt().coerceAtLeast(2))) {
                 val a = abs(sin((t * 2f + rnd(i, 1)) * PI.toFloat()))
                 star(Offset(w * rnd(i, 2), h * rnd(i, 3)), 3.dp.toPx() + 6.dp.toPx() * rnd(i, 4) * a, (if (i % 2 == 0) Color.White else Color(0xFFB3D4FF)).copy(alpha = 0.3f + 0.7f * a))
             }
-            "fx_hearts" -> for (i in 0 until 12) {
+            "fx_hearts" -> for (i in 0 until ((12 * dens).toInt().coerceAtLeast(2))) {
                 val y = (t * (0.3f + 0.5f * rnd(i, 1)) + rnd(i, 2)) % 1f
                 val x = w * rnd(i, 3) + sin((y * 3f + i) * PI.toFloat()) * 12.dp.toPx()
                 heart(Offset(x, h * (1f - y)), (4.dp.toPx() + 5.dp.toPx() * rnd(i, 4)), Color(0xFFFF5A8A).copy(alpha = 0.8f * (1f - y * 0.7f)))
             }
-            "fx_fireflies" -> for (i in 0 until 14) {
+            "fx_fireflies" -> for (i in 0 until ((14 * dens).toInt().coerceAtLeast(2))) {
                 val a = (t * 2f * PI + rnd(i, 1) * 6.28f).toFloat()
                 val x = w * rnd(i, 2) + cos(a * (1 + i % 3)) * 16.dp.toPx()
                 val y = h * rnd(i, 3) + sin(a * (1 + (i + 1) % 3)) * 12.dp.toPx()
@@ -566,20 +596,38 @@ fun ProfileEffect(effect: String?, modifier: Modifier = Modifier, entrance: Bool
                 drawCircle(Brush.radialGradient(listOf(Color(0xFFD7FF4D).copy(alpha = 0.7f * g), Color.Transparent), Offset(x, y), 9.dp.toPx()), 9.dp.toPx(), Offset(x, y))
                 drawCircle(Color(0xFFF4FFB0).copy(alpha = g), 1.8.dp.toPx(), Offset(x, y))
             }
-            "fx_confetti" -> for (i in 0 until 22) {
+            "fx_confetti" -> for (i in 0 until ((22 * dens).toInt().coerceAtLeast(2))) {
                 val y = (t * (0.4f + 0.6f * rnd(i, 1)) + rnd(i, 2)) % 1f
                 val x = w * rnd(i, 3) + sin((y * 4f + i) * PI.toFloat()) * 10.dp.toPx()
                 val col = listOf(Color(0xFFFFD23F), Color(0xFFFF5A8A), Color(0xFF4FC3F7), Color(0xFF8CFF6B), Color(0xFFC77DFF))[i % 5]
                 rotate(y * 540f + i * 30f, Offset(x, h * y)) { drawRect(col, Offset(x - 3.dp.toPx(), h * y - 2.dp.toPx()), Size(6.dp.toPx(), 4.dp.toPx())) }
             }
+            "fx_frost" -> {
+                // serpihan es jatuh berputar
+                for (i in 0 until (30 * dens).toInt().coerceAtLeast(3)) {
+                    val y = (t * (0.2f + 0.45f * rnd(i, 1)) + rnd(i, 2)) % 1f
+                    val x = w * rnd(i, 3) + sin((y * 2.5f + i) * PI.toFloat()) * 14.dp.toPx()
+                    val r = 2.dp.toPx() + 4.5.dp.toPx() * rnd(i, 4)
+                    rotate(y * 540f * (if (i % 2 == 0) 1f else -1f), Offset(x, h * y)) {
+                        val d = Path().apply { moveTo(x, h * y - r * 1.5f); lineTo(x + r, h * y); lineTo(x, h * y + r * 1.5f); lineTo(x - r, h * y); close() }
+                        drawPath(d, Color(0xFFE8F8FF).copy(alpha = 0.85f))
+                        drawPath(d, Color(0xFF7FD3FF).copy(alpha = 0.9f), style = Stroke(0.8.dp.toPx()))
+                    }
+                }
+                // kilau biru es
+                for (i in 0 until (8 * dens).toInt().coerceAtLeast(2)) {
+                    val a = abs(sin((t * 2f + rnd(i, 7)) * PI.toFloat()))
+                    star(Offset(w * rnd(i, 8), h * rnd(i, 9)), 3.dp.toPx() + 6.dp.toPx() * a, Color(0xFFB7ECFF).copy(alpha = a * 0.9f))
+                }
+            }
             "fx_demon" -> {
                 // asap gelap naik
-                for (i in 0 until 7) {
+                for (i in 0 until ((7 * dens).toInt().coerceAtLeast(2))) {
                     val y = (t * (0.18f + 0.2f * rnd(i, 1)) + rnd(i, 2)) % 1f
                     drawCircle(Color(0xFF2A0A3E).copy(alpha = 0.30f * (1f - y)), 26.dp.toPx() * (0.6f + y), Offset(w * rnd(i, 3) + sin((y * 2f + i) * PI.toFloat()) * 14.dp.toPx(), h * (1.05f - y)))
                 }
                 // bara
-                for (i in 0 until 24) {
+                for (i in 0 until ((24 * dens).toInt().coerceAtLeast(2))) {
                     val y = (t * (0.35f + 0.6f * rnd(i, 4)) + rnd(i, 5)) % 1f
                     val x = w * rnd(i, 6) + sin((y * 3f + i) * PI.toFloat()) * 8.dp.toPx()
                     drawCircle(Color(0xFFFF8A3D).copy(alpha = 0.9f * (1f - y)), 1.2.dp.toPx() + 2.2.dp.toPx() * rnd(i, 7), Offset(x, h * (1f - y)))
@@ -592,7 +640,7 @@ fun ProfileEffect(effect: String?, modifier: Modifier = Modifier, entrance: Bool
                     drawPath(path, Color(0xFFC58BFF), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
                 }
             }
-            "fx_matrix" -> for (i in 0 until 16) {
+            "fx_matrix" -> for (i in 0 until ((16 * dens).toInt().coerceAtLeast(2))) {
                 val head = (t * (0.7f + 0.8f * rnd(i, 1)) * 2f + rnd(i, 2)) % 1.4f
                 val x = w * (i + 0.5f) / 16f
                 for (k in 0 until 9) {
@@ -600,7 +648,7 @@ fun ProfileEffect(effect: String?, modifier: Modifier = Modifier, entrance: Bool
                     if (y in 0f..h) drawRect(Color(0xFF00FF66).copy(alpha = (1f - k / 9f) * 0.8f), Offset(x, y), Size(3.dp.toPx(), 7.dp.toPx()))
                 }
             }
-            "fx_embers" -> for (i in 0 until 20) {
+            "fx_embers" -> for (i in 0 until ((20 * dens).toInt().coerceAtLeast(2))) {
                 val y = (t * (0.4f + 0.8f * rnd(i, 1)) + rnd(i, 2)) % 1f
                 val x = w * rnd(i, 3) + sin((y * 4f + i) * PI.toFloat()) * 10.dp.toPx()
                 drawCircle(Color(0xFFFF8A3D).copy(alpha = 1f - y), 1.5.dp.toPx() + 2.5.dp.toPx() * rnd(i, 4), Offset(x, h * (1f - y)))
@@ -621,6 +669,7 @@ private fun effectColor(id: String): Color = when (id) {
     "fx_fireflies" -> Color(0xFFD7FF4D)
     "fx_confetti" -> Color(0xFFFFD23F)
     "fx_demon" -> Color(0xFFE0102A)
+    "fx_frost" -> Color(0xFF9FE3FF)
     else -> Color(0xFF00FF66)
 }
 

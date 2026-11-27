@@ -211,6 +211,16 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         loadLyrics(song, sec)
     }
 
+    private val lyricsWarmed = HashSet<String>()
+    /** Mengunduh lirik ke cache perangkat lebih awal, supaya saat dibuka langsung tampil. */
+    fun prefetchLyrics(song: SearchItem) {
+        if (song.isLongVersion || !lyricsWarmed.add(song.id) || lyricsRepo.hasCache(song.id)) return
+        if (lyricsWarmed.size > 300) lyricsWarmed.clear()
+        viewModelScope.launch {
+            try { lyricsRepo.get(song, 0) } catch (e: CancellationException) { throw e } catch (_: Exception) { }
+        }
+    }
+
     private fun loadLyrics(song: SearchItem, durationSec: Int, refresh: Boolean = false) {
         lyricsJob?.cancel()
         translationJob?.cancel()
@@ -222,7 +232,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         lyrics = LyricsState.Loading
         lyricsJob = viewModelScope.launch {
             // Beri jaringan ke pencarian audio dulu; lirik menyusul sebentar kemudian.
-            if (!refresh) delay(700)
+            if (!refresh && !lyricsRepo.hasCache(song.id)) delay(150)
             lyrics = try {
                 val options = lyricsRepo.get(song, durationSec, refresh)
                 if (options.isEmpty()) {
@@ -310,6 +320,9 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         // Hanya lagu yang diketuk: prefetch lagu berikutnya bersamaan hanya merebut jaringan dari lagu ini.
         // Lagu berikutnya disiapkan oleh PlaybackService begitu lagu ini mulai berbunyi.
         StreamResolver.prefetch(items[start].id)
+        // Lirik lagu ini dicari sejak ketukan (tanpa menunggu pemutar siap), dan lirik lagu berikutnya disiapkan.
+        prefetchLyrics(items[start])
+        items.getOrNull(start + 1)?.let { prefetchLyrics(it) }
         withController { c ->
             c.setMediaItems(items.map { it.toMediaItem() }, index.coerceIn(0, items.lastIndex), 0L)
             c.prepare()
@@ -327,7 +340,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     private var noteDepth = 0
 
     /** Memutar lagu catatan teman dan mengingat apa yang sedang kita dengar, supaya bisa dilanjutkan setelahnya. */
-    fun beginNoteClip(song: SearchItem) = withController { c ->
+    fun beginNoteClip(song: SearchItem, startMs: Long = 0L) = withController { c ->
         if (noteDepth == 0) {
             noteSnap = if (c.mediaItemCount > 0) NoteSnap(
                 (0 until c.mediaItemCount).map { c.getMediaItemAt(it) }, c.currentMediaItemIndex,
@@ -339,7 +352,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             StreamResolver.prefetch(song.id)
             c.shuffleModeEnabled = false
             c.repeatMode = Player.REPEAT_MODE_OFF
-            c.setMediaItems(listOf(song.toMediaItem()), 0, 0L)
+            c.setMediaItems(listOf(song.toMediaItem()), 0, startMs)
             c.prepare()
         }
         c.play()

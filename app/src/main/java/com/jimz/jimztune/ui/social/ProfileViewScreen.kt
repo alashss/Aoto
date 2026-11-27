@@ -147,6 +147,7 @@ private fun ProfileBody(p: UserProfile, busy: Boolean, info: String?, onInfoShow
     val accent = parseHex(p.accentHex)
     androidx.compose.runtime.LaunchedEffect(p.id) { com.jimz.jimztune.data.social.CosmeticsStore.request(p.id) }
     val eq = com.jimz.jimztune.data.social.CosmeticsStore.map[p.id]
+    Box(Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 40.dp)) {
         // Banner + foto
         Box(modifier = Modifier.fillMaxWidth().height(190.dp)) {
@@ -159,7 +160,6 @@ private fun ProfileBody(p: UserProfile, busy: Boolean, info: String?, onInfoShow
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x99000000)))))
                 }
             }
-            ProfileEffect(eq?.effect, entrance = true)
             Box(modifier = Modifier.align(Alignment.BottomStart).padding(start = 28.dp, bottom = 10.dp)) {
                 AvatarWithDot(p.avatar, p.name, 88.dp, p.online, ring = accent, userId = p.id)
             }
@@ -272,6 +272,9 @@ private fun ProfileBody(p: UserProfile, busy: Boolean, info: String?, onInfoShow
                 }
             }
         }
+    }
+    // Efek kosmetik memenuhi seluruh halaman (atas sampai bawah), tidak menangkap sentuhan.
+    ProfileEffect(eq?.effect, Modifier.matchParentSize(), entrance = true)
     }
 }
 

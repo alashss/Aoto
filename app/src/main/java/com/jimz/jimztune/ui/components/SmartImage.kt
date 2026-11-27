@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -71,7 +72,10 @@ fun SongImage(
                 contentDescription = null,
                 contentScale = contentScale,
                 onError = { index++ },
-                modifier = Modifier.fillMaxSize()
+                // Thumbnail ytimg berbingkai hitam atas-bawah (4:3 berisi 16:9): perbesar agar tidak ada ruang kosong.
+                modifier = Modifier.fillMaxSize().then(
+                    if (candidates[index].contains("ytimg.com/vi/") && !candidates[index].contains("maxres")) Modifier.graphicsLayer { scaleX = 1.34f; scaleY = 1.34f } else Modifier
+                )
             )
         }
     }

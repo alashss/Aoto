@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -69,7 +70,7 @@ fun ViewModeButton() {
 fun SongGridTile(song: SearchItem, playing: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val accent = LocalCoverTheme.current.accent
     val shape = RoundedCornerShape(16.dp)
-    Column(modifier.clip(shape).clickable(onClick = onClick).padding(4.dp)) {
+    Column(modifier.clip(shape).clickable(onClick = onClick)) {
         Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(shape).background(MaterialTheme.colorScheme.surfaceVariant)) {
             AsyncImage(song.thumbnailUrl, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             if (playing) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)), contentAlignment = Alignment.Center) { MiniEqualizer(color = accent) }
@@ -85,6 +86,20 @@ fun SongGridTile(song: SearchItem, playing: Boolean, onClick: () -> Unit, modifi
     }
 }
 
+val GridSide = 20.dp
+
+/** Isi item grid dilebarkan keluar sejajar tepi layar (membatalkan padding samping grid), supaya bilah atas sama seperti di mode daftar. */
+@Composable
+fun FullBleed(content: @Composable () -> Unit) {
+    Box(
+        Modifier.layout { m, c ->
+            val extra = GridSide.roundToPx() * 2
+            val p = m.measure(c.copy(minWidth = c.maxWidth + extra, maxWidth = c.maxWidth + extra))
+            layout(c.maxWidth, p.height) { p.place(-extra / 2, 0) }
+        }
+    ) { content() }
+}
+
 /** Grid 3 kolom; [header] mengisi satu baris penuh di atas. */
 @Composable
 fun SongGrid(
@@ -96,10 +111,12 @@ fun SongGrid(
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
-        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = bottomPadding),
+        contentPadding = PaddingValues(start = GridSide, end = GridSide, bottom = bottomPadding),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        item(span = { GridItemSpan(maxLineSpan) }) { Column(Modifier.padding(horizontal = 0.dp)) { header() } }
+        item(span = { GridItemSpan(maxLineSpan) }) { FullBleed { header() } }
         itemsIndexed(songs, key = { _, s -> s.id }) { i, s ->
             SongGridTile(s, s.id == currentId, onClick = { onPlay(songs, i) })
         }

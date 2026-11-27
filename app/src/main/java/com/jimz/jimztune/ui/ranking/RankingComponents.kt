@@ -76,8 +76,11 @@ fun RankAvatar(
             fontSize = (size.value * 0.4f).sp
         )
         if (!url.isNullOrBlank()) {
+            // Ukuran decode dibatasi sesuai tampilan (px): foto besar tidak didecode penuh, jadi jauh lebih cepat.
+            val px = with(androidx.compose.ui.platform.LocalDensity.current) { (size * 2f).roundToPx().coerceIn(48, 512) }
             AsyncImage(
-                model = url,
+                model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                    .data(url).size(px).memoryCacheKey("av|$url|$px").build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
