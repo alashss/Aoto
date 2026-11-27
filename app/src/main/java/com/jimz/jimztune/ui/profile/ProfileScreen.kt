@@ -158,7 +158,7 @@ private fun PrivateProfileScreen(onBack: () -> Unit, onEdit: () -> Unit) {
                             if (p?.bannerUrl != null) {
                                 // Coil memutar GIF / WebP bergerak otomatis.
                                 AsyncImage(
-                                    model = p.bannerUrl,
+                                    model = com.jimz.jimztune.util.SafeUrl.image(p.bannerUrl),
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()

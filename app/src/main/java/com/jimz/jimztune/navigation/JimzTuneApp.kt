@@ -123,6 +123,23 @@ fun JimzTuneApp() {
     var rankingKind by rememberSaveable { mutableStateOf(RankKind.LISTEN.key) }
     var rankingPeriod by rememberSaveable { mutableStateOf(RankPeriod.ALL.key) }
     var showEditProfile by rememberSaveable { mutableStateOf(false) }
+    var onboardingNow by rememberSaveable { mutableStateOf(false) }
+    // Akun yang baru dibuat langsung diarahkan mengisi nama, username, bio, dan foto (sekali saja per akun).
+    run {
+        val ctx = androidx.compose.ui.platform.LocalContext.current
+        val uid = AppGraph.auth.session?.userId
+        val created = AppGraph.profile.profile?.createdAt
+        androidx.compose.runtime.LaunchedEffect(uid, created) {
+            if (uid == null || created == null) return@LaunchedEffect
+            val prefs = ctx.getSharedPreferences("jimztune_profile", android.content.Context.MODE_PRIVATE)
+            if (prefs.getBoolean("onboarded_$uid", false)) return@LaunchedEffect
+            prefs.edit().putBoolean("onboarded_$uid", true).apply()
+            val fresh = try {
+                java.time.Duration.between(java.time.OffsetDateTime.parse(created).toInstant(), java.time.Instant.now()).toHours() < 24
+            } catch (_: Exception) { false }
+            if (fresh) { onboardingNow = true; showEditProfile = true }
+        }
+    }
     var showOwner by rememberSaveable { mutableStateOf(false) }
     val playerOpen = expanded && player.ui.current != null
 
@@ -517,7 +534,7 @@ fun JimzTuneApp() {
                 enter = slideInHorizontally(tween(360, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(240)),
                 exit = slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { it } + fadeOut(tween(200))
             ) {
-                EditProfileScreen(onDone = { showEditProfile = false })
+                EditProfileScreen(onDone = { showEditProfile = false; onboardingNow = false }, onboarding = onboardingNow)
             }
 
             // Panel Owner: halaman penuh, hanya untuk akun yang terdaftar di tabel `owners` server.

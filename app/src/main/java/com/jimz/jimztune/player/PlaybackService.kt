@@ -105,8 +105,9 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         AppGraph.init(applicationContext)
-        screenReceiver = com.jimz.jimztune.util.LockScreenLyrics.ScreenReceiver { session?.player?.isPlaying == true }
-        registerReceiver(screenReceiver, IntentFilter(Intent.ACTION_SCREEN_ON))
+        val sr = com.jimz.jimztune.util.LockScreenLyrics.ScreenReceiver { session?.player?.isPlaying == true }
+        screenReceiver = sr
+        androidx.core.content.ContextCompat.registerReceiver(this, sr, IntentFilter(Intent.ACTION_SCREEN_ON), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
 
         val http = DefaultHttpDataSource.Factory()
             .setUserAgent("Mozilla/5.0 (Windows NT 10.0; rv:128.0) Gecko/20100101 Firefox/128.0")

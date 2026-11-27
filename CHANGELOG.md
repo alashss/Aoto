@@ -1,3 +1,10 @@
+## 2.18.2
+- Akun baru langsung diarahkan ke halaman "Lengkapi profilmu" (nama, username, bio, foto); sekali per akun, bisa dilewati.
+
+## 2.18.1
+- Keamanan: gambar profil/banner/sampul dari data orang lain hanya dimuat dari host tepercaya; izin yang tidak perlu dihapus; mode kunci layar tidak bisa dipaksa aplikasi lain.
+- Server (tahap 36): semua fungsi tertutup untuk tamu kecuali yang memang publik, fungsi bantu internal tidak bisa dipanggil langsung, URL foto dibatasi ke penyimpanan sendiri / Google.
+
 ## 2.18.0
 - Efek profil memenuhi seluruh halaman: kuat di awal, lalu menipis jadi partikel jarang. Efek baru "Badai Es".
 - Foto profil & gambar lebih cepat (cache disk, ukuran decode, muat lebih dulu di chat global).

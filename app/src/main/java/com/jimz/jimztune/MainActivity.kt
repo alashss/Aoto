@@ -144,6 +144,9 @@ class MainActivity : ComponentActivity() {
     private fun handleLockIntent(intent: Intent?) {
         if (intent?.getBooleanExtra(com.jimz.jimztune.util.LockScreenLyrics.EXTRA, false) != true) return
         intent.removeExtra(com.jimz.jimztune.util.LockScreenLyrics.EXTRA)
+        // Hanya dari layanan Aoto sendiri: aplikasi lain tidak boleh memaksa tampil di atas layar kunci.
+        val km = getSystemService(android.content.Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+        if (!com.jimz.jimztune.util.LockScreenLyrics.enabled(this) || !com.jimz.jimztune.util.LockScreenLyrics.canDraw(this) || km?.isKeyguardLocked != true) return
         com.jimz.jimztune.util.LockScreenLyrics.showOverKeyguard(this)
         com.jimz.jimztune.ui.player.LockMode.active = true
     }

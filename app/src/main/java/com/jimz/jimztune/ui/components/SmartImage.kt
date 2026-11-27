@@ -45,8 +45,10 @@ fun SongImage(
     val context = LocalContext.current
     val candidates = remember(url, videoId) {
         buildList {
-            if (!url.isNullOrBlank()) add(url.replace("http://", "https://"))
-            if (videoId != null && VideoIdRegex.matches(videoId)) {
+            val hasVideo = videoId != null && VideoIdRegex.matches(videoId)
+            // URL gambar dari data orang lain (catatan, playlist bagikan) hanya dipakai kalau hostnya tepercaya; selain itu pakai thumbnail resmi YouTube.
+            if (!url.isNullOrBlank() && (!hasVideo || com.jimz.jimztune.util.SafeUrl.image(url.replace("http://", "https://")) != null)) add(url.replace("http://", "https://"))
+            if (hasVideo) {
                 add("https://i.ytimg.com/vi/$videoId/hqdefault.jpg")
                 add("https://i.ytimg.com/vi/$videoId/mqdefault.jpg")
                 add("https://i.ytimg.com/vi/$videoId/default.jpg")

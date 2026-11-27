@@ -75,12 +75,13 @@ fun RankAvatar(
             fontWeight = FontWeight.Bold,
             fontSize = (size.value * 0.4f).sp
         )
-        if (!url.isNullOrBlank()) {
+        val safe = com.jimz.jimztune.util.SafeUrl.image(url)
+        if (safe != null) {
             // Ukuran decode dibatasi sesuai tampilan (px): foto besar tidak didecode penuh, jadi jauh lebih cepat.
             val px = with(androidx.compose.ui.platform.LocalDensity.current) { (size * 2f).roundToPx().coerceIn(48, 512) }
             AsyncImage(
                 model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
-                    .data(url).size(px).memoryCacheKey("av|$url|$px").build(),
+                    .data(safe).size(px).memoryCacheKey("av|$safe|$px").build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()

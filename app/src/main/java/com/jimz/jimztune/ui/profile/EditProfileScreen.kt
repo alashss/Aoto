@@ -74,7 +74,7 @@ private val Palette = listOf(
 private val UsernameRegex = Regex("^[a-z0-9_.]{3,20}$")
 
 @Composable
-fun EditProfileScreen(onDone: () -> Unit) {
+fun EditProfileScreen(onDone: () -> Unit, onboarding: Boolean = false) {
     val store = AppGraph.profile
     val p = store.profile
     val context = LocalContext.current
@@ -157,7 +157,7 @@ fun EditProfileScreen(onDone: () -> Unit) {
         ) {
             GlassIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Kembali", { if (!saving) onDone() })
             Text(
-                "Edit profil",
+                if (onboarding) "Lengkapi profilmu" else "Edit profil",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,

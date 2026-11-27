@@ -156,7 +156,7 @@ private fun ProfileBody(p: UserProfile, busy: Boolean, info: String?, onInfoShow
                     .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.9f), accent.copy(alpha = 0.25f), Color(0xFF12163A))))
             ) {
                 if (!p.banner.isNullOrBlank()) {
-                    AsyncImage(model = p.banner, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                    AsyncImage(model = com.jimz.jimztune.util.SafeUrl.image(p.banner), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x99000000)))))
                 }
             }
@@ -331,7 +331,7 @@ private fun NowPlayingCard(title: String, artist: String, cover: String?, accent
 @Composable
 private fun Cover(url: String?, size: androidx.compose.ui.unit.Dp) {
     Box(modifier = Modifier.size(size).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(alpha = 0.1f))) {
-        if (!url.isNullOrBlank()) AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        if (com.jimz.jimztune.util.SafeUrl.image(url) != null) AsyncImage(model = com.jimz.jimztune.util.SafeUrl.image(url), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
     }
 }
 
