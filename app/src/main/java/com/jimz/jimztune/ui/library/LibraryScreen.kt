@@ -628,7 +628,7 @@ private fun PlaylistTab(
 private fun PlaylistTile(title: String, subtitle: String, cover: @Composable (androidx.compose.ui.unit.Dp) -> Unit, onClick: () -> Unit) {
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick)) {
         Column {
-            cover(maxWidth)
+            cover(this@BoxWithConstraints.maxWidth)
             Spacer(Modifier.height(6.dp))
             Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)

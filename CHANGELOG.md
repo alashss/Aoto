@@ -1,3 +1,6 @@
+## 2.18.3
+- Perbaikan build 2.18.2 (kotak playlist).
+
 ## 2.18.2
 - Akun baru langsung diarahkan ke halaman "Lengkapi profilmu" (nama, username, bio, foto); sekali per akun, bisa dilewati.
 
