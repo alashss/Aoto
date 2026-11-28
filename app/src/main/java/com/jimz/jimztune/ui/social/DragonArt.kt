@@ -414,46 +414,232 @@ private fun DrawScope.drawHeroAtmosphere(p: Float) {
     drawRect(Brush.radialGradient(listOf(Color.Transparent, Color(0xFF8A0A1A).copy(alpha = 0.30f * env)), Offset(size.width / 2f, size.height / 2f), max(size.width, size.height) * 0.75f))
 }
 
-/** Lambang kepala naga bernapas api di dalam lingkaran sihir: muncul di awal, lalu mengecil saat naga sungguhan masuk. */
+/**
+ * Lambang kepala naga yang menghadap LANGSUNG ke layar di dalam lingkaran sihir, menyemburkan api ke arah penonton:
+ * api memancar dari mulut dan menjalar dari seluruh tepi layar sampai layar terasa terbakar, lalu mereda saat naga masuk.
+ */
 private fun DrawScope.drawDragonEmblem(p: Float) {
     val dp = 1.dp.toPx()
     val a = smooth(p / 0.035f) * (1f - smooth((p - 0.15f) / 0.05f))
-    if (a <= 0f) return
+    val burn = smooth((p - 0.02f) / 0.1f) * (1f - smooth((p - 0.17f) / 0.1f))
+    if (a <= 0f && burn <= 0f) return
     val cx = size.width * 0.5f
     val cy = size.height * 0.4f
     val center = Offset(cx, cy)
     val r0 = min(size.width * 0.42f, 170f * dp)
     val pop = 1f - (1f - smooth(p / 0.06f)).pow(3)
     val r = r0 * (0.5f + 0.5f * pop)
-    drawCircle(Brush.radialGradient(listOf(Color(0xFFB3001B).copy(alpha = 0.55f * a), Color.Transparent), center, r * 1.6f), r * 1.6f, center)
-    drawCircle(Dragon.Glow.copy(alpha = 0.85f * a), r, center, style = Stroke(3f * dp))
-    drawCircle(Dragon.Red.copy(alpha = 0.6f * a), r * 0.9f, center, style = Stroke(1.5f * dp))
-    rotate(p * 220f, center) {
-        for (i in 0 until 36) {
-            val ang = TAU * i / 36f
-            val r1 = r * 1.02f
-            val r2 = r1 + (if (i % 3 == 0) 14f else 7f) * dp
-            drawLine(Dragon.Glow.copy(alpha = 0.8f * a), Offset(cx + cos(ang) * r1, cy + sin(ang) * r1), Offset(cx + cos(ang) * r2, cy + sin(ang) * r2), 2f * dp)
+    val shrink = 1f - smooth((p - 0.15f) / 0.05f)
+    val u = r * 0.3f * shrink
+    val mouth = Offset(cx, cy + u * 1.75f)
+    val tt = p * 11f
+
+    if (a > 0f) {
+        drawCircle(Brush.radialGradient(listOf(Color(0xFFB3001B).copy(alpha = 0.55f * a), Color.Transparent), center, r * 1.6f), r * 1.6f, center)
+        drawCircle(Dragon.Glow.copy(alpha = 0.85f * a), r, center, style = Stroke(3f * dp))
+        drawCircle(Dragon.Red.copy(alpha = 0.6f * a), r * 0.9f, center, style = Stroke(1.5f * dp))
+        rotate(p * 220f, center) {
+            for (i in 0 until 36) {
+                val ang = TAU * i / 36f
+                val r1 = r * 1.02f
+                val r2 = r1 + (if (i % 3 == 0) 14f else 7f) * dp
+                drawLine(Dragon.Glow.copy(alpha = 0.8f * a), Offset(cx + cos(ang) * r1, cy + sin(ang) * r1), Offset(cx + cos(ang) * r2, cy + sin(ang) * r2), 2f * dp)
+            }
+        }
+        rotate(-p * 120f, center) {
+            val star = Path()
+            for (i in 0..7) {
+                val idx = (i * 3) % 7
+                val ang = TAU * idx / 7f - PI.toFloat() / 2f
+                val x = cx + cos(ang) * r * 0.84f
+                val y = cy + sin(ang) * r * 0.84f
+                if (i == 0) star.moveTo(x, y) else star.lineTo(x, y)
+            }
+            drawPath(star, Dragon.Glow.copy(alpha = 0.5f * a), style = Stroke(1.6f * dp, join = StrokeJoin.Round))
         }
     }
-    rotate(-p * 120f, center) {
-        val star = Path()
-        for (i in 0..7) {
-            val idx = (i * 3) % 7
-            val ang = TAU * idx / 7f - PI.toFloat() / 2f
-            val x = cx + cos(ang) * r * 0.84f
-            val y = cy + sin(ang) * r * 0.84f
-            if (i == 0) star.moveTo(x, y) else star.lineTo(x, y)
+    if (burn > 0f) {
+        // api memancar dari mulut ke segala arah (ke arah penonton), makin besar makin menutupi layar
+        val reach = sqrt(size.width * size.width + size.height * size.height) * 0.75f
+        for (j in 0 until 90) {
+            val life = (tt * 1.5f + rn(j, 1)) % 1f
+            val ang = rn(j, 2) * TAU
+            val dist = reach * life * life * burn
+            val c = Offset(mouth.x + cos(ang) * dist, mouth.y + sin(ang) * dist * 1.15f)
+            val rad = r * (0.12f + 0.55f * life) * (0.4f + 0.6f * burn)
+            val col = when {
+                life < 0.25f -> Color(0xFFFFF3B0)
+                life < 0.55f -> Color(0xFFFFA52E)
+                life < 0.85f -> Color(0xFFE0200F)
+                else -> Color(0xFF3A1010)
+            }
+            drawCircle(col.copy(alpha = (1f - life) * 0.55f * burn), rad, c, blendMode = BlendMode.Plus)
         }
-        drawPath(star, Dragon.Glow.copy(alpha = 0.5f * a), style = Stroke(1.6f * dp, join = StrokeJoin.Round))
+        drawRect(Color(0xFFFF4A1F).copy(alpha = 0.30f * burn * (0.8f + 0.2f * sin(tt * 9f))), blendMode = BlendMode.Plus)
     }
-    val u = r * 0.27f * (1f - smooth((p - 0.15f) / 0.05f))
-    if (u <= 0.5f) return
-    val fwd = nrm(Offset(1f, -0.16f))
-    val head = Offset(cx - u * 1.5f, cy + u * 0.15f)
-    dragonHead(head, fwd, u, 0.95f, p * 11f)
-    val mouth = head + fwd * (u * 2.4f) + dragonBack(fwd, 1f) * (-u * 0.1f)
-    dragonFire(mouth, fwd, size.width * 0.8f, 0.16f, a, p * 11f)
+    if (u > 0.5f) dragonFrontHead(center, u, 0.25f + 0.75f * burn, tt)
+    if (burn > 0f) edgeFlames(burn, tt)
+}
+
+/** Lidah api yang tumbuh dari keempat tepi layar menuju tengah. */
+private fun DrawScope.edgeFlames(burn: Float, t: Float) {
+    val w = size.width
+    val h = size.height
+    for (edge in 0 until 4) {
+        val horizontal = edge < 2
+        val span = if (horizontal) w else h
+        val depth = if (horizontal) h else w
+        val n = if (horizontal) 12 else 18
+        for (i in 0 until n) {
+            val along = span * (i + 0.5f) / n
+            val flick = 0.6f + 0.4f * abs(sin(t * 5f + i * 1.9f + edge))
+            val len = depth * (if (edge == 0) 0.55f else 0.42f) * burn * flick * (0.6f + 0.6f * rn(i, edge + 3))
+            val bw = span / n * 0.75f
+            val b: Offset; val nv: Offset
+            when (edge) {
+                0 -> { b = Offset(along, h); nv = Offset(0f, -1f) }
+                1 -> { b = Offset(along, 0f); nv = Offset(0f, 1f) }
+                2 -> { b = Offset(0f, along); nv = Offset(1f, 0f) }
+                else -> { b = Offset(w, along); nv = Offset(-1f, 0f) }
+            }
+            val tg = Offset(-nv.y, nv.x)
+            val tip = b + nv * len + tg * (sin(t * 7f + i) * bw * 0.35f)
+            val path = Path().apply {
+                moveTo(b.x - tg.x * bw, b.y - tg.y * bw)
+                val c1 = b + nv * (len * 0.55f) - tg * (bw * 0.3f)
+                quadraticBezierTo(c1.x, c1.y, tip.x, tip.y)
+                val c2 = b + nv * (len * 0.55f) + tg * (bw * 0.3f)
+                quadraticBezierTo(c2.x, c2.y, b.x + tg.x * bw, b.y + tg.y * bw)
+                close()
+            }
+            drawPath(
+                path,
+                Brush.linearGradient(listOf(Color(0xFFFFE08A).copy(alpha = 0.95f * burn), Color(0xFFFF6A1F).copy(alpha = 0.8f * burn), Color(0xFFB3001B).copy(alpha = 0f)), b, tip),
+                blendMode = BlendMode.Plus
+            )
+        }
+    }
+}
+
+/** Kepala naga tampak depan: tanduk melengkung, mata menyipit menyala, moncong dengan taring, mulut terbuka. */
+private fun DrawScope.dragonFrontHead(c: Offset, u: Float, mouth: Float, t: Float) {
+    fun p(x: Float, y: Float) = Offset(c.x + x * u, c.y + y * u)
+    val sw = (u * 0.09f).coerceAtLeast(1f)
+    fun mirror(block: (Float) -> Unit) { block(1f); block(-1f) }
+
+    // sirip telinga bergerigi
+    mirror { sg ->
+        val fin = Path().apply {
+            val a0 = p(sg * 1.5f, -0.9f); moveTo(a0.x, a0.y)
+            val a1 = p(sg * 3.9f, -2.0f); lineTo(a1.x, a1.y)
+            val a2 = p(sg * 2.9f, -1.0f); lineTo(a2.x, a2.y)
+            val a3 = p(sg * 4.2f, -0.6f); lineTo(a3.x, a3.y)
+            val a4 = p(sg * 2.9f, 0.1f); lineTo(a4.x, a4.y)
+            val a5 = p(sg * 3.5f, 0.8f); lineTo(a5.x, a5.y)
+            val a6 = p(sg * 1.9f, 0.7f); lineTo(a6.x, a6.y)
+            close()
+        }
+        drawPath(fin, Brush.linearGradient(listOf(Color(0xFF2A0610), Color(0xFFD4142B)), p(sg * 1.5f, 0f), p(sg * 4.2f, -0.6f)))
+        drawPath(fin, Dragon.Glow.copy(alpha = 0.7f), style = Stroke(sw, join = StrokeJoin.Round))
+    }
+    // tanduk besar
+    mirror { sg ->
+        val horn = Path().apply {
+            val a0 = p(sg * 0.7f, -1.7f); moveTo(a0.x, a0.y)
+            val c1 = p(sg * 2.9f, -2.1f); val e1 = p(sg * 3.4f, -5.0f); quadraticBezierTo(c1.x, c1.y, e1.x, e1.y)
+            val c2 = p(sg * 1.9f, -3.2f); val e2 = p(sg * 1.5f, -1.2f); quadraticBezierTo(c2.x, c2.y, e2.x, e2.y)
+            close()
+        }
+        drawPath(horn, Brush.linearGradient(listOf(Dragon.Mid, Dragon.Bone), p(sg * 1.1f, -1.4f), p(sg * 3.4f, -5.0f)))
+        drawPath(horn, Dragon.Glow.copy(alpha = 0.55f), style = Stroke(sw * 0.8f, join = StrokeJoin.Round))
+    }
+    // tengkorak
+    val skull = Path().apply {
+        val a0 = p(0f, -2.5f); moveTo(a0.x, a0.y)
+        val c1 = p(2.3f, -2.3f); val e1 = p(2.2f, -0.2f); quadraticBezierTo(c1.x, c1.y, e1.x, e1.y)
+        val c2 = p(2.1f, 1.2f); val e2 = p(1.15f, 2.3f); quadraticBezierTo(c2.x, c2.y, e2.x, e2.y)
+        val e3 = p(0f, 2.65f); lineTo(e3.x, e3.y)
+        val e4 = p(-1.15f, 2.3f); lineTo(e4.x, e4.y)
+        val c5 = p(-2.1f, 1.2f); val e5 = p(-2.2f, -0.2f); quadraticBezierTo(c5.x, c5.y, e5.x, e5.y)
+        val c6 = p(-2.3f, -2.3f); quadraticBezierTo(c6.x, c6.y, a0.x, a0.y)
+        close()
+    }
+    drawPath(skull, Brush.radialGradient(listOf(Color(0xFFB3122A), Color(0xFF3A0712), Color(0xFF14030A)), p(0f, -0.6f), u * 3.2f))
+    drawPath(skull, Dragon.Glow.copy(alpha = 0.8f), style = Stroke(sw * 1.2f, join = StrokeJoin.Round))
+    // jambul tengah menyala + sisik dahi
+    drawLine(Dragon.Glow.copy(alpha = 0.9f), p(0f, -2.4f), p(0f, 0.2f), sw * 1.4f, StrokeCap.Round)
+    for (k in 0 until 4) drawLine(Dragon.Glow.copy(alpha = 0.5f), p(-0.5f + 0.0f, -2.0f + k * 0.55f), p(0.5f, -1.8f + k * 0.55f), sw * 0.8f, StrokeCap.Round)
+    // alis & mata
+    mirror { sg ->
+        val brow = Path().apply {
+            val a0 = p(sg * 0.35f, -0.85f); moveTo(a0.x, a0.y)
+            val e = p(sg * 2.0f, -1.5f); lineTo(e.x, e.y)
+            val f = p(sg * 1.85f, -0.95f); lineTo(f.x, f.y)
+            val g = p(sg * 0.55f, -0.45f); lineTo(g.x, g.y)
+            close()
+        }
+        drawPath(brow, Dragon.Dark)
+        val eye = Path().apply {
+            val a0 = p(sg * 0.55f, -0.35f); moveTo(a0.x, a0.y)
+            val c1 = p(sg * 1.2f, -0.95f); val e1 = p(sg * 1.9f, -0.75f); quadraticBezierTo(c1.x, c1.y, e1.x, e1.y)
+            val c2 = p(sg * 1.3f, -0.15f); quadraticBezierTo(c2.x, c2.y, a0.x, a0.y)
+            close()
+        }
+        drawCircle(Dragon.Eye.copy(alpha = 0.5f), u * 0.9f, p(sg * 1.25f, -0.55f), blendMode = BlendMode.Plus)
+        drawPath(eye, Dragon.Eye)
+        drawLine(Dragon.Dark, p(sg * 1.25f, -0.85f), p(sg * 1.25f, -0.25f), sw * 1.1f, StrokeCap.Round)
+    }
+    // moncong + lubang hidung + asap
+    val snout = Path().apply {
+        val a0 = p(-0.95f, 0.15f); moveTo(a0.x, a0.y)
+        val c1 = p(0f, -0.25f); val e1 = p(0.95f, 0.15f); quadraticBezierTo(c1.x, c1.y, e1.x, e1.y)
+        val e2 = p(0.8f, 1.15f); lineTo(e2.x, e2.y)
+        val e3 = p(-0.8f, 1.15f); lineTo(e3.x, e3.y)
+        close()
+    }
+    drawPath(snout, Brush.verticalGradient(listOf(Color(0xFF7A0C1E), Color(0xFF2A0610)), startY = p(0f, 0.1f).y, endY = p(0f, 1.2f).y))
+    drawPath(snout, Dragon.Glow.copy(alpha = 0.6f), style = Stroke(sw, join = StrokeJoin.Round))
+    mirror { sg ->
+        drawCircle(Dragon.Dark, u * 0.13f, p(sg * 0.38f, 0.55f))
+        for (k in 0 until 2) {
+            val life = (t * 2f + k * 0.5f) % 1f
+            drawCircle(Color(0xFF7A7A88).copy(alpha = 0.3f * (1f - life)), u * (0.15f + 0.3f * life), p(sg * (0.4f + life * 0.5f), 0.45f - life * 1.1f))
+        }
+    }
+    // mulut terbuka berisi api
+    val open = 0.35f + 0.9f * mouth
+    val inner = Path().apply {
+        val a0 = p(-0.85f, 1.15f); moveTo(a0.x, a0.y)
+        val c1 = p(-1.0f, 1.15f + open); val e1 = p(0f, 1.2f + open * 1.15f); quadraticBezierTo(c1.x, c1.y, e1.x, e1.y)
+        val c2 = p(1.0f, 1.15f + open); val e2 = p(0.85f, 1.15f); quadraticBezierTo(c2.x, c2.y, e2.x, e2.y)
+        close()
+    }
+    drawPath(inner, Brush.verticalGradient(listOf(Color(0xFFFFE08A), Color(0xFFFF6A1F), Color(0xFF8A0A1A)), startY = p(0f, 1.15f).y, endY = p(0f, 1.2f + open * 1.15f).y))
+    // taring atas & bawah
+    mirror { sg ->
+        val fangU = Path().apply {
+            val a0 = p(sg * 0.25f, 1.15f); moveTo(a0.x, a0.y)
+            val b0 = p(sg * 0.7f, 1.15f); lineTo(b0.x, b0.y)
+            val c0 = p(sg * 0.5f, 1.15f + 0.75f); lineTo(c0.x, c0.y)
+            close()
+        }
+        drawPath(fangU, Dragon.Bone)
+        val fangL = Path().apply {
+            val a0 = p(sg * 0.35f, 1.2f + open * 1.1f); moveTo(a0.x, a0.y)
+            val b0 = p(sg * 0.75f, 1.2f + open * 1.0f); lineTo(b0.x, b0.y)
+            val c0 = p(sg * 0.55f, 1.2f + open * 1.1f - 0.65f); lineTo(c0.x, c0.y)
+            close()
+        }
+        drawPath(fangL, Dragon.Bone)
+    }
+    // dagu
+    val chin = Path().apply {
+        val a0 = p(-1.0f, 1.2f + open * 1.05f); moveTo(a0.x, a0.y)
+        val c1 = p(0f, 1.2f + open * 1.05f + 0.9f); val e1 = p(1.0f, 1.2f + open * 1.05f); quadraticBezierTo(c1.x, c1.y, e1.x, e1.y)
+        close()
+    }
+    drawPath(chin, Dragon.Dark)
+    drawPath(chin, Dragon.Glow.copy(alpha = 0.6f), style = Stroke(sw, join = StrokeJoin.Round))
 }
 
 // ------------------------------------------------------------------------------------ naga kecil mengorbit foto profil

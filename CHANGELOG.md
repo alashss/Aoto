@@ -1,3 +1,6 @@
+## 2.21.2
+- Intro Raja Iblis: lambang kepala naga kini menghadap LURUS ke layar (tanduk, mata menyala, taring) dan menyemburkan api ke arah penonton; api memancar dari mulut dan menjalar dari seluruh tepi layar sampai layar terasa terbakar.
+
 ## 2.21.1
 - Intro profil Raja Iblis: lambang kepala naga bernapas api di lingkaran sihir muncul dulu, baru naga raksasa masuk (±11 detik).
 - Gelembung Raja Iblis: naga lebih besar dan rebahan memanjang di atas gelembung, mendengkur, sesekali mendengus api kecil dan "z z z".
