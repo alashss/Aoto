@@ -1,3 +1,6 @@
+## 2.19.1
+- Perbaikan build 2.19.0 (animasi titik mengetik).
+
 ## 2.19.0
 - Efek legendary & mythic punya adegan pembuka saat profil dibuka (naga terbang Raja Iblis, komet emas, pemindai kode, badai es) lalu menghilang pelan.
 - Chat teman: gelembung titik tiga saat teman mengetik (tidak ada di chat global); animasi pop saat pesan baru di chat teman & global.
