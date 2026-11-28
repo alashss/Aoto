@@ -220,16 +220,27 @@ class SearchViewModel : ViewModel() {
         val artist = artistD.await()
         fun n(x: String) = x.lowercase().filter { it.isLetterOrDigit() }
         val key = n(q); val an = artist?.let { n(it.title) }.orEmpty()
-        if (artist == null || key.length < 3 || an.length < 3 || !(an == key || an.startsWith(key) || key.startsWith(an))) return@coroutineScope songs
+        // Tab Lagu hanya berisi lagu: artis (juga playlist/album) dibuang dari hasil.
+        val onlySongs = songs.copy(items = songs.items.filter { it.type == SearchType.SONG })
+        // Kartu artis hanya untuk artis yang benar-benar terkenal (>= 300 rb subscriber); artis kecil cukup di tab Artis.
+        if (artist == null || key.length < 3 || an.length < 3 || !(an == key || an.startsWith(key) || key.startsWith(an)) || subscribersOf(artist.subtitle) < 300_000L) return@coroutineScope onlySongs
         val top = try {
             kotlinx.coroutines.withTimeoutOrNull(3_500) { AppGraph.detail.artist(artist.id).topSongs }.orEmpty()
         } catch (e: CancellationException) { throw e } catch (_: Exception) { emptyList() }
-        val rest = songs.items.filter { it.type == SearchType.SONG }
+        val rest = onlySongs.items
         val (own, other) = rest.partition { n(it.subtitle.substringBefore(" • ")).contains(an) }
         val seen = HashSet<String>()
-        val merged = (listOf(artist) + top.filter { it.type == SearchType.SONG } + own + other + songs.items.filter { it.type != SearchType.SONG })
+        val merged = (listOf(artist) + top.filter { it.type == SearchType.SONG } + own + other)
             .filter { seen.add(it.id) }
-        songs.copy(items = merged)
+        onlySongs.copy(items = merged)
+    }
+
+    /** "10,9 rb subscriber" -> 10900; "1,2 jt" -> 1200000; "3.4M" -> 3400000. 0 kalau tidak terbaca. */
+    private fun subscribersOf(text: String): Long {
+        val m = Regex("(?i)([0-9]+(?:[.,][0-9]+)?)\\s*(rb|ribu|k|jt|juta|m|miliar|b)?\\b").find(text.substringAfter("•", text)) ?: return 0L
+        val n = m.groupValues[1].replace(',', '.').toDoubleOrNull() ?: return 0L
+        val mult = when (m.groupValues[2].lowercase()) { "rb", "ribu", "k" -> 1_000.0; "jt", "juta", "m" -> 1_000_000.0; "miliar", "b" -> 1_000_000_000.0; else -> 1.0 }
+        return (n * mult).toLong()
     }
 
     /** Lagu yang liriknya mengandung [q]: cari di NetEase, cocokkan ke lagu yang bisa diputar, lalu lengkapi dengan pencarian biasa. */

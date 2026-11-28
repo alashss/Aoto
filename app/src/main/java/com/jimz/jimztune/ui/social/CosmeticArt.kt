@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -319,6 +320,8 @@ private fun DrawScope.drawDemonFrame(t: Float, c: Offset, sw: Float, rr: Float) 
         drawPath(horn, Brush.linearGradient(listOf(Color(0xFF0B0105), Color(0xFF5E0A18), Color(0xFFFFB199)), Offset(bx, by), Offset(tipX, tipY)))
         drawPath(horn, Color(0xFFFF5A4A).copy(alpha = 0.7f), style = Stroke(sw * 0.1f, cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
+    // naga kecil yang mengepak mengelilingi foto
+    drawBabyDragon(c, rr + sw * 0.9f, sw * 0.8f, t)
     // percik bara
     for (k in 0 until 6) {
         val p = (t * (0.6f + 0.1f * k) + k / 6f) % 1f
@@ -514,7 +517,7 @@ fun ProfileEffect(effect: String?, modifier: Modifier = Modifier, entrance: Bool
     LaunchedEffect(effect, entrance) { if (entrance) age.animateTo(1f, tween(6000, easing = androidx.compose.animation.core.LinearEasing)) }
     // Adegan pembuka khusus (naga, komet, pemindai, badai) untuk efek legendary & mythic, ~4 detik lalu hilang.
     val hero = remember(effect, entrance) { androidx.compose.animation.core.Animatable(if (entrance && effect in HeroEffects) 0f else 1f) }
-    LaunchedEffect(effect, entrance) { if (entrance && effect in HeroEffects) hero.animateTo(1f, tween(4200, easing = androidx.compose.animation.core.LinearEasing)) }
+    LaunchedEffect(effect, entrance) { if (entrance && effect in HeroEffects) hero.animateTo(1f, tween(if (effect == "fx_demon") 9000 else 4200, easing = androidx.compose.animation.core.LinearEasing)) }
     Canvas(modifier.fillMaxSize().graphicsLayer { alpha = (intro.value * 2.5f).coerceIn(0f, 1f) }) {
         val w = size.width
         val h = size.height
@@ -702,6 +705,7 @@ val BubbleSpecs = mapOf(
 @Composable
 fun CosmeticBubble(id: String?, shape: Shape, modifier: Modifier = Modifier, fallback: Brush? = null, content: @Composable BoxScope.() -> Unit) {
     val spec = id?.let { BubbleSpecs[it] }
+    if (spec != null && spec.anim == 5) { DemonBubble(shape, modifier, spec, content); return }
     if (spec == null) {
         Box(modifier.clip(shape).then(if (fallback != null) Modifier.background(fallback) else Modifier), content = content)
         return
@@ -745,4 +749,46 @@ fun CosmeticName(
         TextStyle(brush = Brush.horizontalGradient(listOf(GoldLight, Gold, GoldLight)), fontSize = fontSize, fontWeight = FontWeight.Bold)
     else TextStyle(color = color, fontSize = fontSize, fontWeight = fontWeight)
     Text(text, style = style, maxLines = maxLines, overflow = TextOverflow.Ellipsis, modifier = modifier)
+}
+
+
+/**
+ * Gelembung Raja Iblis: gelembung merah-hitam berurat api, dan seekor naga bertengger di tepi atasnya
+ * (ekornya menjuntai & berayun, sesekali menyemburkan api kecil). Ruang di atas gelembung disediakan untuk naga.
+ */
+@Composable
+private fun DemonBubble(shape: Shape, modifier: Modifier, spec: BubbleSpec, content: @Composable BoxScope.() -> Unit) {
+    val t = rememberCosmeticClock()
+    val perch = 26.dp
+    Box(
+        modifier.drawWithContent {
+            drawContent()
+            val top = perch.toPx()
+            val u = 3.2.dp.toPx()
+            val cx = (size.width - 3.9f * u).coerceAtLeast(size.width * 0.55f)
+            drawPerchedDragon(Offset(cx, top + 0.5f * u), u, t)
+        }
+    ) {
+        Box(
+            Modifier.padding(top = perch).clip(shape).drawWithContent {
+                val w = size.width
+                val h = size.height
+                drawRect(Brush.linearGradient(spec.colors, Offset(0f, 0f), Offset(w, h)))
+                // lava bergerak di dasar gelembung
+                for (k in 0 until 3) {
+                    val x = ((t * 1.2f + k / 3f) % 1f) * w
+                    drawCircle(Color(0xFFFF6A3D).copy(alpha = 0.16f), h * 0.9f, Offset(x, h * 1.1f))
+                }
+                val sx = ((t * 1.6f) % 1.6f - 0.3f) * w
+                drawRect(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.26f), Color.Transparent), startX = sx - w * 0.15f, endX = sx + w * 0.15f))
+                drawContent()
+                val b = spec.border
+                if (b != null) {
+                    val a = 0.45f + 0.55f * abs(sin(t * 2 * PI.toFloat()))
+                    drawRoundRect(b.copy(alpha = b.alpha * a), cornerRadius = androidx.compose.ui.geometry.CornerRadius(22.dp.toPx()), style = Stroke(1.6.dp.toPx()))
+                }
+            },
+            content = content
+        )
+    }
 }

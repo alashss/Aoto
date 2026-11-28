@@ -148,7 +148,8 @@ object LyricsMatch {
         trust: Trust = Trust.BY_METADATA
     ): Double? {
         // Sumber yang mencari sendiri tanpa metadata dikembalikan: tidak bisa diverifikasi, jadi skornya di bawah semua hasil terverifikasi.
-        if (trust == Trust.BLIND) return 38.0
+        // Sumber yang mencari sendiri: judul pendek/umum ("Nak") terlalu gampang tertukar dengan lagu lain, jadi ditolak.
+        if (trust == Trust.BLIND) return if (normalize(q.title).length <= 6) null else 38.0
 
         val variants = titleVariants(q.title)
         if (trust == Trust.EXACT_ID) {

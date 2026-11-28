@@ -154,14 +154,22 @@ class SearchRepository(
                 val key = norm(item.title) + "|" + norm(item.subtitle.substringBefore(" • "))
                 if (!seenKeys.add(key)) return@forEachIndexed
 
+                val titleN = norm(item.title)
                 val haystack = norm(item.title + " " + item.subtitle)
+                val inTitle = if (tokens.isEmpty()) 0 else tokens.count { titleN.contains(it) }
                 val hits = if (tokens.isEmpty()) 0 else tokens.count { haystack.contains(it) }
+                // Kata kunci yang ada di JUDUL lebih berharga daripada yang cuma cocok dengan nama artis
+                // (cari "december" jangan memenangkan lagu-lagu milik artis bernama December).
                 var score = when {
                     tokens.isEmpty() -> 2
+                    inTitle == tokens.size -> 3
                     hits == tokens.size -> 2
                     hits * 2 >= tokens.size -> 1
                     else -> 0
                 }
+                val official = Regex("(?i)(- topic|vevo|official|records|recordings|music)\\s*$").containsMatchIn(item.subtitle.substringBefore(" • ")) ||
+                    item.subtitle.contains(" • ")
+                val officialBonus = if (official && score >= 2) 1 else 0
                 var order = o.index * 1000 + i
                 // Mix / kumpulan lagu jangan mengalahkan lagu biasa, kecuali kata kuncinya memang meminta itu
                 // ("mix", "jam", "loop", "full album", ...).
@@ -169,7 +177,7 @@ class SearchRepository(
                     score = -1
                     order += 100_000
                 }
-                ranked += Ranked(item, score, order)
+                ranked += Ranked(item, score * 2 + officialBonus, order)
             }
         }
         return ranked.sortedWith(compareByDescending<Ranked> { it.score }.thenBy { it.order }).map { it.item }

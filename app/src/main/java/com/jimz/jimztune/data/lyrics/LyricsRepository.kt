@@ -22,12 +22,12 @@ import java.io.File
  * Daftar hasil (satu per sumber) disimpan di perangkat; user bisa berganti sumber kalau yang pertama kurang pas.
  */
 class LyricsRepository(context: Context) {
-    private val dir = File(context.filesDir, "lyrics_v4").apply { mkdirs() }
+    private val dir = File(context.filesDir, "lyrics_v5").apply { mkdirs() }
 
     init {
         // Cache lama tidak membedakan "Nak" dan "Nak..." (dan versi v1 tidak diperiksa sama sekali), jadi bisa
         // berisi lirik lagu yang salah: buang semuanya supaya dicari ulang dengan pemeriksaan yang baru.
-        listOf("lyrics", "lyrics_v2", "lyrics_v3").forEach { File(context.filesDir, it).takeIf { f -> f.exists() }?.deleteRecursively() }
+        listOf("lyrics", "lyrics_v2", "lyrics_v3", "lyrics_v4").forEach { File(context.filesDir, it).takeIf { f -> f.exists() }?.deleteRecursively() }
     }
 
     private val providers: List<LyricsProvider> = listOf(
@@ -114,6 +114,8 @@ class LyricsRepository(context: Context) {
         all.mapNotNull { c ->
             val base = LyricsMatch.score(q, c.title, c.artist, c.durationSec, c.trust) ?: return@mapNotNull null
             if (!LyricsMatch.plausible(c.lyrics, q.durationSec)) return@mapNotNull null
+            // Sumber tanpa metadata: lirik tanpa waktu tidak bisa diverifikasi dengan durasi, jadi tidak dipakai.
+            if (c.trust == Trust.BLIND && !c.lyrics.synced) return@mapNotNull null
             // LrcLib (bersinkron) selalu diutamakan. Lirik biasa tanpa waktu kalah dari yang bersinkron mana pun.
             val bonus = when {
                 c.lyrics.source == PRIMARY && c.lyrics.synced -> 60.0

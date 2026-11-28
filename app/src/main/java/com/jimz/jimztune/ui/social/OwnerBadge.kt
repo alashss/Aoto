@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.sin
 
 val DemonRed = Color(0xFFE0102A)
@@ -37,39 +38,110 @@ val DemonFlame = Color(0xFFFF6A3D)
 val DemonViolet = Color(0xFF7B1FD1)
 
 /**
- * Lencana OWNER bertema raja iblis: pil merah darah-hitam dengan tulisan api, diapit sepasang sayap iblis
- * yang mengepak pelan. Dipakai di Chat Global dan profil.
+ * Lencana OWNER Raja Iblis: pelat hitam-merah berkilau dengan bingkai emas, kilatan cahaya yang menyusuri tepinya,
+ * sepasang tanduk kecil dan lidah api di atasnya, diapit sepasang sayap naga yang mengepak dengan selaput & tulang.
  */
 @Composable
 fun OwnerBadge(modifier: Modifier = Modifier, height: Dp = 16.dp) {
     val t = rememberCosmeticClock()
-    val flap = sin(t * 2f * PI.toFloat()) // -1..1
-    val glow = 0.55f + 0.45f * abs(sin(t * 3f * PI.toFloat()))
+    val phase = t * 2f * PI.toFloat() * 5f
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val span = with(density) { (height * 3.6f).toPx() }
+    val wingW = height * 1.9f
+    val wingH = height * 1.5f
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Canvas(Modifier.width(height * 1.55f).height(height * 1.35f)) { drawDemonWing(false, flap) }
+        Canvas(Modifier.width(wingW).height(wingH)) {
+            dragonWing(Offset(size.width, size.height * 0.62f), Offset(0f, -1f), Offset(-1f, 0f), size.height * 0.8f, phase, 1f)
+        }
         Box(
             Modifier
                 .padding(horizontal = 1.dp)
                 .drawBehind {
-                    drawRoundRect(DemonRed.copy(alpha = 0.22f * glow), cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height), size = size, style = Stroke(size.height * 0.5f))
+                    val w = size.width
+                    val h = size.height
+                    val glow = 0.5f + 0.5f * abs(sin(t * 2f * PI.toFloat() * 2f))
+                    // aura
+                    drawRoundRect(DemonRed.copy(alpha = 0.20f * glow), cornerRadius = androidx.compose.ui.geometry.CornerRadius(h), size = size, style = Stroke(h * 0.55f))
+                    // tanduk kecil di kedua sudut atas
+                    for (sg in listOf(-1f, 1f)) {
+                        val bx = if (sg < 0f) h * 0.55f else w - h * 0.55f
+                        val horn = Path().apply {
+                            moveTo(bx - sg * h * 0.16f, h * 0.06f)
+                            quadraticBezierTo(bx + sg * h * 0.05f, -h * 0.45f, bx + sg * h * 0.42f, -h * 0.5f)
+                            quadraticBezierTo(bx + sg * h * 0.18f, -h * 0.22f, bx + sg * h * 0.2f, h * 0.1f)
+                            close()
+                        }
+                        drawPath(horn, Brush.linearGradient(listOf(Color(0xFF3A0610), Color(0xFFFFD9BE)), Offset(bx, h * 0.1f), Offset(bx + sg * h * 0.42f, -h * 0.5f)))
+                    }
+                    // lidah api kecil di tengah atas
+                    for (k in -1..1) {
+                        val fl = 0.65f + 0.35f * abs(sin(t * 2f * PI.toFloat() * 4f + k * 1.7f))
+                        val x = w / 2f + k * h * 0.42f
+                        val ht = h * (if (k == 0) 0.62f else 0.4f) * fl
+                        val fire = Path().apply {
+                            moveTo(x - h * 0.13f, h * 0.05f)
+                            quadraticBezierTo(x - h * 0.06f, -ht * 0.5f, x + h * 0.02f * sin(t * 25f), -ht)
+                            quadraticBezierTo(x + h * 0.06f, -ht * 0.5f, x + h * 0.13f, h * 0.05f)
+                            close()
+                        }
+                        drawPath(fire, Brush.verticalGradient(listOf(Color(0xFFFFE08A), Color(0xFFFF7A2E), Color(0xFFD4142B).copy(alpha = 0.6f)), startY = -ht, endY = h * 0.05f))
+                    }
                 }
                 .clip(RoundedCornerShape(50))
                 .drawBehind {
-                    drawRect(Brush.horizontalGradient(listOf(Color(0xFF14020A), Color(0xFF8E0A1C), Color(0xFFD4142B), Color(0xFF8E0A1C), Color(0xFF14020A))))
-                    drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.22f), Color.Transparent), endY = size.height * 0.55f))
+                    val w = size.width
+                    val h = size.height
+                    drawRect(Brush.horizontalGradient(listOf(Color(0xFF14020A), Color(0xFF7A0A1C), Color(0xFFE0182E), Color(0xFF7A0A1C), Color(0xFF14020A))))
+                    drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.28f), Color.Transparent, Color.Black.copy(alpha = 0.35f)), startY = 0f, endY = h))
+                    // sapuan kilau yang melintas
+                    val sx = ((t * 1.5f) % 1.5f - 0.25f) * w
+                    drawRect(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.32f), Color.Transparent), startX = sx - w * 0.14f, endX = sx + w * 0.14f))
+                    // bingkai emas
+                    drawRoundRect(
+                        Brush.horizontalGradient(listOf(Color(0xFFFFE9A0), Color(0xFFC9951A), Color(0xFFFFE9A0), Color(0xFFC9951A), Color(0xFFFFE9A0))),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(h / 2f), style = Stroke(h * 0.07f)
+                    )
+                    // titik cahaya menyusuri tepi
+                    val r = h / 2f
+                    val straight = (w - h).coerceAtLeast(0f)
+                    val perim = 2f * straight + (PI.toFloat() * h)
+                    for (k in 0 until 5) {
+                        var s = ((t * 2f - k * 0.012f) % 1f + 1f) % 1f * perim
+                        val o: Offset = when {
+                            s < straight -> Offset(r + s, h * 0.035f)
+                            else -> {
+                                s -= straight
+                                val arc = PI.toFloat() * r
+                                if (s < arc) { val a = -PI.toFloat() / 2f + s / r; Offset(w - r + r * cos(a), r + r * sin(a)) }
+                                else {
+                                    s -= arc
+                                    if (s < straight) Offset(w - r - s, h * 0.965f)
+                                    else { s -= straight; val a = PI.toFloat() / 2f + s / r; Offset(r + r * cos(a), r + r * sin(a)) }
+                                }
+                            }
+                        }
+                        drawCircle(Color.White.copy(alpha = 0.9f - k * 0.17f), h * (0.07f - k * 0.01f), o)
+                    }
                 }
-                .padding(horizontal = height * 0.5f, vertical = height * 0.06f),
+                .padding(horizontal = height * 0.55f, vertical = height * 0.07f),
             contentAlignment = Alignment.Center
         ) {
+            val shift = span * ((t * 2f) % 1f)
             Text(
                 "OWNER",
                 style = TextStyle(
-                    brush = Brush.verticalGradient(listOf(Color(0xFFFFF1C2), Color(0xFFFFB35A), Color(0xFFFF5A2E))),
-                    fontSize = (height.value * 0.56f).sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp
+                    brush = Brush.linearGradient(
+                        listOf(Color(0xFFFFF6D6), Color(0xFFFFB347), Color(0xFFFF4A2E), Color(0xFFFFB347), Color(0xFFFFF6D6)),
+                        start = Offset(shift - span, 0f), end = Offset(shift, 0f), tileMode = androidx.compose.ui.graphics.TileMode.Mirror
+                    ),
+                    fontSize = (height.value * 0.56f).sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp,
+                    shadow = androidx.compose.ui.graphics.Shadow(Color(0xFFFF2A1A), blurRadius = height.value * 0.5f)
                 )
             )
         }
-        Canvas(Modifier.width(height * 1.55f).height(height * 1.35f)) { drawDemonWing(true, flap) }
+        Canvas(Modifier.width(wingW).height(wingH)) {
+            dragonWing(Offset(0f, size.height * 0.62f), Offset(0f, -1f), Offset(1f, 0f), size.height * 0.8f, phase + 0.35f, 1f)
+        }
     }
 }
 

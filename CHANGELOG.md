@@ -1,3 +1,12 @@
+## 2.21.0
+- Raja Iblis didesain ulang total: naga raksasa (badan bersisik, sayap bertulang, tanduk, kumis, napas api) masuk saat profil dibuka, berputar keliling layar ±9 detik sambil menyemburkan api, lalu melesat pergi.
+- Bingkai foto Raja Iblis: naga kecil mengepak mengorbit foto; gelembung chat Raja Iblis: naga bertengger di atas gelembung, ekor berayun & sesekali menyembur api.
+- Lencana OWNER dirancang ulang: pelat berbingkai emas, tanduk & api kecil, kilau menyusuri tepi, sayap naga mengepak.
+
+## 2.20.1
+- Pencarian lagu: kata kunci di JUDUL didahulukan dari yang cuma cocok nama artis; tab Lagu hanya berisi lagu; kartu artis hanya untuk artis terkenal (>=300 rb subscriber).
+- Lirik: sumber tanpa metadata ditolak untuk judul pendek/umum dan yang tanpa waktu; cache lirik lama dibuang.
+
 ## 2.20.0
 - Pencarian lagu: kalau ketikan cocok dengan nama artis, kartu artis muncul paling atas, diikuti lagu aslinya; lagu yang dibawakan artis itu didahulukan dari cover.
 - Chat teman: geser pesan ke kanan untuk membalas (kartu kutipan ala WA). Balasan catatan tampil rapi sebagai kartu, tanpa teks aneh.
