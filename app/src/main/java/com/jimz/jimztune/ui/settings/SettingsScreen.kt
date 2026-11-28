@@ -698,19 +698,6 @@ fun SettingsScreen(
         // ---- Aplikasi ----
         Section("Aplikasi")
         val announcements = remote.activeAnnouncements()
-        var pushStatus by remember { mutableStateOf(com.jimz.jimztune.util.PushRegistrar.status(context)) }
-        GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
-            SettingRow(
-                icon = Icons.Rounded.Info,
-                title = "Notifikasi chat (push)",
-                subtitle = "Status: $pushStatus. Ketuk untuk daftar ulang.",
-                onClick = {
-                    pushStatus = "mencoba…"
-                    scope.launch { pushStatus = com.jimz.jimztune.util.PushRegistrar.retry(context) }
-                }
-            )
-        }
-        Spacer(Modifier.height(12.dp))
         GroupCard(modifier = Modifier.padding(horizontal = 20.dp)) {
             SettingRow(
                 icon = Icons.Rounded.SystemUpdate,

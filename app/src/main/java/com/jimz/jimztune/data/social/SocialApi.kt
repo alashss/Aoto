@@ -272,6 +272,9 @@ object SocialApi {
         )
     }
 
+    /** Tandai offline seketika (aplikasi ditutup / tidak ada musik). */
+    suspend fun presenceOffline() { rpc("presence_offline") }
+
     // ------------------------------------------------------------------ chat teman
 
     suspend fun dmThread(userId: String): Res<List<DmMessage>> =

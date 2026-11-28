@@ -144,6 +144,8 @@
             </intent-filter>
         </service>
 
+        <receiver android:name=".util.ChatReplyReceiver" android:exported="false" />
+
         <!-- Push chat dari FCM -->
         <service
             android:name=".util.PushService"

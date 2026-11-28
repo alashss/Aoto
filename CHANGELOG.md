@@ -1,3 +1,8 @@
+## 2.26.0
+- Notifikasi chat bisa dibalas langsung dari notifikasi (seperti WhatsApp) dan punya tombol "Tandai dibaca"; tampilan percakapan, balasanmu muncul di notifikasi.
+- Status online teman lebih real-time: detak tiap 20 detik, jendela online 50 detik, dan offline seketika saat aplikasi ditutup / musik berhenti (jalankan tahap41_presence.sql).
+- Baris status push di Pengaturan dihapus.
+
 ## 2.25.1
 - Pengaturan → Tentang & bantuan: baris "Notifikasi chat (push)" menampilkan status pendaftaran dan bisa didaftarkan ulang dengan satu ketukan.
 

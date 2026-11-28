@@ -29,8 +29,10 @@ class ActivityTracker {
     fun start() {
         if (beat?.isActive == true) return
         beat = scope.launch {
+            var n = 0
             while (isActive) {
-                touch()
+                touch(full = n % 3 == 0)
+                n++
                 delay(BEAT_MS)
             }
         }
@@ -38,14 +40,19 @@ class ActivityTracker {
 
     fun stop() {
         finishCurrent()
+        val wasRunning = beat != null
         beat?.cancel()
         beat = null
+        // Teman langsung melihat kita offline (tanpa menunggu jendela waktu habis).
+        if (wasRunning && AppGraph.auth.isLoggedIn) scope.launch {
+            try { com.jimz.jimztune.data.social.SocialApi.presenceOffline() } catch (_: Exception) { }
+        }
     }
 
-    private suspend fun touch() {
+    private suspend fun touch(full: Boolean) {
         if (!AppGraph.auth.isLoggedIn || AppGraph.account.blocked) return
         val token = AppGraph.auth.validToken() ?: return
-        CloudApi.json(
+        if (full) CloudApi.json(
             "POST", "/rest/v1/rpc/touch_session",
             JSONObject().put("p_id", sessionId).put("p_version", AppGraph.remote.versionName).toString(),
             token
@@ -144,6 +151,6 @@ class ActivityTracker {
     }
 
     private companion object {
-        const val BEAT_MS = 60_000L
+        const val BEAT_MS = 20_000L
     }
 }
