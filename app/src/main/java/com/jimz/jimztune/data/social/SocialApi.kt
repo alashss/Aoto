@@ -280,6 +280,11 @@ object SocialApi {
     suspend fun dmSend(userId: String, body: String): String? =
         rpcDo("dm_send", JSONObject().put("p_to", userId).put("p_body", body))
 
+    suspend fun dmTypingSet(userId: String) { rpc("dm_typing_set", JSONObject().put("p_to", userId)) }
+
+    suspend fun dmTyping(userId: String): Boolean =
+        rpc("dm_typing_get", JSONObject().put("p_with", userId)).value?.trim() == "true"
+
     suspend fun dmMarkRead(userId: String) { rpc("dm_mark_read", JSONObject().put("p_with", userId)) }
 
     // ------------------------------------------------------------------ chat global

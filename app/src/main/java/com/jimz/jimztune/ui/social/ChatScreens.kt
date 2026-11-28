@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -44,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -121,6 +123,7 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
     var error by remember { mutableStateOf<String?>(null) }
     var online by remember { mutableStateOf<Boolean?>(null) }
     var lastSeen by remember { mutableStateOf<String?>(null) }
+    var friendTyping by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     val me = AppGraph.auth.session?.userId
@@ -137,8 +140,11 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
             delay(3_000)
         }
     }
-    LaunchedEffect(msgs?.size) {
-        val n = msgs?.size ?: 0
+    LaunchedEffect(userId) { while (true) { friendTyping = SocialApi.dmTyping(userId); delay(1_500) } }
+    // kabari teman saat kita mengetik (maks sekali per 2,5 detik)
+    LaunchedEffect(text) { if (text.isNotBlank()) { SocialApi.dmTypingSet(userId); delay(2_500) } }
+    LaunchedEffect(msgs?.size, friendTyping) {
+        val n = (msgs?.size ?: 0) + if (friendTyping) 1 else 0
         if (n > 0) listState.animateScrollToItem(n)
     }
 
@@ -191,6 +197,12 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
                         Bubble(m, firstOfGroup, lastOfGroup, isLast = next == null, modifier = Modifier.weight(1f), bubbleId = CosmeticsStore.map[if (m.mine) me ?: userId else userId]?.bubble)
                     }
                 }
+                if (friendTyping) item(key = "typing") {
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.Bottom) {
+                        Box(Modifier.width(32.dp)) { AvatarWithDot(avatar, name, 26.dp, null, userId = userId) }
+                        TypingDots()
+                    }
+                }
             }
         }
         if (error != null) Text(error ?: "", color = Color(0xFFFF8A80), fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp))
@@ -216,21 +228,36 @@ private fun Bubble(m: DmMessage, first: Boolean, last: Boolean, isLast: Boolean,
     val mine = m.mine
     val big = m.body == "❤️"
     var quote: String? = null
+    var quoteSong: String? = null
     var body = m.body
-    if (body.startsWith("💬 “") && body.contains("”\n")) {
-        quote = body.substringAfter("💬 “").substringBefore("”\n")
-        body = body.substringAfter("”\n")
+    if (body.startsWith("💬 “") && body.contains("”")) {
+        val head = body.substringAfter("💬 “").substringBefore("\n")
+        val q = head.substringBeforeLast("”")
+        quoteSong = head.substringAfterLast("”", "").substringAfter("♪", "").trim().ifBlank { null }
+        quote = q.split('\n', '/').joinToString(" / ") { it.replace(Regex("^\\s*\\d+\\|"), "").trim() }.trim(' ', '/').ifBlank { null }
+        body = body.substringAfter("\n", body)
     }
-    Column(modifier.fillMaxWidth(), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
+    val pop = remember(m.id) { androidx.compose.animation.core.Animatable(if (isLast && System.currentTimeMillis() - (TimeUtil.parse(m.createdAt) ?: 0L) < 8_000L) 0f else 1f) }
+    LaunchedEffect(m.id) { if (pop.value < 1f) pop.animateTo(1f, androidx.compose.animation.core.spring(0.6f, 380f)) }
+    Column(
+        modifier.fillMaxWidth().graphicsLayer {
+            val v = pop.value
+            alpha = v.coerceIn(0f, 1f); translationY = (1f - v) * 40f; scaleX = 0.88f + 0.12f * v; scaleY = 0.88f + 0.12f * v
+            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(if (mine) 1f else 0f, 1f)
+        },
+        horizontalAlignment = if (mine) Alignment.End else Alignment.Start
+    ) {
         if (quote != null) {
-            Text(
-                if (mine) "Kamu membalas catatan" else "Membalas catatanmu", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp,
-                modifier = Modifier.padding(bottom = 3.dp, start = 6.dp, end = 6.dp)
-            )
-            Text(
-                quote, color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 240.dp).padding(bottom = 3.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xFF1C1C1C)).padding(horizontal = 14.dp, vertical = 8.dp)
-            )
+            Row(
+                Modifier.widthIn(max = 280.dp).padding(bottom = 3.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFF1C1C1C)).height(androidx.compose.foundation.layout.IntrinsicSize.Min)
+            ) {
+                Box(Modifier.width(4.dp).fillMaxHeight().background(accent))
+                Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    Text(if (mine) "Kamu membalas catatan" else "Membalas catatanmu", color = accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text("“$quote”", color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+                    if (quoteSong != null) Text("♪ $quoteSong", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+                }
+            }
         }
         if (big) {
             Text("❤️", fontSize = 44.sp)
@@ -333,7 +360,13 @@ fun GlobalChatScreen(onBack: () -> Unit) {
                         val rev = s.messages.asReversed()
                         items(rev.size, key = { rev[it].id }) { i ->
                             val m = rev[i]
-                            ChatCardRow(m, m.userId == me, accent, onLong = { actionFor = m }, onTap = { SocialNav.openProfile(m.userId) })
+                            val fresh = i == 0 && System.currentTimeMillis() - (TimeUtil.parse(m.createdAt) ?: 0L) < 8_000L
+                            val pop = remember(m.id) { androidx.compose.animation.core.Animatable(if (fresh) 0f else 1f) }
+                            LaunchedEffect(m.id) { if (pop.value < 1f) pop.animateTo(1f, androidx.compose.animation.core.spring(0.6f, 380f)) }
+                            Box(Modifier.graphicsLayer {
+                                val v = pop.value
+                                alpha = v.coerceIn(0f, 1f); translationY = (1f - v) * 50f; scaleX = 0.9f + 0.1f * v; scaleY = 0.9f + 0.1f * v
+                            }) { ChatCardRow(m, m.userId == me, accent, onLong = { actionFor = m }, onTap = { SocialNav.openProfile(m.userId) }) }
                         }
                     }
                 }
@@ -485,4 +518,25 @@ private fun dayStamp(ms: Long): String {
         else -> d.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy", java.util.Locale("id", "ID")))
     }
     return day + " " + TimeUtil.formatHour(ms)
+}
+
+
+@Composable
+private fun TypingDots() {
+    val tr = androidx.compose.animation.core.rememberInfiniteTransition(label = "typing")
+    Row(
+        Modifier.clip(RoundedCornerShape(22.dp)).background(Color(0xFF262626)).padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically
+    ) {
+        for (i in 0 until 3) {
+            val v by tr.animateFloat(
+                0f, 1f,
+                androidx.compose.animation.core.infiniteRepeatable(
+                    androidx.compose.animation.core.keyframes { durationMillis = 1200; 0f at i * 150; 1f at i * 150 + 300; 0f at i * 150 + 600; 0f at 1200 },
+                    androidx.compose.animation.core.RepeatMode.Restart
+                ), label = "dot$i"
+            )
+            Box(Modifier.size(8.dp).graphicsLayer { translationY = -v * 6.dp.toPx() }.clip(CircleShape).background(Color.White.copy(alpha = 0.45f + 0.45f * v)))
+        }
+    }
 }

@@ -1,3 +1,10 @@
+## 2.19.0
+- Efek legendary & mythic punya adegan pembuka saat profil dibuka (naga terbang Raja Iblis, komet emas, pemindai kode, badai es) lalu menghilang pelan.
+- Chat teman: gelembung titik tiga saat teman mengetik (tidak ada di chat global); animasi pop saat pesan baru di chat teman & global.
+- Balasan catatan tampil sebagai kartu kutipan (judul lagu + isi), tanpa kode mentah.
+- Catatan musik langsung putar dari awal potongan tanpa menunggu.
+- Server (tahap 37): tabel/fungsi "mengetik".
+
 ## 2.18.3
 - Perbaikan build 2.18.2 (kotak playlist).
 

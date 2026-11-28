@@ -136,9 +136,9 @@ fun rememberNoteClipClock(song: SearchItem?, lines: List<ClipLine>, player: Play
     LaunchedEffect(song?.id, start) {
         if (song == null) return@LaunchedEffect
         if (start != null) {
-            var tries = 0
-            while (tries < 150 && !(player.ui.current?.id == song.id && player.ui.durationMs > 0L)) { delay(100); tries++ }
-            if (kotlin.math.abs(player.ui.positionMs - start) > 1500L) player.seekTo(start)
+            // beginNoteClip sudah menyetel posisi awal; cukup koreksi bila lagu sudah terlanjur di posisi lain (tanpa menunggu durasi).
+            delay(250)
+            if (player.ui.current?.id == song.id && kotlin.math.abs(player.ui.positionMs - start) > 2500L && player.ui.positionMs < start) player.seekTo(start)
         }
     }
     val ui = player.ui

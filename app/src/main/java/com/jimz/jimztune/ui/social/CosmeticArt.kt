@@ -512,6 +512,9 @@ fun ProfileEffect(effect: String?, modifier: Modifier = Modifier, entrance: Bool
     // Umur efek (0 -> 1 selama 6 detik): di awal efek penuh + pinggiran layar berkilau, lalu menipis jadi sisa partikel jarang.
     val age = remember(effect, entrance) { androidx.compose.animation.core.Animatable(if (entrance) 0f else 1f) }
     LaunchedEffect(effect, entrance) { if (entrance) age.animateTo(1f, tween(6000, easing = androidx.compose.animation.core.LinearEasing)) }
+    // Adegan pembuka khusus (naga, komet, pemindai, badai) untuk efek legendary & mythic, ~4 detik lalu hilang.
+    val hero = remember(effect, entrance) { androidx.compose.animation.core.Animatable(if (entrance && effect in HeroEffects) 0f else 1f) }
+    LaunchedEffect(effect, entrance) { if (entrance && effect in HeroEffects) hero.animateTo(1f, tween(4200, easing = androidx.compose.animation.core.LinearEasing)) }
     Canvas(modifier.fillMaxSize().graphicsLayer { alpha = (intro.value * 2.5f).coerceIn(0f, 1f) }) {
         val w = size.width
         val h = size.height
@@ -654,6 +657,7 @@ fun ProfileEffect(effect: String?, modifier: Modifier = Modifier, entrance: Bool
                 drawCircle(Color(0xFFFF8A3D).copy(alpha = 1f - y), 1.5.dp.toPx() + 2.5.dp.toPx() * rnd(i, 4), Offset(x, h * (1f - y)))
             }
         }
+        if (entrance && effect in HeroEffects && hero.value < 1f) drawHeroIntro(effect, hero.value)
     }
 }
 
