@@ -192,7 +192,7 @@ class SearchViewModel : ViewModel() {
                 if (lyricMode) {
                     SearchUiState.Success(lyricResults(q), "Lirik")
                 } else {
-                    val result = if (type == SearchType.SONG) withArtistOnTop(q) else repo.search(q, type)
+                    val result = if (type == SearchType.SONG) withArtistOnTop(q).let { r -> r.copy(items = promoteOfficial(r.items)) } else repo.search(q, type)
                     // Siapkan alamat audio 3 hasil teratas: ketukan pertama langsung berbunyi.
                     result.items.filter { it.type == SearchType.SONG }.take(3).forEach { com.jimz.jimztune.data.stream.StreamResolver.prefetch(it.id) }
                     SearchUiState.Success(result.items, result.source)
@@ -233,6 +233,26 @@ class SearchViewModel : ViewModel() {
         val merged = (listOf(artist) + top.filter { it.type == SearchType.SONG } + own + other)
             .filter { seen.add(it.id) }
         onlySongs.copy(items = merged)
+    }
+
+    /**
+     * Hasil teratas sering unggahan label/kanal lain ("Neck Deep - December" dari Hopeless Records). Cari versi resmi
+     * dari artisnya di YouTube Music dan taruh di paling atas kalau ada.
+     */
+    private suspend fun promoteOfficial(items: List<SearchItem>): List<SearchItem> {
+        val top = items.firstOrNull { it.type == SearchType.SONG } ?: return items
+        val (title, artist) = com.jimz.jimztune.data.lyrics.LyricsMatch.splitTitleArtist(top.title, top.subtitle.substringBefore(" • "))
+        if (artist.isBlank() || title.isBlank()) return items
+        val found = try {
+            kotlinx.coroutines.withTimeoutOrNull(2_500) { repo.search("$artist $title", SearchType.SONG, fastest = true).items }
+        } catch (e: CancellationException) { throw e } catch (_: Exception) { null } ?: return items
+        fun n(x: String) = x.lowercase().filter { it.isLetterOrDigit() }
+        val official = found.firstOrNull {
+            it.type == SearchType.SONG && n(it.title) == n(title) &&
+                com.jimz.jimztune.data.lyrics.LyricsMatch.artistSimilarity(artist, it.subtitle.substringBefore(" • ")) >= 0.8
+        } ?: return items
+        if (official.id == top.id) return items
+        return listOf(official) + items.filter { it.id != official.id }
     }
 
     /** "10,9 rb subscriber" -> 10900; "1,2 jt" -> 1200000; "3.4M" -> 3400000. 0 kalau tidak terbaca. */

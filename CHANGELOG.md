@@ -1,3 +1,9 @@
+## 2.21.1
+- Intro profil Raja Iblis: lambang kepala naga bernapas api di lingkaran sihir muncul dulu, baru naga raksasa masuk (±11 detik).
+- Gelembung Raja Iblis: naga lebih besar dan rebahan memanjang di atas gelembung, mendengkur, sesekali mendengus api kecil dan "z z z".
+- Pelat nama Raja Iblis dirancang ulang: obsidian bersisik, retakan lava, sayap naga, lidah api, bingkai emas bergerigi, tanduk sudut.
+- Pencarian: rilis resmi dari artisnya (YouTube Music) didahulukan dari unggahan label; kanal lirik/cover/karaoke diturunkan.
+
 ## 2.21.0
 - Raja Iblis didesain ulang total: naga raksasa (badan bersisik, sayap bertulang, tanduk, kumis, napas api) masuk saat profil dibuka, berputar keliling layar ±9 detik sambil menyemburkan api, lalu melesat pergi.
 - Bingkai foto Raja Iblis: naga kecil mengepak mengorbit foto; gelembung chat Raja Iblis: naga bertengger di atas gelembung, ekor berayun & sesekali menyembur api.

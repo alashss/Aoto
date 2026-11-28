@@ -441,6 +441,7 @@ private fun DrawScope.drawPlate(id: String, t: Float) {
             drawRect(Brush.horizontalGradient(listOf(Color(0xFF5B2A86), Color(0xFFE5547A), Color(0xFFFFA14A))))
             drawCircle(Color(0xFFFFE08A).copy(alpha = 0.9f), radius = h * 0.55f, center = Offset(w * 0.9f, h * (0.85f - 0.05f * sin(t * 2 * PI.toFloat()))))
         }
+        "plate_demon" -> drawDemonPlate(t)
         else -> PlateSpecs[id]?.let { drawSpecPlate(it, t) }
     }
 }
@@ -517,7 +518,7 @@ fun ProfileEffect(effect: String?, modifier: Modifier = Modifier, entrance: Bool
     LaunchedEffect(effect, entrance) { if (entrance) age.animateTo(1f, tween(6000, easing = androidx.compose.animation.core.LinearEasing)) }
     // Adegan pembuka khusus (naga, komet, pemindai, badai) untuk efek legendary & mythic, ~4 detik lalu hilang.
     val hero = remember(effect, entrance) { androidx.compose.animation.core.Animatable(if (entrance && effect in HeroEffects) 0f else 1f) }
-    LaunchedEffect(effect, entrance) { if (entrance && effect in HeroEffects) hero.animateTo(1f, tween(if (effect == "fx_demon") 9000 else 4200, easing = androidx.compose.animation.core.LinearEasing)) }
+    LaunchedEffect(effect, entrance) { if (entrance && effect in HeroEffects) hero.animateTo(1f, tween(if (effect == "fx_demon") 11000 else 4200, easing = androidx.compose.animation.core.LinearEasing)) }
     Canvas(modifier.fillMaxSize().graphicsLayer { alpha = (intro.value * 2.5f).coerceIn(0f, 1f) }) {
         val w = size.width
         val h = size.height
@@ -759,14 +760,13 @@ fun CosmeticName(
 @Composable
 private fun DemonBubble(shape: Shape, modifier: Modifier, spec: BubbleSpec, content: @Composable BoxScope.() -> Unit) {
     val t = rememberCosmeticClock()
-    val perch = 26.dp
+    val perch = 30.dp
     Box(
         modifier.drawWithContent {
             drawContent()
-            val top = perch.toPx()
-            val u = 3.2.dp.toPx()
-            val cx = (size.width - 3.9f * u).coerceAtLeast(size.width * 0.55f)
-            drawPerchedDragon(Offset(cx, top + 0.5f * u), u, t)
+            val u = 5.2.dp.toPx()
+            val len = (size.width * 0.9f).coerceAtLeast(70.dp.toPx())
+            drawLyingDragon(size.width * 0.04f + 3f * u, perch.toPx(), len - 3f * u, u, t)
         }
     ) {
         Box(

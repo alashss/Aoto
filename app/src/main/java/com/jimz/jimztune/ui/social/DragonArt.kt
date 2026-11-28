@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.abs
@@ -116,7 +117,7 @@ internal fun DrawScope.dragonBody(pts: List<Offset>, half: List<Float>, u: Float
 // ------------------------------------------------------------------------------------ kepala
 
 /** [fwd] arah hadap kepala, [mouth] 0..1 seberapa lebar rahangnya terbuka, [t] jam 0..1 (asap hidung, kumis). */
-internal fun DrawScope.dragonHead(pos: Offset, fwd: Offset, u: Float, mouth: Float, t: Float, sgn: Float = 1f) {
+internal fun DrawScope.dragonHead(pos: Offset, fwd: Offset, u: Float, mouth: Float, t: Float, sgn: Float = 1f, eye: Float = 1f) {
     val up = dragonBack(fwd, sgn)
     fun p(x: Float, y: Float) = Offset(pos.x + fwd.x * x * u + up.x * y * u, pos.y + fwd.y * x * u + up.y * y * u)
     val sw = (u * 0.09f).coerceAtLeast(0.7f)
@@ -206,11 +207,15 @@ internal fun DrawScope.dragonHead(pos: Offset, fwd: Offset, u: Float, mouth: Flo
             drawPath(tooth, Dragon.Bone)
         }
     }
-    // mata menyala
-    val eye = p(0.85f, 0.46f)
-    drawCircle(Dragon.Eye.copy(alpha = 0.35f), u * 0.7f, eye, blendMode = BlendMode.Plus)
-    drawCircle(Dragon.Eye, u * 0.28f, eye)
-    drawLine(Dragon.Dark, p(0.85f, 0.2f), p(0.85f, 0.72f), (u * 0.1f).coerceAtLeast(0.6f), StrokeCap.Round)
+    // mata menyala (atau terpejam saat tidur)
+    val eyeC = p(0.85f, 0.46f)
+    if (eye < 0.4f) {
+        drawLine(Dragon.Glow.copy(alpha = 0.9f), p(0.55f, 0.44f), p(1.15f, 0.4f), (u * 0.12f).coerceAtLeast(0.7f), StrokeCap.Round)
+    } else {
+        drawCircle(Dragon.Eye.copy(alpha = 0.35f), u * 0.7f, eyeC, blendMode = BlendMode.Plus)
+        drawCircle(Dragon.Eye, u * 0.28f, eyeC)
+        drawLine(Dragon.Dark, p(0.85f, 0.2f), p(0.85f, 0.72f), (u * 0.1f).coerceAtLeast(0.6f), StrokeCap.Round)
+    }
     // lubang hidung + asap
     drawCircle(Dragon.Dark, u * 0.09f, p(2.35f, 0.25f))
     for (k in 0 until 3) {
@@ -289,6 +294,9 @@ internal fun DrawScope.dragonFire(origin: Offset, dir: Offset, len: Float, sprea
 
 /** [p] 0..1 selama ±9 detik: masuk dari kiri bawah, berputar keliling layar sambil menyemburkan api, lalu melesat pergi. */
 internal fun DrawScope.drawDragonHero(p: Float) {
+    drawDragonEmblem(p)
+    val q = (p - 0.17f) / 0.83f
+    if (q < -0.02f) { drawHeroAtmosphere(p); return }
     val w = size.width
     val h = size.height
     val dp = 1.dp.toPx()
@@ -333,7 +341,7 @@ internal fun DrawScope.drawDragonHero(p: Float) {
     }
 
     // tulang punggung: ambil titik dengan jarak tetap menyusuri lintasan ke belakang kepala
-    val headU = p * 1.13f
+    val headU = q * 1.13f
     val n = 46
     val segLen = 0.6f * uH
     val raw = ArrayList<Offset>(n)
@@ -367,7 +375,7 @@ internal fun DrawScope.drawDragonHero(p: Float) {
     // percikan bara jatuh dari badan
     for (k in 0 until 34) {
         val idx = (k * 3 + 2) % m
-        val life = (p * 9f * 0.7f + rn(k, 3)) % 1f
+        val life = (p * 11f * 0.7f + rn(k, 3)) % 1f
         val o = pts[idx]
         drawCircle(
             Color(0xFFFF8A3D).copy(alpha = 0.85f * (1f - life) * env),
@@ -380,7 +388,7 @@ internal fun DrawScope.drawDragonHero(p: Float) {
     val fS = nrm(pts[shoulder - 1] - pts[shoulder + 1])
     val upS = dragonBack(fS, 1f)
     val trail = fS * -1f
-    val phase = p * 9f * 1.9f * TAU
+    val phase = p * 11f * 1.9f * TAU
     val rootNear = pts[shoulder] + upS * (half[shoulder] * 0.7f)
     // sayap jauh (lebih gelap, miring ke belakang)
     val upFar = nrm(upS * 0.8f + trail * 0.5f)
@@ -390,15 +398,62 @@ internal fun DrawScope.drawDragonHero(p: Float) {
 
     // kepala + api
     val fwd = nrm(pts[0] - pts[2])
-    val win = { a: Float, b: Float -> smooth((p - a) / 0.03f) * smooth((b - p) / 0.03f) }
+    val win = { a: Float, b: Float -> smooth((q - a) / 0.03f) * smooth((b - q) / 0.03f) }
     val breath = max(max(win(0.12f, 0.32f), win(0.40f, 0.54f)), win(0.60f, 0.74f))
-    dragonHead(pts[0], fwd, uH, 0.12f + 0.88f * breath, p * 9f)
+    dragonHead(pts[0], fwd, uH, 0.12f + 0.88f * breath, p * 11f)
     if (breath > 0.03f) {
         val mouth = pts[0] + fwd * (uH * 2.5f) + dragonBack(fwd, 1f) * (uH * -0.5f)
         val dir = nrm(fwd + dragonBack(fwd, 1f) * -0.12f)
         drawCircle(Brush.radialGradient(listOf(Color(0xFFFFB347).copy(alpha = 0.5f * breath), Color.Transparent), mouth, uH * 5f), uH * 5f, mouth, blendMode = BlendMode.Plus)
-        dragonFire(mouth, dir, uH * 19f, 0.2f, breath, p * 9f)
+        dragonFire(mouth, dir, uH * 19f, 0.2f, breath, p * 11f)
     }
+}
+
+private fun DrawScope.drawHeroAtmosphere(p: Float) {
+    val env = smooth(p / 0.05f) * smooth((1f - p) / 0.07f)
+    drawRect(Brush.radialGradient(listOf(Color.Transparent, Color(0xFF8A0A1A).copy(alpha = 0.30f * env)), Offset(size.width / 2f, size.height / 2f), max(size.width, size.height) * 0.75f))
+}
+
+/** Lambang kepala naga bernapas api di dalam lingkaran sihir: muncul di awal, lalu mengecil saat naga sungguhan masuk. */
+private fun DrawScope.drawDragonEmblem(p: Float) {
+    val dp = 1.dp.toPx()
+    val a = smooth(p / 0.035f) * (1f - smooth((p - 0.15f) / 0.05f))
+    if (a <= 0f) return
+    val cx = size.width * 0.5f
+    val cy = size.height * 0.4f
+    val center = Offset(cx, cy)
+    val r0 = min(size.width * 0.42f, 170f * dp)
+    val pop = 1f - (1f - smooth(p / 0.06f)).pow(3)
+    val r = r0 * (0.5f + 0.5f * pop)
+    drawCircle(Brush.radialGradient(listOf(Color(0xFFB3001B).copy(alpha = 0.55f * a), Color.Transparent), center, r * 1.6f), r * 1.6f, center)
+    drawCircle(Dragon.Glow.copy(alpha = 0.85f * a), r, center, style = Stroke(3f * dp))
+    drawCircle(Dragon.Red.copy(alpha = 0.6f * a), r * 0.9f, center, style = Stroke(1.5f * dp))
+    rotate(p * 220f, center) {
+        for (i in 0 until 36) {
+            val ang = TAU * i / 36f
+            val r1 = r * 1.02f
+            val r2 = r1 + (if (i % 3 == 0) 14f else 7f) * dp
+            drawLine(Dragon.Glow.copy(alpha = 0.8f * a), Offset(cx + cos(ang) * r1, cy + sin(ang) * r1), Offset(cx + cos(ang) * r2, cy + sin(ang) * r2), 2f * dp)
+        }
+    }
+    rotate(-p * 120f, center) {
+        val star = Path()
+        for (i in 0..7) {
+            val idx = (i * 3) % 7
+            val ang = TAU * idx / 7f - PI.toFloat() / 2f
+            val x = cx + cos(ang) * r * 0.84f
+            val y = cy + sin(ang) * r * 0.84f
+            if (i == 0) star.moveTo(x, y) else star.lineTo(x, y)
+        }
+        drawPath(star, Dragon.Glow.copy(alpha = 0.5f * a), style = Stroke(1.6f * dp, join = StrokeJoin.Round))
+    }
+    val u = r * 0.27f * (1f - smooth((p - 0.15f) / 0.05f))
+    if (u <= 0.5f) return
+    val fwd = nrm(Offset(1f, -0.16f))
+    val head = Offset(cx - u * 1.5f, cy + u * 0.15f)
+    dragonHead(head, fwd, u, 0.95f, p * 11f)
+    val mouth = head + fwd * (u * 2.4f) + dragonBack(fwd, 1f) * (-u * 0.1f)
+    dragonFire(mouth, fwd, size.width * 0.8f, 0.16f, a, p * 11f)
 }
 
 // ------------------------------------------------------------------------------------ naga kecil mengorbit foto profil
@@ -434,37 +489,156 @@ internal fun DrawScope.drawBabyDragon(c: Offset, orbit: Float, u: Float, t: Floa
     }
 }
 
-// ------------------------------------------------------------------------------------ naga bertengger di gelembung chat
+// ------------------------------------------------------------------------------------ naga rebahan di atas gelembung chat
 
 /**
- * Naga yang duduk di tepi atas gelembung, menghadap kiri. [origin] = titik di tepi atas tempat badannya bertumpu,
- * ekornya menjuntai ke sisi gelembung dan berayun. [u] satuan ukuran, [t] jam 0..1.
+ * Naga yang rebahan memanjang di tepi atas gelembung (menghadap kiri), kepala bersandar di kaki depan, sayap terlipat,
+ * dada naik-turun mendengkur, sesekali mendengus api kecil dan menghembuskan "z".
+ * [left] sisi kiri badan, [length] panjang badan sampai pangkal ekor, [topY] garis tepi atas gelembung.
  */
-internal fun DrawScope.drawPerchedDragon(origin: Offset, u: Float, t: Float) {
-    val base = arrayOf(
-        -4.4f to -6.0f, -3.6f to -5.0f, -2.8f to -4.0f, -2.0f to -2.9f, -1.0f to -2.0f, 0.2f to -1.6f, 1.4f to -1.5f,
-        2.4f to -1.1f, 3.2f to 0.0f, 3.7f to 1.4f, 3.7f to 2.8f, 3.2f to 4.0f, 3.3f to 5.0f
-    )
-    val hw = floatArrayOf(0.45f, 0.5f, 0.6f, 0.8f, 0.95f, 1.05f, 1.05f, 0.95f, 0.8f, 0.6f, 0.45f, 0.3f, 0.15f)
-    val pts = List(base.size) { i ->
-        var x = base[i].first
-        var y = base[i].second
-        if (i >= 8) x += sin(t * TAU * 2f - i * 0.7f) * 0.4f * (i - 7f) / 5f
-        if (i < 3) { y += sin(t * TAU) * 0.2f; x += sin(t * TAU * 2f) * 0.12f }
-        Offset(origin.x + x * u, origin.y + y * u)
+internal fun DrawScope.drawLyingDragon(left: Float, topY: Float, length: Float, u: Float, t: Float) {
+    val n = 34
+    val breath = sin(t * TAU * 2f)
+    val pts = List(n) { i ->
+        val k = i / (n - 1f)
+        var x = left + length * k
+        var lift = 0.85f + 0.5f * sin(k * PI.toFloat()) + 0.1f * breath * sin(k * PI.toFloat())
+        if (k > 0.86f) { val d = (k - 0.86f) / 0.14f; lift -= d * d * 3.6f; x += d * 0.6f * u }
+        val sway = sin(t * TAU * 2f - k * 5f) * 0.18f * u * k
+        Offset(x, topY - u * lift + sway)
     }
-    val half = List(base.size) { hw[it] * u }
+    val half = List(n) { i ->
+        val k = i / (n - 1f)
+        if (k < 0.45f) u * (0.55f + 0.6f * sin(min(k / 0.45f, 1f) * PI.toFloat() / 2f))
+        else u * (1.15f * (1f - (k - 0.45f) / 0.55f).coerceAtLeast(0f).pow(0.9f) + 0.1f)
+    }
     val sgn = -1f
-    val f4 = nrm(pts[3] - pts[5])
-    val up4 = dragonBack(f4, sgn)
-    val trail4 = f4 * -1f
-    // sayap terlipat, sesekali bergetar
-    val flutter = if (sin(t * TAU * 1f + 2f) > 0.6f) 1f else 0.25f
-    dragonWing(pts[4] + up4 * (half[4] * 0.6f), up4, trail4, u * 3.6f, t * TAU * 6f, 0.9f, 0.35f * flutter + 0.12f)
+    val wi = (n * 0.3f).toInt()
+    val fW = nrm(pts[wi - 1] - pts[wi + 1])
+    val upW = dragonBack(fW, sgn)
+    val trailW = fW * -1f
+    val phase = t * TAU * 2f
+    // sayap lipat: yang jauh lebih gelap
+    dragonWing(pts[wi - 1] + upW * (half[wi] * 0.5f), nrm(upW + trailW * 0.5f), trailW, u * 5.2f, phase + 0.5f, 0.5f, 0.16f)
+    // kaki belakang (paha) & kaki depan
+    val hip = pts[(n * 0.7f).toInt()]
+    drawCircle(Color(0xFF2A0610), u * 1.25f, Offset(hip.x, hip.y + u * 0.15f))
+    drawCircle(Dragon.Glow.copy(alpha = 0.6f), u * 1.25f, Offset(hip.x, hip.y + u * 0.15f), style = Stroke(u * 0.1f))
+    drawLine(Dragon.Dark, Offset(hip.x, hip.y + u * 0.3f), Offset(hip.x - u * 1.5f, topY + u * 0.1f), u * 0.85f, StrokeCap.Round)
     dragonBody(pts, half, u, sgn)
-    val look = sin(t * TAU) * 0.25f
-    val fwd = nrm(Offset(-1f, -0.35f + look))
-    val burst = ((sin(t * TAU + 1f) - 0.82f) / 0.18f).coerceAtLeast(0f)
-    dragonHead(pts[0], fwd, u * 0.9f, 0.1f + 0.75f * burst, t, sgn)
-    if (burst > 0.03f) dragonFire(pts[0] + fwd * (u * 2.3f), fwd, u * 6f, 0.2f, burst, t)
+    dragonWing(pts[wi] + upW * (half[wi] * 0.65f), upW, trailW, u * 6.4f, phase, 1f, 0.18f)
+    val shoulder = pts[3]
+    val paw = Offset(shoulder.x - u * 1.7f, topY + u * 0.1f)
+    drawLine(Dragon.Dark, Offset(shoulder.x, shoulder.y + u * 0.3f), paw, u * 0.9f, StrokeCap.Round)
+    drawLine(Dragon.Glow.copy(alpha = 0.55f), Offset(shoulder.x, shoulder.y + u * 0.3f), paw, u * 0.12f, StrokeCap.Round)
+    for (c in 0..2) drawLine(Dragon.Bone, paw + Offset(-u * 0.25f, (c - 1) * u * 0.2f), paw + Offset(-u * 0.95f, (c - 1) * u * 0.28f + u * 0.1f), (u * 0.14f).coerceAtLeast(0.7f), StrokeCap.Round)
+    // kepala bersandar menghadap kiri
+    val fwd = nrm(Offset(-1f, 0.1f))
+    val head = pts[0] + Offset(-u * 0.2f, u * 0.1f)
+    dragonHead(head, fwd, u * 0.95f, 0.04f, t, sgn, 0.1f)
+    val nostril = head + fwd * (u * 2.4f) + dragonBack(fwd, sgn) * (u * 0.3f)
+    val snort = smooth((sin(t * TAU * 2f - 1.0f) - 0.72f) / 0.28f)
+    if (snort > 0.03f) dragonFire(nostril, nrm(Offset(-1f, -0.5f)), u * 5.5f, 0.25f, snort * 0.8f, t)
+    // "z z z" mengambang
+    for (k in 0 until 3) {
+        val life = (t * 2f / 1f + k / 3f) % 1f
+        val zx = nostril.x - u * (1.2f + life * 3.4f)
+        val zy = nostril.y - u * (1.6f + life * 3.8f)
+        val zs = u * (0.45f + 0.25f * k + 0.2f * life)
+        val a = (1f - life) * 0.85f * smooth(life / 0.15f)
+        val z = Path().apply {
+            moveTo(zx - zs, zy - zs); lineTo(zx + zs, zy - zs); lineTo(zx - zs, zy + zs); lineTo(zx + zs, zy + zs)
+        }
+        drawPath(z, Color(0xFFFFD9BE).copy(alpha = a), style = Stroke((u * 0.16f).coerceAtLeast(0.8f), cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
+
+// ------------------------------------------------------------------------------------ pelat nama Raja Iblis
+
+/**
+ * Pelat nama Raja Iblis: obsidian bersisik dengan retakan lava yang berdenyut, sepasang sayap naga yang mengepak pelan
+ * di kedua ujung, lidah api di dasar, bingkai emas bergerigi dengan kilau yang melintas dan bara yang naik.
+ */
+internal fun DrawScope.drawDemonPlate(t: Float) {
+    val w = size.width
+    val h = size.height
+    val dp = 1.dp.toPx()
+    val pulse = 0.55f + 0.45f * abs(sin(t * TAU * 2f))
+    drawRect(Brush.horizontalGradient(listOf(Color(0xFF07010A), Color(0xFF3A0714), Color(0xFF8E0C1E), Color(0xFF3A0714), Color(0xFF07010A))))
+    drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f), Color.Transparent, Color.Black.copy(alpha = 0.45f))))
+    // sisik naga
+    val sc = max(h * 0.24f, 8f * dp)
+    var row = 0
+    var y = 0f
+    while (y < h + sc) {
+        var x = if (row % 2 == 0) 0f else sc / 2f
+        while (x < w + sc) {
+            drawArc(Color.Black.copy(alpha = 0.35f), 0f, 180f, false, Offset(x - sc / 2f, y - sc / 2f), androidx.compose.ui.geometry.Size(sc, sc), style = Stroke(1.1f * dp))
+            drawArc(Dragon.Glow.copy(alpha = 0.08f), 180f, 90f, false, Offset(x - sc / 2f, y - sc / 2f), androidx.compose.ui.geometry.Size(sc, sc), style = Stroke(0.8f * dp))
+            x += sc
+        }
+        y += sc * 0.5f
+        row++
+    }
+    // sayap di kedua ujung (dibelakang retakan lava)
+    val ph = t * TAU * 2f
+    dragonWing(Offset(w * 0.995f, h * 1.02f), Offset(0f, -1f), Offset(-1f, 0f), h * 1.5f, ph, 0.7f, 0.5f)
+    dragonWing(Offset(w * 0.005f, h * 1.02f), Offset(0f, -1f), Offset(1f, 0f), h * 1.5f, ph + 0.4f, 0.7f, 0.5f)
+    // retakan lava
+    for (c in 0 until 6) {
+        var x = w * (0.12f + 0.15f * c + 0.04f * rn(c, 1))
+        var yy = if (c % 2 == 0) 0f else h
+        val dir = if (c % 2 == 0) 1f else -1f
+        val path = Path().apply { moveTo(x, yy) }
+        for (k in 1..5) {
+            x += (rn(c * 7 + k, 2) - 0.5f) * h * 0.9f
+            yy += dir * h / 5f
+            path.lineTo(x, yy)
+        }
+        drawPath(path, Color(0xFFFF3B1F).copy(alpha = 0.25f * pulse), style = Stroke(5f * dp, cap = StrokeCap.Round, join = StrokeJoin.Round))
+        drawPath(path, Color(0xFFFFB347).copy(alpha = 0.85f * pulse), style = Stroke(1.3f * dp, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+    // lidah api di dasar
+    val nf = max((w / (h * 0.7f)).toInt(), 6)
+    for (i in 0 until nf) {
+        val x = w * (i + 0.5f) / nf
+        val fl = 0.5f + 0.5f * abs(sin(t * TAU * 3f + i * 1.9f))
+        val ht = h * 0.55f * fl * (0.6f + 0.4f * rn(i, 3))
+        val bw = w / nf * 0.42f
+        val fire = Path().apply {
+            moveTo(x - bw, h)
+            quadraticBezierTo(x - bw * 0.3f, h - ht * 0.6f, x + sin(t * TAU * 4f + i) * bw * 0.5f, h - ht)
+            quadraticBezierTo(x + bw * 0.3f, h - ht * 0.6f, x + bw, h)
+            close()
+        }
+        drawPath(fire, Brush.verticalGradient(listOf(Color(0xFFFFE08A).copy(alpha = 0.0f), Color(0xFFFF7A2E).copy(alpha = 0.55f), Color(0xFFD4142B).copy(alpha = 0.8f)), startY = h - ht, endY = h))
+    }
+    // bara naik
+    for (i in 0 until 10) {
+        val life = (t * (0.8f + rn(i, 4)) * 2f + rn(i, 5)) % 1f
+        drawCircle(Color(0xFFFFB347).copy(alpha = (1f - life) * 0.9f), (0.8f + 1.4f * rn(i, 6)) * dp, Offset(w * rn(i, 7) + sin(life * 6f + i) * 4f * dp, h * (1f - life)))
+    }
+    // kilau melintas
+    val sx = ((t * 1.4f) % 1.4f - 0.2f) * w
+    drawRect(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.22f), Color.Transparent), startX = sx - w * 0.12f, endX = sx + w * 0.12f))
+    // bingkai emas bergerigi di atas & bawah
+    val gold = Brush.horizontalGradient(listOf(Color(0xFFC9951A), Color(0xFFFFE9A0), Color(0xFFC9951A), Color(0xFFFFE9A0), Color(0xFFC9951A)))
+    drawRect(gold, Offset(0f, 0f), androidx.compose.ui.geometry.Size(w, 2f * dp))
+    drawRect(gold, Offset(0f, h - 2f * dp), androidx.compose.ui.geometry.Size(w, 2f * dp))
+    val teeth = (w / (7f * dp)).toInt()
+    for (i in 0 until teeth) {
+        val x = w * (i + 0.5f) / teeth
+        val tri = Path().apply { moveTo(x - 2.5f * dp, 2f * dp); lineTo(x, 5.5f * dp); lineTo(x + 2.5f * dp, 2f * dp); close() }
+        drawPath(tri, Color(0xFFFFE9A0).copy(alpha = 0.75f))
+    }
+    // tanduk di sudut
+    for (sg in listOf(0f, 1f)) {
+        val bx = if (sg == 0f) 0f else w
+        val dir = if (sg == 0f) 1f else -1f
+        val horn = Path().apply {
+            moveTo(bx, 0f); lineTo(bx + dir * h * 0.55f, 0f); quadraticBezierTo(bx + dir * h * 0.2f, h * 0.15f, bx, h * 0.62f); close()
+        }
+        drawPath(horn, Brush.linearGradient(listOf(Color(0xFF14030A), Color(0xFFFFD9BE)), Offset(bx, h * 0.6f), Offset(bx + dir * h * 0.5f, 0f)))
+    }
 }

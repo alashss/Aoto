@@ -177,7 +177,9 @@ class SearchRepository(
                     score = -1
                     order += 100_000
                 }
-                ranked += Ranked(item, score * 2 + officialBonus, order)
+                // kanal lirik / cover / karaoke / nightcore tidak menang atas rilis aslinya kecuali memang dicari
+                val spammy = !wantsLong && !tokens.any { it in spamWords } && spamRegex.containsMatchIn(item.title + " " + item.subtitle)
+                ranked += Ranked(item, score * 2 + officialBonus - (if (spammy) 2 else 0), order)
             }
         }
         return ranked.sortedWith(compareByDescending<Ranked> { it.score }.thenBy { it.order }).map { it.item }
@@ -214,6 +216,8 @@ class SearchRepository(
     }
 
     private companion object {
+        val spamWords = setOf("lyric", "lyrics", "lirik", "cover", "karaoke", "nightcore", "slowed", "sped", "reverb", "8d")
+        val spamRegex = Regex("(?i)(lyrics?|lirik|\\bcover\\b|karaoke|nightcore|slowed|sped up|reverb|8d audio)")
         val QUICK_SOURCES = setOf("YouTube Music", "YouTube")
         const val FASTEST_SOURCE = "YouTube Music"
         const val HARD_LIMIT_MS = 6_000L
