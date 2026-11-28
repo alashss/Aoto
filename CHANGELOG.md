@@ -1,3 +1,6 @@
+## 2.27.1
+- "Lirik di layar kunci" kini ada di Pengaturan untuk semua pengguna (sebelumnya hanya owner).
+
 ## 2.27.0
 - Centang pesan seperti WhatsApp: ✓ terkirim, ✓✓ sampai di HP teman, ✓✓ biru dibaca. Privasi → Chat → "Tanda dibaca" bisa dimatikan (kalau dimatikan, kamu juga tidak melihat tanda dibaca teman). Jalankan tahap42_centang.sql.
 - Saran lagu playlist dirapikan: dipindah ke bawah daftar lagu, dipisah garis pembatas dan kartu tersendiri ("belum ada di playlist"), baris rapi dengan tombol + berbingkai.

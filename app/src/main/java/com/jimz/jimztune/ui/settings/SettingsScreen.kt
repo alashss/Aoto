@@ -183,6 +183,8 @@ fun SettingsScreen(
                 if (AppGraph.account.isOwner) {
                     RowDivider()
                     SettingRow(Icons.Rounded.PlayCircle, "Mode lirik", "Lirik layar penuh, bisa potret atau lanskap", { com.jimz.jimztune.ui.player.LyricsMode.active = true }, trailing = { HubChevron() })
+                }
+                    RowDivider()
                     run {
                         val ctx = androidx.compose.ui.platform.LocalContext.current
                         var lsOn by remember { mutableStateOf(com.jimz.jimztune.util.LockScreenLyrics.enabled(ctx) && com.jimz.jimztune.util.LockScreenLyrics.canDraw(ctx)) }
@@ -214,6 +216,7 @@ fun SettingsScreen(
                             }
                         )
                     }
+                if (AppGraph.account.isOwner) {
                     SettingRow(Icons.Rounded.PlayCircle, "Mode kunci layar", "Lirik besar + kontrol, layar tetap menyala", { com.jimz.jimztune.ui.player.LockMode.active = true }, trailing = { HubChevron() })
                     SettingRow(Icons.Rounded.PlayCircle, "Pemutaran", "Catatan pemutar (khusus owner)", { page = "pemutaran" }, trailing = { HubChevron() })
                 }
