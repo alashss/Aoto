@@ -125,6 +125,7 @@ fun NoteComposer(
     onClose: () -> Unit, onShare: (text: String, color: String?, song: String?, songId: String?, lyric: String?) -> Unit
 ) {
     val player: com.jimz.jimztune.player.PlayerViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val sess = remember { NoteSession(player) }
     var stage by remember { mutableStateOf("edit") }
     var text by remember { mutableStateOf(initialText) }
     var color by remember { mutableStateOf<String?>(null) }
@@ -144,7 +145,7 @@ fun NoteComposer(
         ) { st ->
             when (st) {
                 "color" -> ColorStage(text, color, onBack = { stage = "edit" }, onApply = { color = it; stage = "edit" }, onClear = { color = null; stage = "edit" })
-                "song" -> SongStage(player, onBack = { stage = "edit" }, onPick = { song = it; lyric = null; stage = "lyric" })
+                "song" -> SongStage(player, sess, onBack = { stage = "edit" }, onPick = { song = it; lyric = null; stage = "lyric" })
                 "lyric" -> LyricStage(song, player, onBack = { stage = "song" }, onPick = { lyric = it; stage = "edit" })
                 else -> EditStage(
                     name, avatar, userId, text, { text = it }, color, song, lyric,
@@ -304,7 +305,7 @@ private fun ColorStage(text: String, current: String?, onBack: () -> Unit, onApp
 // ============================================================ cari lagu (lembar musik gaya Instagram)
 
 @Composable
-private fun SongStage(player: com.jimz.jimztune.player.PlayerViewModel, onBack: () -> Unit, onPick: (SearchItem) -> Unit) {
+private fun SongStage(player: com.jimz.jimztune.player.PlayerViewModel, sess: NoteSession, onBack: () -> Unit, onPick: (SearchItem) -> Unit) {
     var q by remember { mutableStateOf("") }
     var items by remember { mutableStateOf<List<SearchItem>?>(null) }
     var loading by remember { mutableStateOf(false) }
@@ -321,6 +322,7 @@ private fun SongStage(player: com.jimz.jimztune.player.PlayerViewModel, onBack: 
             AppGraph.searchRepository.search(query, SearchType.SONG, quick = true).items.filter { it.type == SearchType.SONG }.take(25)
         } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Throwable) { emptyList() }
         loading = false
+        items?.take(4)?.forEach { com.jimz.jimztune.data.stream.StreamResolver.prefetch(it.id) }
     }
     Column(Modifier.fillMaxSize().statusBarsPadding().imePadding().navigationBarsPadding()) {
         Box(Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp).width(40.dp).height(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.35f)))
@@ -349,7 +351,7 @@ private fun SongStage(player: com.jimz.jimztune.player.PlayerViewModel, onBack: 
         val playing = AppGraph.activity.curId?.let { id -> AppGraph.activity.curTitle?.let { t ->
             SearchItem(id, SearchType.SONG, t, AppGraph.activity.curArtist.orEmpty(), "https://i.ytimg.com/vi/$id/hqdefault.jpg")
         } }
-        fun choose(s: SearchItem) { sel = s; player.play(listOf(s), 0) }
+        fun choose(s: SearchItem) { sel = s; sess.play(s) }
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 16.dp)) {
             if (q.isBlank() && chip == 0) {
                 if (playing != null) {
@@ -460,4 +462,29 @@ private fun LyricStage(song: SearchItem?, player: com.jimz.jimztune.player.Playe
             )
         }
     }
+}
+
+
+/**
+ * Sesi pratinjau lagu saat membuat catatan: kartu mini disembunyikan sejak masuk, antrean pengguna dipulihkan saat keluar.
+ */
+private class NoteSession(private val player: com.jimz.jimztune.player.PlayerViewModel) : androidx.compose.runtime.RememberObserver {
+    private var begins = 0
+    private var open = true
+    init { NoteAudio.count++ }
+    fun play(s: SearchItem) {
+        player.prefetchLyrics(s)
+        player.beginNoteClip(s, 0L)
+        begins++
+    }
+    private fun finish() {
+        if (!open) return
+        open = false
+        if (begins == 0) { NoteAudio.count = (NoteAudio.count - 1).coerceAtLeast(0); return }
+        repeat(begins - 1) { player.endNoteClip { } }
+        player.endNoteClip { NoteAudio.count = (NoteAudio.count - 1).coerceAtLeast(0) }
+    }
+    override fun onRemembered() {}
+    override fun onForgotten() = finish()
+    override fun onAbandoned() = finish()
 }

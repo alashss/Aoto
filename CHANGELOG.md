@@ -1,3 +1,7 @@
+## 2.19.2
+- Saat memilih lagu untuk catatan, kartu mini tidak muncul lagi dan antreanmu dipulihkan setelah selesai.
+- Lagu & lirik hasil pencarian catatan diprefetch supaya mulai lebih cepat.
+
 ## 2.19.1
 - Perbaikan build 2.19.0 (animasi titik mengetik).
 
