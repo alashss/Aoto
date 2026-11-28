@@ -495,9 +495,23 @@ private fun PlaylistTab(
                 }
             }
             Box(modifier = Modifier.weight(1f)) {
+              if (open.songs.isEmpty()) {
+                androidx.compose.foundation.lazy.LazyColumn(contentPadding = PaddingValues(bottom = LocalOverlayPadding.current)) {
+                    item {
+                        Text(
+                            "Playlist masih kosong. Mulai dari saran di bawah, atau simpan lagu lewat menu ⋮ di pencarian dan pemutar.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                        )
+                    }
+                    item { PlaylistSuggestions(open.id, open.songs, onPlay) }
+                }
+              } else {
                 SongList(
                     songs = open.songs,
                     sortKey = "pl_" + open.id,
+                    extraHeader = { PlaylistSuggestions(open.id, open.songs, onPlay) },
                     currentId = currentId,
                     onPlay = onPlay,
                     emptyIcon = Icons.Rounded.LibraryMusic,
@@ -521,6 +535,7 @@ private fun PlaylistTab(
                     },
                     extraMenu = { s -> listOf("Hapus dari playlist" to { library.removeFromPlaylist(open.id, s.id) }) }
                 )
+              }
             }
         }
     }

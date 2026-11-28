@@ -9,7 +9,14 @@ plugins {
 }
 
 // Notifikasi push (FCM): aktif hanya kalau app/google-services.json ada (diisi dari Secret saat build). Tanpa itu app tetap terbangun.
+run {
+    // Kalau berkasnya belum ada tapi isinya tersedia lewat variabel lingkungan (Secret GitHub), tulis di sini.
+    val f = file("google-services.json")
+    val env = System.getenv("GOOGLE_SERVICES_JSON")
+    if (!f.exists() && !env.isNullOrBlank()) f.writeText(env)
+}
 if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
+else logger.warn("google-services.json tidak ada: notifikasi push tidak aktif di build ini")
 
 // Nilai khusus pemilik build (server, Google, alamat repo). Urutan: variabel lingkungan -> local.properties -> placeholder.
 // Tidak ada satu pun nilai asli yang ditulis di repo ini.
@@ -35,8 +42,8 @@ android {
         applicationId = "com.jimz.jimztune"
         minSdk = 26
         targetSdk = 35
-        versionCode = 68
-        versionName = "2.24.1"
+        versionCode = 69
+        versionName = "2.25.0"
 
         buildConfigField("String", "CLOUD_URL", buildSetting("CLOUD_URL", "GANTI_CLOUD_URL").asBuildConfigString())
         buildConfigField("String", "CLOUD_KEY", buildSetting("CLOUD_KEY", "GANTI_CLOUD_KEY").asBuildConfigString())

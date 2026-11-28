@@ -22,17 +22,17 @@ import java.io.File
  * Daftar hasil (satu per sumber) disimpan di perangkat; user bisa berganti sumber kalau yang pertama kurang pas.
  */
 class LyricsRepository(context: Context) {
-    private val dir = File(context.filesDir, "lyrics_v5").apply { mkdirs() }
+    private val dir = File(context.filesDir, "lyrics_v6").apply { mkdirs() }
 
     init {
         // Cache lama tidak membedakan "Nak" dan "Nak..." (dan versi v1 tidak diperiksa sama sekali), jadi bisa
         // berisi lirik lagu yang salah: buang semuanya supaya dicari ulang dengan pemeriksaan yang baru.
-        listOf("lyrics", "lyrics_v2", "lyrics_v3", "lyrics_v4").forEach { File(context.filesDir, it).takeIf { f -> f.exists() }?.deleteRecursively() }
+        listOf("lyrics", "lyrics_v2", "lyrics_v3", "lyrics_v4", "lyrics_v5").forEach { File(context.filesDir, it).takeIf { f -> f.exists() }?.deleteRecursively() }
     }
 
     private val providers: List<LyricsProvider> = listOf(
-        LrcLibProvider(),
         BetterLyricsProvider(),
+        LrcLibProvider(),
         KuGouProvider(),
         SimpMusicProvider(),
         NetEaseProvider(),
@@ -80,15 +80,15 @@ class LyricsRepository(context: Context) {
             var pending = providers.size
             val hardEnd = System.currentTimeMillis() + HARD_LIMIT_MS
             var graceEnd = Long.MAX_VALUE
-            var lrcLibDone = false
+            var primaryDone = false
             while (pending > 0) {
-                // LrcLib adalah sumber utama: jangan berhenti sebelum LrcLib selesai menjawab (atau batas waktu habis).
-                val limit = if (lrcLibDone || graceEnd != Long.MAX_VALUE) minOf(hardEnd, graceEnd) else hardEnd
+                // BetterLyrics adalah sumber utama: jangan berhenti sebelum BetterLyrics selesai menjawab (atau batas waktu habis).
+                val limit = if (primaryDone || graceEnd != Long.MAX_VALUE) minOf(hardEnd, graceEnd) else hardEnd
                 val remaining = limit - System.currentTimeMillis()
                 if (remaining <= 0) break
                 val (name, batch) = withTimeoutOrNull(remaining) { channel.receive() } ?: break
                 pending--
-                if (name == PRIMARY) lrcLibDone = true
+                if (name == PRIMARY) primaryDone = true
                 all += batch
                 val best = rank(all, query).firstOrNull()
                 if (best != null && graceEnd == Long.MAX_VALUE) {
@@ -116,7 +116,7 @@ class LyricsRepository(context: Context) {
             if (!LyricsMatch.plausible(c.lyrics, q.durationSec)) return@mapNotNull null
             // Sumber tanpa metadata: lirik tanpa waktu tidak bisa diverifikasi dengan durasi, jadi tidak dipakai.
             if (c.trust == Trust.BLIND && !c.lyrics.synced) return@mapNotNull null
-            // LrcLib (bersinkron) selalu diutamakan. Lirik biasa tanpa waktu kalah dari yang bersinkron mana pun.
+            // BetterLyrics (bersinkron) selalu diutamakan. Lirik biasa tanpa waktu kalah dari yang bersinkron mana pun.
             val bonus = when {
                 c.lyrics.source == PRIMARY && c.lyrics.synced -> 60.0
                 c.lyrics.wordSynced -> 14.0
@@ -192,6 +192,6 @@ class LyricsRepository(context: Context) {
         const val PROVIDER_TIMEOUT_MS = 7_000L
         const val HARD_LIMIT_MS = 8_000L
         const val MAX_OPTIONS = 5
-        const val PRIMARY = "LrcLib"
+        const val PRIMARY = "BetterLyrics"
     }
 }

@@ -1,9 +1,6 @@
 package com.jimz.jimztune.util
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
-import android.widget.Toast
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import com.jimz.jimztune.AppGraph
@@ -32,14 +29,9 @@ object PushRegistrar {
         }
     }
 
-    /** Info diagnosis singkat (Toast) tiap kali status berubah, supaya penyebab push tidak jalan terlihat tanpa log. */
+    /** Status terakhir disimpan diam-diam (tanpa tampilan) untuk diagnosis. */
     private fun report(c: Context, status: String) {
-        val p = prefs(c)
-        if (p.getString("status", null) == status) return
-        p.edit().putString("status", status).apply()
-        Handler(Looper.getMainLooper()).post {
-            try { Toast.makeText(c.applicationContext, "Push: $status", Toast.LENGTH_LONG).show() } catch (_: Exception) { }
-        }
+        prefs(c).edit().putString("status", status).apply()
     }
 
     /** Daftarkan kalau token / akun berubah. */

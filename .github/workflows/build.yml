@@ -34,7 +34,12 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json; fi
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            echo "google-services.json ditulis ($(wc -c < app/google-services.json) byte)"
+          else
+            echo "::warning::Secret GOOGLE_SERVICES_JSON kosong atau tidak terbaca. Push tidak akan aktif."
+          fi
 
       - name: Build debug APK
         env:
@@ -44,6 +49,7 @@ jobs:
           # Alamat domain halaman bagikan (Vercel), mis. https://aoto.domainmu.com . Isi di Settings -> Variables -> Actions.
           SHARE_BASE_URL: ${{ vars.SHARE_BASE_URL }}
           SOURCE_URL: ${{ github.server_url }}/${{ github.repository }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: gradle assembleDebug --stacktrace
 
       - uses: actions/upload-artifact@v4
