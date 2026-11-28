@@ -34,6 +34,18 @@ object PushRegistrar {
         prefs(c).edit().putString("status", status).apply()
     }
 
+    fun status(c: Context): String = prefs(c).getString("status", null) ?: "belum dicoba (buka aplikasi dalam keadaan login)"
+
+    /** Dipanggil dari Pengaturan: ulangi pendaftaran dari awal dan kembalikan hasilnya. */
+    suspend fun retry(c: Context): String {
+        val app = c.applicationContext
+        prefs(app).edit().remove("reg").remove("status").apply()
+        lastTry = 0L
+        if (!AppGraph.auth.isLoggedIn) return "belum login"
+        try { ensure(app) } catch (e: Throwable) { report(app, "error: ${e.javaClass.simpleName} ${e.message.orEmpty().take(80)}") }
+        return status(app)
+    }
+
     /** Daftarkan kalau token / akun berubah. */
     suspend fun ensure(context: Context) {
         val app = context.applicationContext

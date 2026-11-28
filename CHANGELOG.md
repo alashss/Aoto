@@ -1,3 +1,6 @@
+## 2.25.1
+- Pengaturan → Tentang & bantuan: baris "Notifikasi chat (push)" menampilkan status pendaftaran dan bisa didaftarkan ulang dengan satu ketukan.
+
 ## 2.25.0
 - Lirik: BetterLyrics sekarang sumber utama (lalu LrcLib dan lainnya); cache lirik lama dibuang agar urutan baru berlaku.
 - Saran lagu di playlist (seperti Spotify): muncul saat playlist dibuka, mengikuti artis lagu yang terakhir ditambahkan (playlist kosong: dari artis yang sering kamu dengar). Tombol + menambah, ketuk memutar, ikon segarkan untuk saran lain.
