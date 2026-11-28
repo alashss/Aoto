@@ -94,6 +94,8 @@ class MainActivity : ComponentActivity() {
         }
 
         handleLockIntent(intent)
+        handleChatIntent(intent)
+        scheduleChatCheck()
         // Aplikasi dibuka dari tautan jimztune://auth (login Google / konfirmasi email) saat belum berjalan.
         if (savedInstanceState == null) handleAuthIntent(intent)
 
@@ -138,7 +140,26 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleLockIntent(intent)
+        handleChatIntent(intent)
         handleAuthIntent(intent)
+    }
+
+    /** Notifikasi pesan teman diketuk: buka chat-nya langsung. */
+    private fun handleChatIntent(intent: Intent?) {
+        val uid = intent?.getStringExtra(com.jimz.jimztune.util.ChatNotifier.EXTRA_USER) ?: return
+        val name = intent.getStringExtra(com.jimz.jimztune.util.ChatNotifier.EXTRA_NAME).orEmpty()
+        intent.removeExtra(com.jimz.jimztune.util.ChatNotifier.EXTRA_USER)
+        com.jimz.jimztune.util.ChatNotifier.clear(this, uid)
+        com.jimz.jimztune.data.social.SocialNav.open(com.jimz.jimztune.data.social.SocialPage.Dm(uid, name, null))
+    }
+
+    private fun scheduleChatCheck() {
+        try {
+            val req = androidx.work.PeriodicWorkRequestBuilder<com.jimz.jimztune.util.ChatCheckWorker>(15, java.util.concurrent.TimeUnit.MINUTES)
+                .setConstraints(androidx.work.Constraints.Builder().setRequiredNetworkType(androidx.work.NetworkType.CONNECTED).build())
+                .build()
+            androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork("chat_check", androidx.work.ExistingPeriodicWorkPolicy.KEEP, req)
+        } catch (_: Exception) { }
     }
 
     private fun handleLockIntent(intent: Intent?) {

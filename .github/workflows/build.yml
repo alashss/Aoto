@@ -30,6 +30,12 @@ jobs:
         with:
           gradle-version: 8.9
 
+      - name: Tulis google-services.json (opsional, untuk notifikasi push)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json; fi
+
       - name: Build debug APK
         env:
           CLOUD_URL: ${{ secrets.CLOUD_URL }}

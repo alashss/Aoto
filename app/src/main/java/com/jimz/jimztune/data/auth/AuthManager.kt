@@ -265,6 +265,7 @@ class AuthManager(context: Context) {
         if (!AppGraph.account.blocked && !AppGraph.cloud.syncNow()) {
             return AuthResult(false, "Data belum bisa disimpan ke cloud. Sambungkan internet lalu coba keluar lagi.")
         }
+        try { com.jimz.jimztune.util.PushRegistrar.unregister(AppGraph.appContext) } catch (_: Throwable) { }
         CloudApi.json("POST", "/auth/v1/logout", token = token)
         clearSession()
         AppGraph.cloud.onLogout()

@@ -35,7 +35,7 @@ object Notifier {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             val n = NotificationCompat.Builder(app, CHANNEL)
-                .setSmallIcon(android.R.drawable.stat_notify_chat)
+                .setSmallIcon(com.jimz.jimztune.R.drawable.ic_stat_aoto)
                 .setContentTitle(title.ifBlank { "Pengumuman Aoto" })
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -72,7 +72,7 @@ object Notifier {
             val rp = java.text.NumberFormat.getInstance(java.util.Locale("id", "ID")).format(amount)
             val text = if (note.isBlank()) "$name berdonasi Rp $rp" else "$name berdonasi Rp $rp\n\"$note\""
             val n = NotificationCompat.Builder(app, DONATION_CHANNEL)
-                .setSmallIcon(android.R.drawable.stat_notify_chat)
+                .setSmallIcon(com.jimz.jimztune.R.drawable.ic_stat_aoto)
                 .setContentTitle("Donasi masuk")
                 .setContentText("$name • Rp $rp")
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))

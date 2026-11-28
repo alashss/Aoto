@@ -30,3 +30,6 @@ _private/
 .kotlin/
 *.hprof
 *.log
+
+# Konfigurasi Firebase pemilik build (diisi dari GitHub Secret GOOGLE_SERVICES_JSON)
+app/google-services.json

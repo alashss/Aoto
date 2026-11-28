@@ -192,7 +192,7 @@ class SearchViewModel : ViewModel() {
                 if (lyricMode) {
                     SearchUiState.Success(lyricResults(q), "Lirik")
                 } else {
-                    val result = if (type == SearchType.SONG) withArtistOnTop(q).let { r -> r.copy(items = promoteOfficial(r.items)) } else repo.search(q, type)
+                    val result = if (type == SearchType.SONG) withArtistOnTop(q) else repo.search(q, type)
                     // Siapkan alamat audio 3 hasil teratas: ketukan pertama langsung berbunyi.
                     result.items.filter { it.type == SearchType.SONG }.take(3).forEach { com.jimz.jimztune.data.stream.StreamResolver.prefetch(it.id) }
                     SearchUiState.Success(result.items, result.source)
@@ -211,17 +211,32 @@ class SearchViewModel : ViewModel() {
      */
     private suspend fun withArtistOnTop(q: String): com.jimz.jimztune.data.model.SearchResult = kotlinx.coroutines.coroutineScope {
         val songsD = async { repo.search(q, SearchType.SONG) }
+        // Sumber resmi (YouTube Music): rilis dari artisnya sendiri, diurutkan menurut kepopuleran.
+        val ytmD = async {
+            try {
+                kotlinx.coroutines.withTimeoutOrNull(3_000) { repo.search(q, SearchType.SONG, fastest = true).items }.orEmpty()
+            } catch (e: CancellationException) { throw e } catch (_: Exception) { emptyList() }
+        }
         val artistD = async {
             try {
                 kotlinx.coroutines.withTimeoutOrNull(3_000) { repo.search(q, SearchType.ARTIST, quick = true).items.firstOrNull { it.type == SearchType.ARTIST } }
             } catch (e: CancellationException) { throw e } catch (_: Exception) { null }
         }
-        val songs = songsD.await()
+        val songs0 = songsD.await()
+        val ytm = ytmD.await().filter { it.type == SearchType.SONG }
         val artist = artistD.await()
+        fun norm(x: String) = x.lowercase().filter { it.isLetterOrDigit() }
+        val qTokens = q.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).filter { it.length >= 2 }
+        // rilis resmi yang judul/artisnya cocok dengan ketikan naik ke depan; sisanya (hasil biasa) menyusul tanpa duplikat
+        val official = ytm.filter { it0 -> val hay = norm(it0.title + " " + it0.subtitle); qTokens.isNotEmpty() && qTokens.all { tk -> hay.contains(tk) } }
+        val seenKeys = HashSet<String>()
+        fun keyOf(it0: SearchItem) = norm(it0.title) + "|" + norm(it0.subtitle.substringBefore(" • ").substringBefore(","))
+        val songs = songs0.copy(items = (official + songs0.items).filter { seenKeys.add(it.id) && seenKeys.add(keyOf(it)) })
         fun n(x: String) = x.lowercase().filter { it.isLetterOrDigit() }
         val key = n(q); val an = artist?.let { n(it.title) }.orEmpty()
         // Tab Lagu hanya berisi lagu: artis (juga playlist/album) dibuang dari hasil.
-        val onlySongs = songs.copy(items = songs.items.filter { it.type == SearchType.SONG })
+        val onlySongs0 = songs.copy(items = songs.items.filter { it.type == SearchType.SONG })
+        val onlySongs = if (official.isEmpty()) onlySongs0.copy(items = promoteOfficial(onlySongs0.items)) else onlySongs0
         // Kartu artis hanya untuk artis yang benar-benar terkenal (>= 300 rb subscriber); artis kecil cukup di tab Artis.
         if (artist == null || key.length < 3 || an.length < 3 || !(an == key || an.startsWith(key) || key.startsWith(an)) || subscribersOf(artist.subtitle) < 300_000L) return@coroutineScope onlySongs
         val top = try {

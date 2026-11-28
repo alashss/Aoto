@@ -301,6 +301,9 @@ class PlaybackService : MediaSessionService() {
         })
 
         registerBtResume()
+        setMediaNotificationProvider(
+            androidx.media3.session.DefaultMediaNotificationProvider(this).also { it.setSmallIcon(com.jimz.jimztune.R.drawable.ic_stat_aoto) }
+        )
         session = MediaSession.Builder(this, player)
             .setCallback(object : MediaSession.Callback {
                 /**

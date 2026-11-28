@@ -8,6 +8,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Notifikasi push (FCM): aktif hanya kalau app/google-services.json ada (diisi dari Secret saat build). Tanpa itu app tetap terbangun.
+if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
+
 // Nilai khusus pemilik build (server, Google, alamat repo). Urutan: variabel lingkungan -> local.properties -> placeholder.
 // Tidak ada satu pun nilai asli yang ditulis di repo ini.
 val localProps = Properties().apply {
@@ -32,8 +35,8 @@ android {
         applicationId = "com.jimz.jimztune"
         minSdk = 26
         targetSdk = 35
-        versionCode = 64
-        versionName = "2.21.2"
+        versionCode = 67
+        versionName = "2.24.0"
 
         buildConfigField("String", "CLOUD_URL", buildSetting("CLOUD_URL", "GANTI_CLOUD_URL").asBuildConfigString())
         buildConfigField("String", "CLOUD_KEY", buildSetting("CLOUD_KEY", "GANTI_CLOUD_KEY").asBuildConfigString())
@@ -108,6 +111,10 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    // Push notifikasi chat (FCM)
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
+    implementation("com.google.firebase:firebase-messaging")
     implementation("androidx.navigation:navigation-compose:2.8.3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

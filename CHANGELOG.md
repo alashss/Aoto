@@ -1,3 +1,17 @@
+## 2.24.0
+- Notifikasi chat real-time lewat FCM: pesan teman masuk seketika walau aplikasi ditutup (server mengirim push saat pesan terkirim). Pengecekan berkala tetap jadi cadangan.
+- Token perangkat didaftarkan setelah login dan dihapus saat keluar akun. Tanpa google-services.json aplikasi tetap terbangun (tanpa push).
+
+## 2.23.0
+- Notifikasi pesan teman: muncul saat ada chat masuk (dicek tiap ±8 detik selama aplikasi hidup, dan tiap ±15 menit lewat WorkManager walau aplikasi ditutup); diketuk langsung membuka chat-nya.
+- Ikon notifikasi sekarang lambang AOTO (cincin + huruf A) untuk semua notifikasi, termasuk pemutar musik.
+
+## 2.22.0
+- Pencarian lagu: rilis resmi dari artisnya (YouTube Music, urut kepopuleran) digabung dan dinaikkan ke atas untuk hampir semua lagu, tanpa duplikat.
+- Intro Raja Iblis: kepala naga depan didesain ulang (surai api, kumis, tanduk beruas, sisik, mata menyala, rahang bergerak); api kini bola api besar dari mulut + gelombang kejut + bara, bukan memenuhi layar. Naga terbang tidak diubah.
+- Gelembung Raja Iblis: isi dalam dirancang ulang (obsidian bersisik, urat lava, api di dasar, bingkai emas); panjang naga dibatasi (maks 150dp) sehingga tidak ikut memanjang.
+- Plat nama: bingkai foto, tanduk & sayap tidak lagi terpotong batas plat.
+
 ## 2.21.2
 - Intro Raja Iblis: lambang kepala naga kini menghadap LURUS ke layar (tanduk, mata menyala, taring) dan menyemburkan api ke arah penonton; api memancar dari mulut dan menjalar dari seluruh tepi layar sampai layar terasa terbakar.
 

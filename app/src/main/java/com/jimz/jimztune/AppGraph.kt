@@ -32,6 +32,7 @@ object AppGraph {
         com.jimz.jimztune.data.stats.Streak.init(app)
         com.jimz.jimztune.island.IslandPrefs.init(app)
         com.jimz.jimztune.player.SponsorPrefs.init(app)
+        com.jimz.jimztune.util.ChatNotifier.startLoop()
     }
 
     val appContext: Context get() = app

@@ -144,6 +144,15 @@
             </intent-filter>
         </service>
 
+        <!-- Push chat dari FCM -->
+        <service
+            android:name=".util.PushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".player.PlaybackService"
             android:exported="true"

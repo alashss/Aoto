@@ -31,7 +31,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -392,7 +394,21 @@ fun PlateBox(plate: String?, modifier: Modifier = Modifier, shape: Shape = Round
         return
     }
     val t = rememberCosmeticClock()
-    Box(modifier.clip(shape).drawBehind { drawPlate(plate, t) }, content = content)
+    // Latar dipotong mengikuti bentuk, tetapi isinya (bingkai foto, tanduk, sayap) boleh meluber keluar tanpa terpotong.
+    Box(
+        modifier.drawBehind {
+            val outline = shape.createOutline(size, layoutDirection, this)
+            val clip = Path().apply {
+                when (outline) {
+                    is Outline.Rounded -> addRoundRect(outline.roundRect)
+                    is Outline.Rectangle -> addRect(outline.rect)
+                    is Outline.Generic -> addPath(outline.path)
+                }
+            }
+            clipPath(clip) { drawPlate(plate, t) }
+        },
+        content = content
+    )
 }
 
 private fun DrawScope.drawPlate(id: String, t: Float) {
@@ -765,28 +781,16 @@ private fun DemonBubble(shape: Shape, modifier: Modifier, spec: BubbleSpec, cont
         modifier.drawWithContent {
             drawContent()
             val u = 5.2.dp.toPx()
-            val len = (size.width * 0.9f).coerceAtLeast(70.dp.toPx())
+            // panjang naga dibatasi: bubble panjang tidak membuat naganya ikut memanjang
+            val len = (size.width * 0.9f).coerceIn(70.dp.toPx(), 150.dp.toPx())
             drawLyingDragon(size.width * 0.04f + 3f * u, perch.toPx(), len - 3f * u, u, t)
         }
     ) {
         Box(
             Modifier.padding(top = perch).clip(shape).drawWithContent {
-                val w = size.width
-                val h = size.height
-                drawRect(Brush.linearGradient(spec.colors, Offset(0f, 0f), Offset(w, h)))
-                // lava bergerak di dasar gelembung
-                for (k in 0 until 3) {
-                    val x = ((t * 1.2f + k / 3f) % 1f) * w
-                    drawCircle(Color(0xFFFF6A3D).copy(alpha = 0.16f), h * 0.9f, Offset(x, h * 1.1f))
-                }
-                val sx = ((t * 1.6f) % 1.6f - 0.3f) * w
-                drawRect(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.26f), Color.Transparent), startX = sx - w * 0.15f, endX = sx + w * 0.15f))
+                drawDemonBubbleInterior(t)
                 drawContent()
-                val b = spec.border
-                if (b != null) {
-                    val a = 0.45f + 0.55f * abs(sin(t * 2 * PI.toFloat()))
-                    drawRoundRect(b.copy(alpha = b.alpha * a), cornerRadius = androidx.compose.ui.geometry.CornerRadius(22.dp.toPx()), style = Stroke(1.6.dp.toPx()))
-                }
+                drawDemonBubbleBorder(t, 22.dp.toPx())
             },
             content = content
         )

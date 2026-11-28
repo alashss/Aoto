@@ -104,6 +104,11 @@ object SocialApi {
         return if (r.error != null) r.error else null
     }
 
+    suspend fun pushRegister(token: String): String? =
+        rpcDo("push_register", JSONObject().put("p_token", token).put("p_platform", "android"))
+
+    suspend fun pushUnregister(token: String): String? = rpcDo("push_unregister", JSONObject().put("p_token", token))
+
     private fun <T> Res<String>.parse(block: (String) -> T): Res<T> {
         val text = value ?: return Res(null, error ?: "Gagal memuat")
         return try {
