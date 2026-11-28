@@ -1,3 +1,6 @@
+## 2.24.1
+- Diagnosis push: muncul pesan singkat ("Push: ...") yang menunjukkan status pendaftaran notifikasi (aktif / Firebase tidak ikut build / gagal daftar).
+
 ## 2.24.0
 - Notifikasi chat real-time lewat FCM: pesan teman masuk seketika walau aplikasi ditutup (server mengirim push saat pesan terkirim). Pengecekan berkala tetap jadi cadangan.
 - Token perangkat didaftarkan setelah login dan dihapus saat keluar akun. Tanpa google-services.json aplikasi tetap terbangun (tanpa push).
