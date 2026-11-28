@@ -34,6 +34,17 @@ jobs:
             echo "::warning::KEYSTORE_BASE64 belum diisi. APK memakai kunci debug acak, jadi TIDAK bisa dipasang sebagai pembaruan di atas versi sebelumnya."
           fi
 
+      - name: Tulis google-services.json (opsional, untuk notifikasi push)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            echo "google-services.json ditulis ($(wc -c < app/google-services.json) byte)"
+          else
+            echo "::warning::Secret GOOGLE_SERVICES_JSON kosong atau tidak terbaca. Push tidak akan aktif."
+          fi
+
       - name: Build APK rilis
         env:
           CLOUD_URL: ${{ secrets.CLOUD_URL }}
