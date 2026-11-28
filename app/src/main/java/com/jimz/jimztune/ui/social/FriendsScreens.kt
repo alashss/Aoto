@@ -390,9 +390,9 @@ fun InboxScreen(onBack: () -> Unit) {
                 scope.launch {
                     val raw = vn.note.orEmpty().ifBlank { vn.noteLyric ?: "" }
                     val q = raw.split('\n').map { it.replace(Regex("^\\d+\\|"), "").trim() }.filter { it.isNotBlank() }.joinToString(" / ").ifBlank { vn.noteSong.orEmpty() }.take(80)
-                    val song = vn.noteSong.orEmpty().replace('”', '\'').take(50)
-                    val qs = q.replace('”', '\'')
-                    val body = "💬 “$qs”" + (if (song.isNotBlank()) " ♪ $song" else "") + "\n$reply"
+                    val song = vn.noteSong.orEmpty().replace('‖', ' ').take(60)
+                    val qs = q.replace('”', '\'').replace('‖', ' ')
+                    val body = "💬 “$qs”‖$song‖$reply"
                     SocialApi.dmSend(vn.userId, body.take(500))
                     viewNote = null
                     SocialNav.open(SocialPage.Dm(vn.userId, vn.name, vn.avatar))

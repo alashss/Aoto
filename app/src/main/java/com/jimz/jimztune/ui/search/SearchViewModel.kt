@@ -192,7 +192,7 @@ class SearchViewModel : ViewModel() {
                 if (lyricMode) {
                     SearchUiState.Success(lyricResults(q), "Lirik")
                 } else {
-                    val result = repo.search(q, type)
+                    val result = if (type == SearchType.SONG) withArtistOnTop(q) else repo.search(q, type)
                     // Siapkan alamat audio 3 hasil teratas: ketukan pertama langsung berbunyi.
                     result.items.filter { it.type == SearchType.SONG }.take(3).forEach { com.jimz.jimztune.data.stream.StreamResolver.prefetch(it.id) }
                     SearchUiState.Success(result.items, result.source)
@@ -203,6 +203,33 @@ class SearchViewModel : ViewModel() {
                 SearchUiState.Error("Semua sumber sedang bermasalah. Coba lagi sebentar lagi.")
             }
         }
+    }
+
+    /**
+     * Kalau ketikan cocok dengan nama artis: kartu artis di paling atas, lalu lagu populernya dari halaman artis,
+     * baru hasil pencarian biasa (lagu yang memang dibawakan artis itu didahulukan dari cover / lagu orang lain).
+     */
+    private suspend fun withArtistOnTop(q: String): com.jimz.jimztune.data.model.SearchResult = kotlinx.coroutines.coroutineScope {
+        val songsD = async { repo.search(q, SearchType.SONG) }
+        val artistD = async {
+            try {
+                kotlinx.coroutines.withTimeoutOrNull(3_000) { repo.search(q, SearchType.ARTIST, quick = true).items.firstOrNull { it.type == SearchType.ARTIST } }
+            } catch (e: CancellationException) { throw e } catch (_: Exception) { null }
+        }
+        val songs = songsD.await()
+        val artist = artistD.await()
+        fun n(x: String) = x.lowercase().filter { it.isLetterOrDigit() }
+        val key = n(q); val an = artist?.let { n(it.title) }.orEmpty()
+        if (artist == null || key.length < 3 || an.length < 3 || !(an == key || an.startsWith(key) || key.startsWith(an))) return@coroutineScope songs
+        val top = try {
+            kotlinx.coroutines.withTimeoutOrNull(3_500) { AppGraph.detail.artist(artist.id).topSongs }.orEmpty()
+        } catch (e: CancellationException) { throw e } catch (_: Exception) { emptyList() }
+        val rest = songs.items.filter { it.type == SearchType.SONG }
+        val (own, other) = rest.partition { n(it.subtitle.substringBefore(" • ")).contains(an) }
+        val seen = HashSet<String>()
+        val merged = (listOf(artist) + top.filter { it.type == SearchType.SONG } + own + other + songs.items.filter { it.type != SearchType.SONG })
+            .filter { seen.add(it.id) }
+        songs.copy(items = merged)
     }
 
     /** Lagu yang liriknya mengandung [q]: cari di NetEase, cocokkan ke lagu yang bisa diputar, lalu lengkapi dengan pencarian biasa. */

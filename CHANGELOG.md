@@ -1,3 +1,9 @@
+## 2.20.0
+- Pencarian lagu: kalau ketikan cocok dengan nama artis, kartu artis muncul paling atas, diikuti lagu aslinya; lagu yang dibawakan artis itu didahulukan dari cover.
+- Chat teman: geser pesan ke kanan untuk membalas (kartu kutipan ala WA). Balasan catatan tampil rapi sebagai kartu, tanpa teks aneh.
+- Indikator mengetik real-time (hilang seketika saat kolom kosong / pesan terkirim); chat teman diperbarui tiap 1,5 detik.
+- Server (tahap 38).
+
 ## 2.19.2
 - Saat memilih lagu untuk catatan, kartu mini tidak muncul lagi dan antreanmu dipulihkan setelah selesai.
 - Lagu & lirik hasil pencarian catatan diprefetch supaya mulai lebih cepat.

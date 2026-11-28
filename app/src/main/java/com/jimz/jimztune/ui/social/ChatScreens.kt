@@ -45,6 +45,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.mutableStateOf
@@ -125,6 +129,7 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
     var online by remember { mutableStateOf<Boolean?>(null) }
     var lastSeen by remember { mutableStateOf<String?>(null) }
     var friendTyping by remember { mutableStateOf(false) }
+    var replyTo by remember { mutableStateOf<DmMessage?>(null) }
     val listState = rememberLazyListState()
 
     val me = AppGraph.auth.session?.userId
@@ -138,12 +143,20 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
             }
             if (msgs == null) msgs = emptyList()
             SocialApi.profile(userId).value?.let { online = it.online; lastSeen = it.lastSeen }
-            delay(3_000)
+            delay(1_500)
         }
     }
-    LaunchedEffect(userId) { while (true) { friendTyping = SocialApi.dmTyping(userId); delay(1_500) } }
-    // kabari teman saat kita mengetik (maks sekali per 2,5 detik)
-    LaunchedEffect(text) { if (text.isNotBlank()) { SocialApi.dmTypingSet(userId); delay(2_500) } }
+    LaunchedEffect(userId) { while (true) { friendTyping = SocialApi.dmTyping(userId); delay(700) } }
+    // pesan baru dari teman = dia sudah selesai mengetik
+    LaunchedEffect(msgs?.lastOrNull()?.id) { if (msgs?.lastOrNull()?.mine == false) friendTyping = false }
+    // kabari teman seketika saat mulai mengetik, lalu tiap 2 detik selama masih mengetik; berhenti saat kolom kosong
+    var typingSentAt by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(text) {
+        if (text.isNotBlank()) {
+            val now = System.currentTimeMillis()
+            if (now - typingSentAt > 2_000L) { typingSentAt = now; SocialApi.dmTypingSet(userId, true) }
+        } else if (typingSentAt != 0L) { typingSentAt = 0L; SocialApi.dmTypingSet(userId, false) }
+    }
     LaunchedEffect(msgs?.size, friendTyping) {
         val n = (msgs?.size ?: 0) + if (friendTyping) 1 else 0
         if (n > 0) listState.animateScrollToItem(n)
@@ -191,11 +204,40 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
                         dayStamp(t), color = Color.White.copy(alpha = 0.45f), fontSize = 11.sp, textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 8.dp)
                     )
-                    Row(Modifier.fillMaxWidth().padding(top = if (showTime) 0.dp else gap), verticalAlignment = Alignment.Bottom) {
+                    val sw = remember(m.id) { Animatable(0f) }
+                    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+                    val maxSwipe = with(androidx.compose.ui.platform.LocalDensity.current) { 84.dp.toPx() }
+                    Box(Modifier.fillMaxWidth()) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.Reply, "Balas", tint = Color.White,
+                            modifier = Modifier.align(Alignment.CenterStart).padding(start = 6.dp).size(26.dp)
+                                .graphicsLayer { alpha = (sw.value / maxSwipe).coerceIn(0f, 1f); val k = 0.5f + 0.5f * (sw.value / maxSwipe).coerceIn(0f, 1f); scaleX = k; scaleY = k }
+                        )
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = if (showTime) 0.dp else gap)
+                            .graphicsLayer { translationX = sw.value }
+                            .pointerInput(m.id) {
+                                var armed = false
+                                detectHorizontalDragGestures(
+                                    onDragStart = { armed = false },
+                                    onDragEnd = { if (armed) replyTo = m; scope.launch { sw.animateTo(0f, androidx.compose.animation.core.spring(0.7f, 500f)) } },
+                                    onDragCancel = { scope.launch { sw.animateTo(0f) } },
+                                    onHorizontalDrag = { change, d ->
+                                        change.consume()
+                                        val nv = (sw.value + d * 0.6f).coerceIn(0f, maxSwipe)
+                                        if (!armed && nv >= maxSwipe * 0.8f) { armed = true; haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress) }
+                                        else if (armed && nv < maxSwipe * 0.6f) armed = false
+                                        scope.launch { sw.snapTo(nv) }
+                                    }
+                                )
+                            },
+                        verticalAlignment = Alignment.Bottom
+                    ) {
                         if (!m.mine) {
                             Box(Modifier.width(32.dp)) { if (lastOfGroup) AvatarWithDot(avatar, name, 26.dp, null, userId = userId) }
                         }
                         Bubble(m, firstOfGroup, lastOfGroup, isLast = next == null, modifier = Modifier.weight(1f), bubbleId = CosmeticsStore.map[if (m.mine) me ?: userId else userId]?.bubble)
+                    }
                     }
                 }
                 if (friendTyping) item(key = "typing") {
@@ -210,14 +252,31 @@ fun DmScreen(userId: String, name: String, avatar: String?, onBack: () -> Unit) 
         fun send(body: String) {
             scope.launch {
                 sending = true
-                val err = SocialApi.dmSend(userId, body)
+                val rt = replyTo
+                val full = if (rt != null && body != "❤️") {
+                    val q = cleanQuote(parseEmbed(rt.body)?.reply ?: rt.body).replace('”', '\'').take(60)
+                    "↩ “$q”‖${if (rt.mine) "Kamu" else name}‖$body"
+                } else body
+                val err = SocialApi.dmSend(userId, full.take(500))
                 error = err
                 if (err == null) {
-                    text = ""
+                    text = ""; replyTo = null
                     SocialApi.dmThread(userId).value?.let { msgs = it }
                 }
                 sending = false
             }
+        }
+        val rt0 = replyTo
+        if (rt0 != null) Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xFF1C1C1C)).height(androidx.compose.foundation.layout.IntrinsicSize.Min),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(Modifier.width(4.dp).fillMaxHeight().background(LocalCoverTheme.current.accent))
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Text("Membalas ${if (rt0.mine) "dirimu" else name}", color = LocalCoverTheme.current.accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(cleanQuote(parseEmbed(rt0.body)?.reply ?: rt0.body), color = Color.White.copy(alpha = 0.75f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Text("✕", color = Color.White.copy(alpha = 0.6f), modifier = Modifier.clickable { replyTo = null }.padding(12.dp))
         }
         Composer(text, { text = it }, "Kirim pesan…", true, 500, sending, onSend = { send(text.trim()) }, onHeart = { send("❤️") })
     }
@@ -228,16 +287,11 @@ private fun Bubble(m: DmMessage, first: Boolean, last: Boolean, isLast: Boolean,
     val accent = LocalCoverTheme.current.accent
     val mine = m.mine
     val big = m.body == "❤️"
-    var quote: String? = null
-    var quoteSong: String? = null
-    var body = m.body
-    if (body.startsWith("💬 “") && body.contains("”")) {
-        val head = body.substringAfter("💬 “").substringBefore("\n")
-        val q = head.substringBeforeLast("”")
-        quoteSong = head.substringAfterLast("”", "").substringAfter("♪", "").trim().ifBlank { null }
-        quote = q.split('\n', '/').joinToString(" / ") { it.replace(Regex("^\\s*\\d+\\|"), "").trim() }.trim(' ', '/').ifBlank { null }
-        body = body.substringAfter("\n", body)
-    }
+    val emb = parseEmbed(m.body)
+    val quote = emb?.quote
+    val quoteLabel = emb?.label
+    val body = emb?.reply ?: m.body
+    val isNote = emb?.note == true
     val pop = remember(m.id) { androidx.compose.animation.core.Animatable(if (isLast && System.currentTimeMillis() - (TimeUtil.parse(m.createdAt) ?: 0L) < 8_000L) 0f else 1f) }
     LaunchedEffect(m.id) { if (pop.value < 1f) pop.animateTo(1f, androidx.compose.animation.core.spring(0.6f, 380f)) }
     Column(
@@ -254,9 +308,12 @@ private fun Bubble(m: DmMessage, first: Boolean, last: Boolean, isLast: Boolean,
             ) {
                 Box(Modifier.width(4.dp).fillMaxHeight().background(accent))
                 Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                    Text(if (mine) "Kamu membalas catatan" else "Membalas catatanmu", color = accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    Text("“$quote”", color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
-                    if (quoteSong != null) Text("♪ $quoteSong", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+                    Text(
+                        if (isNote) (if (mine) "Kamu membalas catatan" else "Membalas catatanmu") else (quoteLabel ?: "Balasan"),
+                        color = accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                    Text(if (isNote) "“$quote”" else quote, color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+                    if (isNote && quoteLabel != null) Text("♪ $quoteLabel", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
                 }
             }
         }
@@ -540,4 +597,34 @@ private fun TypingDots() {
             Box(Modifier.size(8.dp).graphicsLayer { translationY = -v * 6.dp.toPx() }.clip(CircleShape).background(Color.White.copy(alpha = 0.45f + 0.45f * v)))
         }
     }
+}
+
+
+private class Embed(val note: Boolean, val quote: String, val label: String?, val reply: String)
+
+/** Hapus sisa kode klip "12345|" dari teks kutipan. */
+private fun cleanQuote(t: String): String =
+    t.replace(Regex("\\s*\\d{2,7}\\|\\s*"), " / ").trim(' ', '/').ifBlank { t.trim() }
+
+/** Format baru: `💬 “kutipan”‖label‖balasan` (server merapatkan baris baru jadi spasi, jadi pemisahnya ‖). Format lama tetap terbaca. */
+private fun parseEmbed(b: String): Embed? {
+    val note = b.startsWith("💬 “")
+    if (!note && !b.startsWith("↩ “")) return null
+    val rest = b.substring(b.indexOf('“') + 1)
+    val sep = rest.indexOf("”‖")
+    if (sep >= 0) {
+        val after = rest.substring(sep + 2)
+        val label = after.substringBefore("‖").trim().ifBlank { null }
+        val reply = if (after.contains("‖")) after.substringAfter("‖") else ""
+        return Embed(note, cleanQuote(rest.substring(0, sep)), label, reply.trim())
+    }
+    val end = rest.indexOf('”')
+    if (end < 0) return null
+    val q = cleanQuote(rest.substring(0, end))
+    var reply = rest.substring(end + 1).trim()
+    var label: String? = null
+    if (reply.startsWith("♪")) { // bentuk 2.19.0 yang sudah terlanjur terkirim: judul & balasan tak bisa dipisah dengan pasti
+        label = null
+    }
+    return Embed(note, q, label, reply)
 }
