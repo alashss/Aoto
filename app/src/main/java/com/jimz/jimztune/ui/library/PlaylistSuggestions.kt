@@ -1,10 +1,7 @@
 package com.jimz.jimztune.ui.library
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +15,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -133,50 +132,54 @@ fun PlaylistSuggestions(
     }
     if (!loading && shown.isEmpty()) return
 
-    Column(modifier = modifier.fillMaxWidth().padding(top = 8.dp, bottom = 6.dp)) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Saran lagu", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(
-                    if (seeds.isEmpty()) "Dari yang sering kamu dengar" else "Mirip " + seeds.take(2).joinToString(" & "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
+    Column(modifier = modifier.fillMaxWidth().padding(top = 18.dp)) {
+        // Garis pembatas: di atasnya isi playlist, di bawahnya hanya saran (belum masuk playlist).
+        HorizontalDivider(Modifier.padding(horizontal = 20.dp), thickness = 1.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f))
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                .padding(vertical = 10.dp)
+        ) {
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.AutoAwesome, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Saran lagu", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        (if (seeds.isEmpty()) "Dari yang sering kamu dengar" else "Mirip " + seeds.take(2).joinToString(" & ")) + " · belum ada di playlist",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (loading) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(20.dp), strokeWidth = 2.dp)
+                else Box(Modifier.size(40.dp).clip(CircleShape).clickable { page++ }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Refresh, "Saran lain", modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-            if (loading) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-            else Box(
-                Modifier.size(36.dp).clip(CircleShape).clickable { page++ },
-                contentAlignment = Alignment.Center
-            ) { Icon(Icons.Rounded.Refresh, "Saran lain", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
-        shown.forEachIndexed { idx, s ->
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
+            shown.forEachIndexed { idx, s ->
+                if (idx > 0) HorizontalDivider(Modifier.padding(start = 74.dp, end = 16.dp), thickness = 1.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f))
                 Row(
-                    Modifier.fillMaxWidth().clickable { onPlay(shown, idx) }.padding(horizontal = 20.dp, vertical = 6.dp),
+                    Modifier.fillMaxWidth().clickable { onPlay(shown, idx) }.padding(start = 16.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     AsyncImage(
                         s.thumbnailUrl, null, contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                        modifier = Modifier.size(46.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
                     )
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(s.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(s.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(s.subtitle.substringBefore(" • "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
+                    Spacer(Modifier.width(8.dp))
                     Box(
-                        Modifier.size(38.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
-                            .clickable {
-                                if (AppGraph.library.addToPlaylist(playlistId, s)) added = added + s.id
-                            },
+                        Modifier.size(36.dp).clip(CircleShape)
+                            .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f), CircleShape)
+                            .clickable { if (AppGraph.library.addToPlaylist(playlistId, s)) added = added + s.id },
                         contentAlignment = Alignment.Center
-                    ) { Icon(Icons.Rounded.Add, "Tambah ke playlist", modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary) }
+                    ) { Icon(Icons.Rounded.Add, "Tambah ke playlist", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
                 }
             }
         }

@@ -256,6 +256,7 @@ private fun SongList(
     emptyTitle: String,
     emptyBody: String,
     extraHeader: (@Composable () -> Unit)? = null,
+    extraFooter: (@Composable () -> Unit)? = null,
     barEntries: List<com.jimz.jimztune.ui.components.BarEntry> = emptyList(),
     sortKey: String? = null,
     extraMenu: (SearchItem) -> List<Pair<String, () -> Unit>> = { emptyList() }
@@ -284,7 +285,7 @@ private fun SongList(
         extraHeader?.invoke()
     }
     if (LibraryView.grid) {
-        SongGrid(shown, currentId, onPlay, LocalOverlayPadding.current, listHeader)
+        SongGrid(shown, currentId, onPlay, LocalOverlayPadding.current, listHeader, extraFooter)
         return
     }
     LazyColumn(contentPadding = PaddingValues(bottom = LocalOverlayPadding.current)) {
@@ -298,6 +299,7 @@ private fun SongList(
                 extraMenu = extraMenu(song)
             )
         }
+        if (extraFooter != null) item { extraFooter() }
     }
 }
 
@@ -511,7 +513,7 @@ private fun PlaylistTab(
                 SongList(
                     songs = open.songs,
                     sortKey = "pl_" + open.id,
-                    extraHeader = { PlaylistSuggestions(open.id, open.songs, onPlay) },
+                    extraFooter = { PlaylistSuggestions(open.id, open.songs, onPlay) },
                     currentId = currentId,
                     onPlay = onPlay,
                     emptyIcon = Icons.Rounded.LibraryMusic,

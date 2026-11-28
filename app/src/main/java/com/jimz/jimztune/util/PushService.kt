@@ -23,6 +23,7 @@ class PushService : FirebaseMessagingService() {
         val sender = d["sender"].orEmpty()
         if (sender.isBlank()) return
         AppGraph.init(applicationContext)
+        scope.launch { try { com.jimz.jimztune.data.social.SocialApi.dmMarkDelivered() } catch (_: Exception) { } }
         // Aplikasi sedang terlihat: lencana di dalam aplikasi sudah cukup.
         if (AppGraph.appVisible) return
         ChatNotifier.showPush(applicationContext, sender, d["name"].orEmpty().ifBlank { "Pesan baru" }, d["body"].orEmpty().ifBlank { "Pesan baru" })

@@ -76,6 +76,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
     var p by remember { mutableStateOf<PrivacySettings?>(null) }
     var blocked by remember { mutableStateOf<List<BlockedRow>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
+    var receipts by remember { mutableStateOf(true) }
     val me = AppGraph.auth.session?.userId
     val profile = AppGraph.profile.profile
 
@@ -84,6 +85,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         val r = SocialApi.privacy()
         if (r.value != null) p = r.value else error = r.error
         blocked = SocialApi.blocked().value ?: emptyList()
+        receipts = SocialApi.readReceipts()
     }
 
     fun save(n: PrivacySettings) {
@@ -147,6 +149,14 @@ fun PrivacyScreen(onBack: () -> Unit) {
                 SwitchRow(Icons.Rounded.GraphicEq, "Sedang mendengarkan", "Teman melihat lagu yang kamu putar", s.now, accent) { save(s.copy(now = it)) }
                 SwitchRow(Icons.Rounded.Sensors, "Status online", "Titik hijau & terakhir aktif", s.online, accent) { save(s.copy(online = it)) }
                 SwitchRow(Icons.Rounded.Star, "Jumlah teman", null, s.friends, accent) { save(s.copy(friends = it)) }
+            }
+
+            Label("Chat")
+            Card {
+                SwitchRow(Icons.Rounded.Sensors, "Tanda dibaca", "Centang biru. Kalau dimatikan, kamu juga tidak bisa melihat tanda dibaca dari teman", receipts, accent) {
+                    receipts = it
+                    scope.launch { error = SocialApi.setReadReceipts(it) }
+                }
             }
 
             Label("Pertemanan")

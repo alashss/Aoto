@@ -331,10 +331,14 @@ private fun Bubble(m: DmMessage, first: Boolean, last: Boolean, isLast: Boolean,
                 Text(body, color = bubbleTextColor(bubbleId) ?: Color.White, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
             }
         }
-        if (last || isLast) Text(
-            hourText(m.createdAt) + if (mine && m.read && isLast) "  ·  Dilihat" else "",
-            color = Color.White.copy(alpha = 0.42f), fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-        )
+        if (last || isLast) Row(Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(hourText(m.createdAt), color = Color.White.copy(alpha = 0.42f), fontSize = 10.sp)
+            if (mine) Text(
+                if (m.read || m.delivered) "  ✓✓" else "  ✓",
+                color = if (m.read) Color(0xFF4FC3F7) else Color.White.copy(alpha = 0.42f),
+                fontSize = 11.sp, fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 

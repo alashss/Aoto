@@ -107,7 +107,8 @@ fun SongGrid(
     currentId: String?,
     onPlay: (List<SearchItem>, Int) -> Unit,
     bottomPadding: androidx.compose.ui.unit.Dp,
-    header: @Composable () -> Unit = {}
+    header: @Composable () -> Unit = {},
+    footer: (@Composable () -> Unit)? = null
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
@@ -120,6 +121,7 @@ fun SongGrid(
         itemsIndexed(songs, key = { _, s -> s.id }) { i, s ->
             SongGridTile(s, s.id == currentId, onClick = { onPlay(songs, i) })
         }
+        if (footer != null) item(span = { GridItemSpan(maxLineSpan) }) { FullBleed { footer() } }
     }
 }
 

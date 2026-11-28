@@ -57,6 +57,7 @@ object ChatNotifier {
         val app = context.applicationContext
         if (!AppGraph.auth.isLoggedIn) return
         val rows = SocialApi.friends().value ?: return
+        if (rows.any { it.unread > 0 }) try { SocialApi.dmMarkDelivered() } catch (_: Exception) { }
         val prefs = app.getSharedPreferences("chat_notified", Context.MODE_PRIVATE)
         val seeded = prefs.getBoolean("seeded", false)
         val ed = prefs.edit()

@@ -1,3 +1,7 @@
+## 2.27.0
+- Centang pesan seperti WhatsApp: ✓ terkirim, ✓✓ sampai di HP teman, ✓✓ biru dibaca. Privasi → Chat → "Tanda dibaca" bisa dimatikan (kalau dimatikan, kamu juga tidak melihat tanda dibaca teman). Jalankan tahap42_centang.sql.
+- Saran lagu playlist dirapikan: dipindah ke bawah daftar lagu, dipisah garis pembatas dan kartu tersendiri ("belum ada di playlist"), baris rapi dengan tombol + berbingkai.
+
 ## 2.26.0
 - Notifikasi chat bisa dibalas langsung dari notifikasi (seperti WhatsApp) dan punya tombol "Tandai dibaca"; tampilan percakapan, balasanmu muncul di notifikasi.
 - Status online teman lebih real-time: detak tiap 20 detik, jendela online 50 detik, dan offline seketika saat aplikasi ditutup / musik berhenti (jalankan tahap41_presence.sql).

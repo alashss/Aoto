@@ -59,7 +59,7 @@ data class SearchRow(val userId: String, val name: String, val username: String?
 
 data class BlockedRow(val userId: String, val name: String, val username: String?, val avatar: String?)
 
-data class DmMessage(val id: Long, val mine: Boolean, val body: String, val createdAt: String, val read: Boolean)
+data class DmMessage(val id: Long, val mine: Boolean, val body: String, val createdAt: String, val read: Boolean, val delivered: Boolean = false)
 
 data class ChatMessage(
     val id: Long, val userId: String, val name: String, val username: String?, val avatar: String?,
@@ -281,7 +281,7 @@ object SocialApi {
         rpc("dm_thread", JSONObject().put("p_with", userId).put("p_limit", 100)).parse { text ->
             val a = JSONArray(text)
             (0 until a.length()).mapNotNull { a.optJSONObject(it) }.map {
-                DmMessage(it.optLong("id"), it.optBoolean("mine"), it.optString("body"), it.optString("created_at"), it.optBoolean("read"))
+                DmMessage(it.optLong("id"), it.optBoolean("mine"), it.optString("body"), it.optString("created_at"), it.optBoolean("read"), it.optBoolean("delivered"))
             }
         }
 
@@ -292,6 +292,12 @@ object SocialApi {
 
     suspend fun dmTyping(userId: String): Boolean =
         rpc("dm_typing_get", JSONObject().put("p_with", userId)).value?.trim() == "true"
+
+    suspend fun dmMarkDelivered() { rpc("dm_mark_delivered") }
+
+    suspend fun readReceipts(): Boolean = try { rpc("read_receipts_get").value?.trim() != "false" } catch (_: Exception) { true }
+
+    suspend fun setReadReceipts(on: Boolean): String? = rpcDo("read_receipts_set", JSONObject().put("p_on", on))
 
     suspend fun dmMarkRead(userId: String) { rpc("dm_mark_read", JSONObject().put("p_with", userId)) }
 
